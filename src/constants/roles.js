@@ -6,6 +6,12 @@ export const USER_ROLES = [
   { label: 'Customer', value: 'CUSTOMER' },
 ];
 
+export const CUSTOMER_ROLE = 'CUSTOMER';
+
+export const DASHBOARD_ALLOWED_ROLES = USER_ROLES.filter(
+  (role) => role.value !== CUSTOMER_ROLE,
+).map((role) => role.value);
+
 export const roleLabels = USER_ROLES.reduce((acc, role) => {
   acc[role.value] = role.label;
   return acc;

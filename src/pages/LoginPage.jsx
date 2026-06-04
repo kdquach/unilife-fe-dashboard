@@ -1,22 +1,27 @@
 import React from "react";
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input, Typography, message } from "antd";
-import { useNavigate } from "react-router-dom";
+import { Button, Card, Checkbox, Form, Input, Typography, message } from "antd";
+import { useLocation, useNavigate } from "react-router-dom";
 import logoLg from "../assets/logo-lg.png";
 import { useAuth } from "../features/auth/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [form] = Form.useForm();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleFinish = async (values) => {
+    setIsSubmitting(true);
     try {
       await login(values);
       message.success("Login successfully");
-      navigate("/");
+      navigate(location.state?.from?.pathname || "/", { replace: true });
     } catch (error) {
       message.error(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -31,8 +36,8 @@ export default function LoginPage() {
             Manage your university canteen smarter.
           </Typography.Title>
           <Typography.Paragraph className="!mt-5 !text-lg !text-slate-500">
-            Admin dashboard for Sprint 1 user management: view users, filter
-            roles, update staff/customer status and maintain account data.
+            Admin dashboard for user management: view users, filter roles,
+            update staff/customer status and maintain account data.
           </Typography.Paragraph>
         </div>
       </div>
@@ -52,7 +57,7 @@ export default function LoginPage() {
               Admin Login
             </Typography.Title>
             <Typography.Text className="text-slate-500">
-              Use mock account or connect to backend API later.
+              Sign in with an admin, manager, or staff account.
             </Typography.Text>
           </div>
 
@@ -62,6 +67,7 @@ export default function LoginPage() {
             initialValues={{
               email: "admin@unilife.local",
               password: "Password@123",
+              rememberMe: true,
             }}
             onFinish={handleFinish}
           >
@@ -87,7 +93,16 @@ export default function LoginPage() {
                 placeholder="Password@123"
               />
             </Form.Item>
-            <Button htmlType="submit" type="primary" size="large" block>
+            <Form.Item name="rememberMe" valuePropName="checked" className="!mb-6">
+              <Checkbox>Remember me</Checkbox>
+            </Form.Item>
+            <Button
+              htmlType="submit"
+              type="primary"
+              size="large"
+              loading={isSubmitting}
+              block
+            >
               Login to Dashboard
             </Button>
           </Form>
