@@ -1,6 +1,6 @@
 import apiClient from '../../services/apiClient';
 
-const useMock = import.meta.env.VITE_USE_MOCK !== 'false';
+const useMock = import.meta.env.VITE_USE_MOCK === 'true';
 
 export const authService = {
   async login({ email, password }) {
@@ -20,9 +20,16 @@ export const authService = {
     };
   },
 
-  logout() {
-    localStorage.removeItem('unilife_access_token');
-    localStorage.removeItem('unilife_refresh_token');
-    localStorage.removeItem('unilife_admin_user');
+  async logout() {
+    const token = localStorage.getItem('unilife_access_token');
+    try {
+      if (token && !useMock) await apiClient.post('/auth/logout');
+    } catch {
+      // Local session cleanup should still happen if the server is unavailable.
+    } finally {
+      localStorage.removeItem('unilife_access_token');
+      localStorage.removeItem('unilife_refresh_token');
+      localStorage.removeItem('unilife_admin_user');
+    }
   },
 };
