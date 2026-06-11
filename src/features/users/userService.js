@@ -21,16 +21,34 @@ const filterUsers = ({ keyword = '', role, status } = {}) => {
 
 export const userService = {
   async getUsers(params = {}) {
-    if (!useMock) return apiClient.get('/users', { params });
-    const page = Number(params.page || 1);
-    const limit = Number(params.limit || 10);
-    const filtered = filterUsers(params);
-    const start = (page - 1) * limit;
-    return delay({
-      data: filtered.slice(start, start + limit),
-      pagination: { page, limit, total: filtered.length },
+  if (!useMock) {
+    const response = await apiClient.get('/users', {
+      params,
     });
-  },
+
+    console.log("AXIOS RESPONSE:", response);
+    console.log("RESPONSE DATA:", response.data);
+    return {
+      data: response.data.items,
+      pagination: response.data.pagination,
+    };
+  }
+
+  const page = Number(params.page || 1);
+  const limit = Number(params.limit || 10);
+
+  const filtered = filterUsers(params);
+  const start = (page - 1) * limit;
+
+  return delay({
+    data: filtered.slice(start, start + limit),
+    pagination: {
+      page,
+      limit,
+      total: filtered.length,
+    },
+  });
+},
 
   async getUserById(id) {
     if (!useMock) return apiClient.get(`/users/${id}`);
