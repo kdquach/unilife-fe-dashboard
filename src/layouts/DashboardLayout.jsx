@@ -7,6 +7,7 @@ import {
   MenuUnfoldOutlined,
   TeamOutlined,
   UserOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -27,6 +28,11 @@ const menuItems = [
     key: "/users",
     icon: <TeamOutlined />,
     label: <Link to="/users">User Management</Link>,
+  },
+  {
+    key: "/orders",
+    icon: <ShoppingCartOutlined />,
+    label: <Link to="/orders">Orders</Link>,
   },
 ];
 
@@ -62,9 +68,7 @@ export default function DashboardLayout() {
         <div className="px-3 py-5">
           <Menu
             mode="inline"
-            selectedKeys={[
-              location.pathname.startsWith("/users") ? "/users" : "/",
-            ]}
+            selectedKeys={[location.pathname]}
             items={menuItems}
             className="border-none"
           />
