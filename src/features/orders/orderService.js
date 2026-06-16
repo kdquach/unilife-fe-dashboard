@@ -11,4 +11,13 @@ export const orderService = {
       pagination: response.data.pagination,
     };
   },
+
+  async createWalkInOrder(payload) {
+    const response = await apiClient.post(
+      "/orders/walk-in",
+      payload
+    );
+
+    return response.data.data;
+  },
 };
