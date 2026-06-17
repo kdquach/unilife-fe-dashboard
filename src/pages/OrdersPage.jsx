@@ -12,8 +12,8 @@ import {
   Input,
   InputNumber,
   Select,
-  message,
 } from "antd";
+import { notify } from "../utils/notify";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -26,6 +26,10 @@ export default function OrdersPage() {
   const [form] = Form.useForm();
 
   const [foods, setFoods] = useState([]);
+
+  const [keyword, setKeyword] = useState("");
+
+  const { Search } = Input;
 
   const [orderItems, setOrderItems] = useState([
     {
@@ -48,6 +52,7 @@ export default function OrdersPage() {
   const fetchOrders = async (
     page = pagination.current,
     limit = pagination.pageSize,
+    searchKeyword = keyword,
   ) => {
     try {
       setLoading(true);
@@ -55,6 +60,7 @@ export default function OrdersPage() {
       const response = await orderService.getOrders({
         page,
         limit,
+        keyword: searchKeyword,
       });
 
       setOrders(response.data);
@@ -123,7 +129,10 @@ export default function OrdersPage() {
 
       await orderService.createWalkInOrder(payload);
 
-      message.success("Walk-in order created successfully");
+      notify.success(
+        "Walk-in Order Created",
+        "Order has been created successfully.",
+      );
 
       setCreateOpen(false);
       form.resetFields();
@@ -132,8 +141,9 @@ export default function OrdersPage() {
     } catch (error) {
       console.error(error);
 
-      message.error(
-        error?.response?.data?.message || "Create walk-in order failed",
+      notify.error(
+        "Order Creation Failed",
+        error?.response?.data?.message || "Unexpected error occurred.",
       );
     } finally {
       setCreating(false);
@@ -199,19 +209,36 @@ export default function OrdersPage() {
       <Card
         title="Orders"
         extra={
-          <Button
-            type="primary"
-            onClick={() => {
-              form.setFieldsValue({
-                paymentMethod: "CASH",
-                items: [{ quantity: 1 }],
-              });
-
-              setCreateOpen(true);
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
             }}
           >
-            Create Walk-in Order
-          </Button>
+            <Search
+              placeholder="Search order code..."
+              allowClear
+              style={{ width: 250 }}
+              onSearch={(value) => {
+                setKeyword(value);
+                fetchOrders(1, pagination.pageSize, value);
+              }}
+            />
+
+            <Button
+              type="primary"
+              onClick={() => {
+                form.setFieldsValue({
+                  paymentMethod: "CASH",
+                  items: [{ quantity: 1 }],
+                });
+
+                setCreateOpen(true);
+              }}
+            >
+              Create Walk-in Order
+            </Button>
+          </div>
         }
       >
         <Table
