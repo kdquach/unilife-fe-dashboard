@@ -38,6 +38,13 @@ export default function OrdersPage() {
     },
   ]);
 
+  const [filters, setFilters] = useState({
+    status: undefined,
+    paymentStatus: undefined,
+    paymentMethod: undefined,
+    isWalkIn: undefined,
+  });
+
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -53,6 +60,7 @@ export default function OrdersPage() {
     page = pagination.current,
     limit = pagination.pageSize,
     searchKeyword = keyword,
+    currentFilters = filters,
   ) => {
     try {
       setLoading(true);
@@ -61,6 +69,7 @@ export default function OrdersPage() {
         page,
         limit,
         keyword: searchKeyword,
+        ...currentFilters,
       });
 
       setOrders(response.data);
@@ -213,6 +222,7 @@ export default function OrdersPage() {
             style={{
               display: "flex",
               gap: 10,
+              flexWrap: "wrap",
             }}
           >
             <Search
@@ -223,6 +233,88 @@ export default function OrdersPage() {
                 setKeyword(value);
                 fetchOrders(1, pagination.pageSize, value);
               }}
+            />
+
+            <Select
+              placeholder="Status"
+              allowClear
+              style={{ width: 140 }}
+              onChange={(value) => {
+                const newFilters = {
+                  ...filters,
+                  status: value,
+                };
+
+                setFilters(newFilters);
+                fetchOrders(1, pagination.pageSize, keyword, newFilters);
+              }}
+              options={[
+                { label: "Pending", value: "PENDING" },
+                { label: "Paid", value: "PAID" },
+                { label: "Preparing", value: "PREPARING" },
+                { label: "Ready", value: "READY" },
+                { label: "Completed", value: "COMPLETED" },
+                { label: "Cancelled", value: "CANCELLED" },
+              ]}
+            />
+
+            <Select
+              placeholder="Payment"
+              allowClear
+              style={{ width: 150 }}
+              onChange={(value) => {
+                const newFilters = {
+                  ...filters,
+                  paymentStatus: value,
+                };
+
+                setFilters(newFilters);
+                fetchOrders(1, pagination.pageSize, keyword, newFilters);
+              }}
+              options={[
+                { label: "Pending", value: "PENDING" },
+                { label: "Paid", value: "PAID" },
+                { label: "Failed", value: "FAILED" },
+                { label: "Refunded", value: "REFUNDED" },
+              ]}
+            />
+
+            <Select
+              placeholder="Method"
+              allowClear
+              style={{ width: 130 }}
+              onChange={(value) => {
+                const newFilters = {
+                  ...filters,
+                  paymentMethod: value,
+                };
+
+                setFilters(newFilters);
+                fetchOrders(1, pagination.pageSize, keyword, newFilters);
+              }}
+              options={[
+                { label: "Cash", value: "CASH" },
+                { label: "SePay", value: "SEPAY" },
+              ]}
+            />
+
+            <Select
+              placeholder="Order Type"
+              allowClear
+              style={{ width: 140 }}
+              onChange={(value) => {
+                const newFilters = {
+                  ...filters,
+                  isWalkIn: value,
+                };
+
+                setFilters(newFilters);
+                fetchOrders(1, pagination.pageSize, keyword, newFilters);
+              }}
+              options={[
+                { label: "Walk-in", value: true },
+                { label: "Online", value: false },
+              ]}
             />
 
             <Button
@@ -248,7 +340,7 @@ export default function OrdersPage() {
           dataSource={orders}
           pagination={pagination}
           onChange={(pager) => {
-            fetchOrders(pager.current, pager.pageSize);
+            fetchOrders(pager.current, pager.pageSize, keyword, filters);
           }}
           onRow={(record) => ({
             onClick: () => {
@@ -268,29 +360,54 @@ export default function OrdersPage() {
       >
         {selectedOrder && (
           <>
-            <Descriptions bordered column={2}>
+            <Descriptions
+              bordered
+              column={2}
+              title="Order Information"
+              style={{ marginBottom: 20 }}
+            >
               <Descriptions.Item label="Order Code">
                 {selectedOrder.orderCode}
               </Descriptions.Item>
 
-              <Descriptions.Item label="Customer">
-                {selectedOrder.userId?.fullName || "Walk-in"}
+              <Descriptions.Item label="Order ID">
+                {selectedOrder.orderId}
               </Descriptions.Item>
 
               <Descriptions.Item label="Status">
-                {selectedOrder.status}
+                {renderOrderStatus(selectedOrder.status)}
               </Descriptions.Item>
 
               <Descriptions.Item label="Payment Status">
-                {selectedOrder.paymentStatus}
+                {renderPaymentStatus(selectedOrder.paymentStatus)}
               </Descriptions.Item>
 
               <Descriptions.Item label="Payment Method">
                 {selectedOrder.paymentMethod}
               </Descriptions.Item>
 
+              <Descriptions.Item label="Order Type">
+                {selectedOrder.isWalkIn ? "Walk-in" : "Online"}
+              </Descriptions.Item>
+
               <Descriptions.Item label="Total Price">
                 {selectedOrder.totalPrice?.toLocaleString("vi-VN")} đ
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Transaction Ref">
+                {selectedOrder.transactionRef || "-"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Created At">
+                {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Updated At">
+                {new Date(selectedOrder.updatedAt).toLocaleString("vi-VN")}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Note" span={2}>
+                {selectedOrder.note || "-"}
               </Descriptions.Item>
             </Descriptions>
 
