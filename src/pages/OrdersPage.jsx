@@ -12,8 +12,16 @@ import {
   Input,
   InputNumber,
   Select,
+  Drawer,
 } from "antd";
 import { notify } from "../utils/notify";
+import PageHeader from "../components/PageHeader";
+import {
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  EyeOutlined,
+} from "@ant-design/icons";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -211,10 +219,79 @@ export default function OrdersPage() {
       dataIndex: "createdAt",
       render: (value) => new Date(value).toLocaleString("vi-VN"),
     },
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 100,
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedOrder(record);
+            setDetailOpen(true);
+          }}
+        />
+      ),
+    },
   ];
 
   return (
-    <>
+    <div>
+      <PageHeader
+        title="Order Management"
+        description="Manage customer orders, payment status and walk-in orders."
+        breadcrumbs={["Dashboard", "Order Management"]}
+        extra={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              form.setFieldsValue({
+                paymentMethod: "CASH",
+                items: [{ quantity: 1 }],
+              });
+
+              setCreateOpen(true);
+            }}
+          >
+            Create Walk-in Order
+          </Button>
+        }
+      />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <Card className="dashboard-card">
+          <div className="text-sm text-slate-500">Orders On Page</div>
+
+          <div className="mt-1 text-2xl font-bold">{orders.length}</div>
+        </Card>
+
+        <Card className="dashboard-card">
+          <div className="text-sm text-slate-500">Completed</div>
+
+          <div className="mt-1 text-2xl font-bold text-green-600">
+            {orders.filter((o) => o.status === "COMPLETED").length}
+          </div>
+        </Card>
+
+        <Card className="dashboard-card">
+          <div className="text-sm text-slate-500">Pending</div>
+
+          <div className="mt-1 text-2xl font-bold text-orange-500">
+            {orders.filter((o) => o.status === "PENDING").length}
+          </div>
+        </Card>
+
+        <Card className="dashboard-card">
+          <div className="text-sm text-slate-500">Cancelled</div>
+
+          <div className="mt-1 text-2xl font-bold text-red-500">
+            {orders.filter((o) => o.status === "CANCELLED").length}
+          </div>
+        </Card>
+      </div>
+
       <Card
         title="Orders"
         extra={
@@ -317,19 +394,6 @@ export default function OrdersPage() {
               ]}
             />
 
-            <Button
-              type="primary"
-              onClick={() => {
-                form.setFieldsValue({
-                  paymentMethod: "CASH",
-                  items: [{ quantity: 1 }],
-                });
-
-                setCreateOpen(true);
-              }}
-            >
-              Create Walk-in Order
-            </Button>
           </div>
         }
       >
@@ -338,28 +402,53 @@ export default function OrdersPage() {
           loading={loading}
           columns={columns}
           dataSource={orders}
-          pagination={pagination}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} orders`,
+          }}
           onChange={(pager) => {
             fetchOrders(pager.current, pager.pageSize, keyword, filters);
           }}
-          onRow={(record) => ({
-            onClick: () => {
-              setSelectedOrder(record);
-              setDetailOpen(true);
-            },
-          })}
         />
       </Card>
 
-      <Modal
+      <Drawer
         title={`Order ${selectedOrder?.orderCode}`}
-        open={detailOpen}
-        footer={null}
-        onCancel={() => setDetailOpen(false)}
+        placement="right"
         width={900}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
       >
         {selectedOrder && (
           <>
+            {/* Customer Information */}
+            <Descriptions
+              bordered
+              column={2}
+              title="Customer Information"
+              style={{ marginBottom: 20 }}
+            >
+              <Descriptions.Item label="Full Name">
+                {selectedOrder.userId?.fullName || "Walk-in"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="User ID">
+                {selectedOrder.userId?.userId || "-"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Email">
+                {selectedOrder.userId?.email || "-"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Phone">
+                {selectedOrder.userId?.phone || "-"}
+              </Descriptions.Item>
+            </Descriptions>
+
+            {/* Order Information */}
             <Descriptions
               bordered
               column={2}
@@ -442,9 +531,43 @@ export default function OrdersPage() {
                 },
               ]}
             />
+
+            {/* Queue Information */}
+            <Descriptions
+              bordered
+              column={2}
+              title="Queue Information"
+              style={{ marginBottom: 20 }}
+            >
+              <Descriptions.Item label="Queue Number">
+                {selectedOrder.queue?.queueNumber || "-"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Queue Status">
+                {selectedOrder.queue?.status || "-"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Called At">
+                {selectedOrder.queue?.calledAt
+                  ? new Date(selectedOrder.queue.calledAt).toLocaleString(
+                      "vi-VN",
+                    )
+                  : "-"}
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Completed At">
+                {selectedOrder.queue?.completedAt
+                  ? new Date(selectedOrder.queue.completedAt).toLocaleString(
+                      "vi-VN",
+                    )
+                  : "-"}
+              </Descriptions.Item>
+            </Descriptions>
+
+            
           </>
         )}
-      </Modal>
+      </Drawer>
 
       <Modal
         title="Create Walk-in Order"
@@ -541,6 +664,6 @@ export default function OrdersPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 }
