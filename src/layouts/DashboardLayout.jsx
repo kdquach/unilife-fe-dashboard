@@ -7,6 +7,7 @@ import {
   MenuUnfoldOutlined,
   TeamOutlined,
   UserOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -27,6 +28,11 @@ const menuItems = [
     key: "/users",
     icon: <TeamOutlined />,
     label: <Link to="/users">User Management</Link>,
+  },
+  {
+    key: "/orders",
+    icon: <ShoppingCartOutlined />,
+    label: <Link to="/orders">Orders</Link>,
   },
 ];
 
@@ -62,9 +68,7 @@ export default function DashboardLayout() {
         <div className="px-3 py-5">
           <Menu
             mode="inline"
-            selectedKeys={[
-              location.pathname.startsWith("/users") ? "/users" : "/",
-            ]}
+            selectedKeys={[location.pathname]}
             items={menuItems}
             className="border-none"
           />
@@ -73,18 +77,19 @@ export default function DashboardLayout() {
 
       <Layout className={collapsed ? "ml-[86px]" : "ml-[270px]"}>
         <Header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-slate-100 !bg-white px-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 h-full">
             <Button
               type="text"
               size="large"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
             />
-            <div>
+            <div className="flex h-full flex-col justify-center">
               <Typography.Text className="text-xs uppercase tracking-[0.25em] text-unilife">
                 Admin Dashboard
               </Typography.Text>
-              <Typography.Title level={4} className="!mb-0 !mt-1">
+
+              <Typography.Title level={4} style={{ margin: 0 }}>
                 UniLife Management
               </Typography.Title>
             </div>

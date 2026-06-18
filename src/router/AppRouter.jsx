@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardPage from "../pages/DashboardPage";
 import LoginPage from "../pages/LoginPage";
+import OrdersPage from "../pages/OrdersPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import { useAuth } from "../features/auth/AuthContext";
 
@@ -41,6 +42,7 @@ export default function AppRouter() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="users" element={<UserManagementPage />} />
+        <Route path="orders" element={<OrdersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
