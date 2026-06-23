@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { orderService } from "../features/orders/orderService";
 import { foodService } from "../features/foods/foodService";
 import {
@@ -35,8 +35,13 @@ export default function OrdersPage() {
   const [creating, setCreating] = useState(false);
   const [scanOpen, setScanOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const [form] = Form.useForm();
   const [scanForm] = Form.useForm();
+  const videoRef = useRef(null);
+  const scanTimerRef = useRef(null);
+  const streamRef = useRef(null);
 
   const [foods, setFoods] = useState([]);
 
@@ -68,6 +73,13 @@ export default function OrdersPage() {
     fetchOrders(1, 10);
     fetchFoods();
   }, []);
+
+  useEffect(
+    () => () => {
+      stopCameraScan();
+    },
+    [],
+  );
 
   const fetchOrders = async (
     page = pagination.current,
@@ -192,6 +204,7 @@ export default function OrdersPage() {
         `Queue #${result.queue?.queueNumber || "-"} is ready for kitchen.`,
       );
 
+      stopCameraScan();
       setScanOpen(false);
       scanForm.resetFields();
       await fetchOrders();
@@ -199,6 +212,75 @@ export default function OrdersPage() {
       notify.error("Pickup QR Scan Failed", error.message);
     } finally {
       setScanning(false);
+    }
+  };
+
+  const stopCameraScan = () => {
+    if (scanTimerRef.current) {
+      window.clearInterval(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    setCameraActive(false);
+    setCameraLoading(false);
+  };
+
+  const startCameraScan = async () => {
+    if (!("BarcodeDetector" in window)) {
+      notify.error(
+        "Camera Scan Not Supported",
+        "This browser does not support camera QR scanning. Paste the QR payload instead.",
+      );
+      return;
+    }
+
+    try {
+      setCameraLoading(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+      setCameraActive(true);
+
+      scanTimerRef.current = window.setInterval(async () => {
+        if (!videoRef.current || videoRef.current.readyState < 2) return;
+
+        try {
+          const codes = await detector.detect(videoRef.current);
+          const value = codes[0]?.rawValue;
+          if (!value) return;
+
+          scanForm.setFieldsValue({ qrPayload: value });
+          stopCameraScan();
+          scanForm.submit();
+        } catch (error) {
+          // Keep scanning; transient frame decode errors are expected.
+        }
+      }, 600);
+    } catch (error) {
+      notify.error(
+        "Camera Open Failed",
+        error.message || "Unable to access camera.",
+      );
+      stopCameraScan();
+    } finally {
+      setCameraLoading(false);
     }
   };
 
@@ -638,11 +720,34 @@ export default function OrdersPage() {
         open={scanOpen}
         confirmLoading={scanning}
         onCancel={() => {
+          stopCameraScan();
           setScanOpen(false);
           scanForm.resetFields();
         }}
         onOk={() => scanForm.submit()}
       >
+        <div className="mb-4">
+          <Space>
+            <Button
+              icon={<QrcodeOutlined />}
+              loading={cameraLoading}
+              onClick={cameraActive ? stopCameraScan : startCameraScan}
+            >
+              {cameraActive ? "Stop Camera" : "Scan with Camera"}
+            </Button>
+          </Space>
+          {cameraActive && (
+            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-black">
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className="h-64 w-full object-cover"
+              />
+            </div>
+          )}
+        </div>
+
         <Form form={scanForm} layout="vertical" onFinish={handleScanPickupQr}>
           <Form.Item
             label="QR payload or order code"
