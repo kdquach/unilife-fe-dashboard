@@ -13,6 +13,7 @@ import {
   InputNumber,
   Select,
   Drawer,
+  Space,
 } from "antd";
 import { notify } from "../utils/notify";
 import PageHeader from "../components/PageHeader";
@@ -21,6 +22,7 @@ import {
   ReloadOutlined,
   SearchOutlined,
   EyeOutlined,
+  QrcodeOutlined,
 } from "@ant-design/icons";
 
 export default function OrdersPage() {
@@ -31,7 +33,10 @@ export default function OrdersPage() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [form] = Form.useForm();
+  const [scanForm] = Form.useForm();
 
   const [foods, setFoods] = useState([]);
 
@@ -108,12 +113,16 @@ export default function OrdersPage() {
 
   const renderOrderStatus = (status) => {
     const colors = {
+      PENDING_PAYMENT: "orange",
       PENDING: "orange",
-      PAID: "blue",
+      PAID: "green",
+      CONFIRMED: "blue",
       PREPARING: "purple",
       READY: "cyan",
+      READY_FOR_PICKUP: "cyan",
       COMPLETED: "green",
       CANCELLED: "red",
+      EXPIRED: "red",
     };
 
     return <Tag color={colors[status] || "default"}>{status}</Tag>;
@@ -166,6 +175,41 @@ export default function OrdersPage() {
       setCreating(false);
     }
   };
+
+  const handleScanPickupQr = async (values) => {
+    try {
+      setScanning(true);
+
+      const qrPayload = values.qrPayload?.trim();
+      const payload = values.orderCode
+        ? { orderCode: values.orderCode }
+        : { qrPayload };
+
+      const result = await orderService.scanPickupQr(payload);
+
+      notify.success(
+        result.created ? "Pickup QR Scanned" : "Pickup QR Already Scanned",
+        `Queue #${result.queue?.queueNumber || "-"} is ready for kitchen.`,
+      );
+
+      setScanOpen(false);
+      scanForm.resetFields();
+      await fetchOrders();
+    } catch (error) {
+      notify.error("Pickup QR Scan Failed", error.message);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleScanOrder = async (order) => {
+    await handleScanPickupQr({ orderCode: order.orderCode });
+  };
+
+  const canScanPickup = (order) =>
+    order?.paymentStatus === "PAID" &&
+    ["PAID", "CONFIRMED"].includes(order?.status) &&
+    !order?.queue;
 
   const columns = [
     {
@@ -222,16 +266,27 @@ export default function OrdersPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 100,
+      width: 130,
       render: (_, record) => (
-        <Button
-          icon={<EyeOutlined />}
-          onClick={(e) => {
-            e.stopPropagation();
-            setSelectedOrder(record);
-            setDetailOpen(true);
-          }}
-        />
+        <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedOrder(record);
+              setDetailOpen(true);
+            }}
+          />
+          <Button
+            icon={<QrcodeOutlined />}
+            disabled={!canScanPickup(record)}
+            loading={scanning}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleScanOrder(record);
+            }}
+          />
+        </Space>
       ),
     },
   ];
@@ -243,20 +298,28 @@ export default function OrdersPage() {
         description="Manage customer orders, payment status and walk-in orders."
         breadcrumbs={["Dashboard", "Order Management"]}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              form.setFieldsValue({
-                paymentMethod: "CASH",
-                items: [{ quantity: 1 }],
-              });
+          <>
+            <Button
+              icon={<QrcodeOutlined />}
+              onClick={() => setScanOpen(true)}
+            >
+              Scan Pickup QR
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                form.setFieldsValue({
+                  paymentMethod: "CASH",
+                  items: [{ quantity: 1 }],
+                });
 
-              setCreateOpen(true);
-            }}
-          >
-            Create Walk-in Order
-          </Button>
+                setCreateOpen(true);
+              }}
+            >
+              Create Walk-in Order
+            </Button>
+          </>
         }
       />
 
@@ -326,12 +389,13 @@ export default function OrdersPage() {
                 fetchOrders(1, pagination.pageSize, keyword, newFilters);
               }}
               options={[
-                { label: "Pending", value: "PENDING" },
+                { label: "Pending Payment", value: "PENDING_PAYMENT" },
                 { label: "Paid", value: "PAID" },
-                { label: "Preparing", value: "PREPARING" },
-                { label: "Ready", value: "READY" },
+                { label: "Confirmed", value: "CONFIRMED" },
+                { label: "Ready for Pickup", value: "READY_FOR_PICKUP" },
                 { label: "Completed", value: "COMPLETED" },
                 { label: "Cancelled", value: "CANCELLED" },
+                { label: "Expired", value: "EXPIRED" },
               ]}
             />
 
@@ -548,16 +612,16 @@ export default function OrdersPage() {
               </Descriptions.Item>
 
               <Descriptions.Item label="Called At">
-                {selectedOrder.queue?.calledAt
-                  ? new Date(selectedOrder.queue.calledAt).toLocaleString(
+                {selectedOrder.queue?.servedAt
+                  ? new Date(selectedOrder.queue.servedAt).toLocaleString(
                       "vi-VN",
                     )
                   : "-"}
               </Descriptions.Item>
 
               <Descriptions.Item label="Completed At">
-                {selectedOrder.queue?.completedAt
-                  ? new Date(selectedOrder.queue.completedAt).toLocaleString(
+                {selectedOrder.queue?.doneAt
+                  ? new Date(selectedOrder.queue.doneAt).toLocaleString(
                       "vi-VN",
                     )
                   : "-"}
@@ -568,6 +632,36 @@ export default function OrdersPage() {
           </>
         )}
       </Drawer>
+
+      <Modal
+        title="Scan Pickup QR"
+        open={scanOpen}
+        confirmLoading={scanning}
+        onCancel={() => {
+          setScanOpen(false);
+          scanForm.resetFields();
+        }}
+        onOk={() => scanForm.submit()}
+      >
+        <Form form={scanForm} layout="vertical" onFinish={handleScanPickupQr}>
+          <Form.Item
+            label="QR payload or order code"
+            name="qrPayload"
+            rules={[
+              {
+                required: true,
+                message: "Scan or enter a pickup QR payload.",
+              },
+            ]}
+          >
+            <Input.TextArea
+              autoFocus
+              rows={4}
+              placeholder='Scan QR here, paste JSON/URL, or enter order code like "478969"'
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       <Modal
         title="Create Walk-in Order"
