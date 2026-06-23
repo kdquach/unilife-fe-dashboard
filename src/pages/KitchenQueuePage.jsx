@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ClockCircleOutlined,
   FieldTimeOutlined,
+  PhoneOutlined,
   ReloadOutlined,
   SearchOutlined,
   ShopOutlined,
@@ -59,6 +60,7 @@ export default function KitchenQueuePage() {
   const [queues, setQueues] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
+  const [callingNext, setCallingNext] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     status: undefined,
@@ -103,6 +105,30 @@ export default function KitchenQueuePage() {
   useEffect(() => {
     fetchMonitorQueue(1, 10);
   }, []);
+
+  const handleCallNextNumber = async () => {
+    try {
+      setCallingNext(true);
+
+      const calledQueue = await queueService.callNextNumber();
+
+      notify.success(
+        "Queue Number Called",
+        `Queue #${calledQueue.queueNumber} is now called.`,
+      );
+
+      await fetchMonitorQueue(
+        pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
+    } catch (error) {
+      notify.error("Call Next Failed", error.message);
+    } finally {
+      setCallingNext(false);
+    }
+  };
 
   const statusCards = useMemo(
     () => [
@@ -219,13 +245,23 @@ export default function KitchenQueuePage() {
         description="Monitor paid orders waiting for kitchen preparation."
         breadcrumbs={["Dashboard", "Kitchen Queue"]}
         extra={
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => fetchMonitorQueue()}
-            loading={loading}
-          >
-            Refresh
-          </Button>
+          <>
+            <Button
+              type="primary"
+              icon={<PhoneOutlined />}
+              onClick={handleCallNextNumber}
+              loading={callingNext}
+            >
+              Call Next
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => fetchMonitorQueue()}
+              loading={loading}
+            >
+              Refresh
+            </Button>
+          </>
         }
       />
 

@@ -12,4 +12,10 @@ export const queueService = {
       pagination: response.data.pagination,
     };
   },
+
+  async callNextNumber() {
+    const response = await apiClient.post("/queues/call-next");
+
+    return response.data;
+  },
 };
