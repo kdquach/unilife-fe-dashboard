@@ -20,4 +20,10 @@ export const orderService = {
 
     return response.data.data;
   },
+
+  async scanPickupQr(payload) {
+    const response = await apiClient.post("/orders/scan-pickup-qr", payload);
+
+    return response.data;
+  },
 };
