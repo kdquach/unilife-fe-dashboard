@@ -7,6 +7,8 @@ export const queueService = {
     });
 
     return {
+      currentServing: response.data.currentServing,
+      waiting: response.data.waiting,
       data: response.data.items,
       summary: response.data.summary,
       pagination: response.data.pagination,
@@ -15,6 +17,12 @@ export const queueService = {
 
   async callNextNumber() {
     const response = await apiClient.post("/queues/call-next");
+
+    return response.data;
+  },
+
+  async scanOrderQr(payload) {
+    const response = await apiClient.post("/queues/scan", payload);
 
     return response.data;
   },

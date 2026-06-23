@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  CheckCircleOutlined,
   ClockCircleOutlined,
   FieldTimeOutlined,
   PhoneOutlined,
@@ -11,6 +12,7 @@ import {
   Button,
   Card,
   Col,
+  Empty,
   Input,
   Row,
   Select,
@@ -28,20 +30,19 @@ const { Search } = Input;
 
 const queueStatusColors = {
   WAITING: "gold",
-  CALLED: "blue",
-  PREPARING: "purple",
-  READY: "cyan",
-  COMPLETED: "green",
-  CANCELLED: "red",
+  SERVING: "blue",
+  DONE: "green",
+  SKIPPED: "red",
 };
 
 const orderStatusColors = {
-  PENDING: "orange",
+  PENDING_PAYMENT: "orange",
+  PAID: "green",
   CONFIRMED: "blue",
-  PREPARING: "purple",
-  READY: "cyan",
+  READY_FOR_PICKUP: "cyan",
   COMPLETED: "green",
   CANCELLED: "red",
+  EXPIRED: "red",
 };
 
 const formatCurrency = (value) =>
@@ -56,14 +57,28 @@ const getOrder = (queue) => queue?.orderId || {};
 const getItemName = (item) =>
   item?.foodId?.name || item?.menuScheduleItemId?.foodId?.name || "Unknown";
 
+const renderItems = (items = []) => (
+  <Space direction="vertical" size={2}>
+    {items.length > 0 ? (
+      items.map((item) => (
+        <span key={item._id || item.orderItemId}>
+          {getItemName(item)} x{item.quantity}
+        </span>
+      ))
+    ) : (
+      <span>-</span>
+    )}
+  </Space>
+);
+
 export default function KitchenQueuePage() {
-  const [queues, setQueues] = useState([]);
+  const [currentServing, setCurrentServing] = useState(null);
+  const [waitingQueues, setWaitingQueues] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
   const [callingNext, setCallingNext] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
-    status: undefined,
     isWalkIn: undefined,
   });
   const [pagination, setPagination] = useState({
@@ -88,7 +103,8 @@ export default function KitchenQueuePage() {
         ...currentFilters,
       });
 
-      setQueues(response.data);
+      setCurrentServing(response.currentServing || null);
+      setWaitingQueues(response.waiting || []);
       setSummary(response.summary || {});
       setPagination({
         current: response.pagination.page,
@@ -110,11 +126,13 @@ export default function KitchenQueuePage() {
     try {
       setCallingNext(true);
 
-      const calledQueue = await queueService.callNextNumber();
+      const result = await queueService.callNextNumber();
 
       notify.success(
-        "Queue Number Called",
-        `Queue #${calledQueue.queueNumber} is now called.`,
+        "Order Completed",
+        result.currentServing
+          ? `Queue #${result.currentServing.queueNumber} is now serving.`
+          : "No waiting queue remains.",
       );
 
       await fetchMonitorQueue(
@@ -133,10 +151,16 @@ export default function KitchenQueuePage() {
   const statusCards = useMemo(
     () => [
       {
-        title: "Active Queue",
+        title: "Today's Queue",
         value: summary.total || 0,
         color: "text-slate-900",
         icon: <ShopOutlined />,
+      },
+      {
+        title: "Serving",
+        value: summary.serving || 0,
+        color: "text-blue-600",
+        icon: <FieldTimeOutlined />,
       },
       {
         title: "Waiting",
@@ -145,22 +169,16 @@ export default function KitchenQueuePage() {
         icon: <ClockCircleOutlined />,
       },
       {
-        title: "Called",
-        value: summary.called || 0,
-        color: "text-blue-600",
-        icon: <FieldTimeOutlined />,
-      },
-      {
-        title: "Preparing",
-        value: summary.preparing || 0,
-        color: "text-purple-600",
-        icon: <FieldTimeOutlined />,
+        title: "Done",
+        value: summary.done || 0,
+        color: "text-green-600",
+        icon: <CheckCircleOutlined />,
       },
     ],
     [summary],
   );
 
-  const columns = [
+  const waitingColumns = [
     {
       title: "Queue No.",
       dataIndex: "queueNumber",
@@ -189,22 +207,7 @@ export default function KitchenQueuePage() {
     },
     {
       title: "Items",
-      render: (_, record) => {
-        const items = getOrder(record).items || [];
-        return (
-          <Space direction="vertical" size={2}>
-            {items.length > 0 ? (
-              items.map((item) => (
-                <span key={item._id || item.orderItemId}>
-                  {getItemName(item)} x{item.quantity}
-                </span>
-              ))
-            ) : (
-              <span>-</span>
-            )}
-          </Space>
-        );
-      },
+      render: (_, record) => renderItems(getOrder(record).items || []),
     },
     {
       title: "Customer",
@@ -214,35 +217,24 @@ export default function KitchenQueuePage() {
       },
     },
     {
-      title: "Queue Status",
+      title: "Status",
       dataIndex: "status",
       render: (value) => renderTag(value, queueStatusColors),
     },
     {
-      title: "Order Status",
-      render: (_, record) => renderTag(getOrder(record).status, orderStatusColors),
-    },
-    {
-      title: "Total",
-      render: (_, record) => formatCurrency(getOrder(record).totalPrice),
-    },
-    {
-      title: "Called At",
-      dataIndex: "calledAt",
-      render: formatDateTime,
-    },
-    {
-      title: "Created",
-      dataIndex: "createdAt",
+      title: "Scanned At",
+      dataIndex: "scannedAt",
       render: formatDateTime,
     },
   ];
+
+  const servingOrder = getOrder(currentServing);
 
   return (
     <div>
       <PageHeader
         title="Kitchen Queue"
-        description="Monitor paid orders waiting for kitchen preparation."
+        description="Serve scanned orders in kitchen order. Paid orders only appear here after Counter Staff scans the QR."
         breadcrumbs={["Dashboard", "Kitchen Queue"]}
         extra={
           <>
@@ -251,6 +243,7 @@ export default function KitchenQueuePage() {
               icon={<PhoneOutlined />}
               onClick={handleCallNextNumber}
               loading={callingNext}
+              disabled={!currentServing}
             >
               Call Next
             </Button>
@@ -283,8 +276,72 @@ export default function KitchenQueuePage() {
         ))}
       </Row>
 
+      <Card className="mb-6" title="Current Serving">
+        {currentServing ? (
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[260px_1fr_240px]">
+            <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-blue-100 bg-blue-50">
+              <div className="text-sm font-medium uppercase text-blue-500">
+                Queue Number
+              </div>
+              <div className="mt-2 text-6xl font-bold text-blue-700">
+                #{currentServing.queueNumber}
+              </div>
+              <div className="mt-3">
+                {renderTag(currentServing.status, queueStatusColors)}
+              </div>
+            </div>
+
+            <div>
+              <Typography.Title level={4} className="!mb-1">
+                {servingOrder.orderCode}
+              </Typography.Title>
+              <Typography.Text className="text-slate-500">
+                {servingOrder.userId?.fullName ||
+                  (servingOrder.isWalkIn ? "Walk-in customer" : "Customer")}
+              </Typography.Text>
+
+              <div className="mt-5">
+                <Typography.Text strong>Items</Typography.Text>
+                <div className="mt-2">{renderItems(servingOrder.items || [])}</div>
+              </div>
+
+              {servingOrder.note && (
+                <div className="mt-5 rounded-lg bg-slate-50 p-3">
+                  <Typography.Text strong>Note</Typography.Text>
+                  <div className="mt-1 text-slate-600">{servingOrder.note}</div>
+                </div>
+              )}
+            </div>
+
+            <Space direction="vertical" size={10}>
+              <div>
+                <div className="text-xs uppercase text-slate-400">Scanned</div>
+                <div className="font-medium">
+                  {formatDateTime(currentServing.scannedAt)}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-slate-400">Serving</div>
+                <div className="font-medium">
+                  {formatDateTime(currentServing.servedAt)}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs uppercase text-slate-400">Total</div>
+                <div className="font-medium">
+                  {formatCurrency(servingOrder.totalPrice)}
+                </div>
+              </div>
+              <div>{renderTag(servingOrder.status, orderStatusColors)}</div>
+            </Space>
+          </div>
+        ) : (
+          <Empty description="No serving order right now" />
+        )}
+      </Card>
+
       <Card
-        title="Monitor Queue"
+        title="Waiting Queue"
         extra={
           <div className="flex flex-wrap items-center gap-3">
             <Search
@@ -296,23 +353,6 @@ export default function KitchenQueuePage() {
                 setKeyword(value);
                 fetchMonitorQueue(1, pagination.pageSize, value);
               }}
-            />
-
-            <Select
-              placeholder="Queue Status"
-              allowClear
-              style={{ width: 160 }}
-              onChange={(value) => {
-                const nextFilters = { ...filters, status: value };
-                setFilters(nextFilters);
-                fetchMonitorQueue(1, pagination.pageSize, keyword, nextFilters);
-              }}
-              options={[
-                { label: "Waiting", value: "WAITING" },
-                { label: "Called", value: "CALLED" },
-                { label: "Preparing", value: "PREPARING" },
-                { label: "Ready", value: "READY" },
-              ]}
             />
 
             <Select
@@ -335,15 +375,15 @@ export default function KitchenQueuePage() {
         <Table
           rowKey="_id"
           loading={loading}
-          columns={columns}
-          dataSource={queues}
-          scroll={{ x: 1100 }}
+          columns={waitingColumns}
+          dataSource={waitingQueues}
+          scroll={{ x: 900 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
-            showTotal: (total) => `${total} queue entries`,
+            showTotal: (total) => `${total} waiting orders`,
           }}
           onChange={(pager) => {
             fetchMonitorQueue(pager.current, pager.pageSize, keyword, filters);
