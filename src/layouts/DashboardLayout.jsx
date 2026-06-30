@@ -9,6 +9,7 @@ import {
   UserOutlined,
   ShoppingCartOutlined,
   OrderedListOutlined,
+  TagsOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -34,6 +35,11 @@ const menuItems = [
     key: "/orders",
     icon: <ShoppingCartOutlined />,
     label: <Link to="/orders">Orders</Link>,
+  },
+  {
+    key: "/food-categories",
+    icon: <TagsOutlined />,
+    label: <Link to="/food-categories">Food Categories</Link>,
   },
   {
     key: "/kitchen-queue",
