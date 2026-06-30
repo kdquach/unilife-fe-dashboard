@@ -234,6 +234,22 @@ export default function SupplierManagementPage() {
       ),
     },
     {
+      title: "Note",
+      dataIndex: "note",
+      width: 300,
+      render: (note) =>
+        note ? (
+          <span
+            className="block max-w-[180px] truncate text-sm text-slate-600"
+            title={note}
+          >
+            {note}
+          </span>
+        ) : (
+          <span className="text-slate-300">—</span>
+        ),
+    },
+    {
       title: "Status",
       dataIndex: "isActive",
       width: 120,
@@ -382,7 +398,7 @@ export default function SupplierManagementPage() {
           loading={loading}
           dataSource={suppliers}
           columns={columns}
-          scroll={{ x: 900 }}
+          scroll={{ x: 1100 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
