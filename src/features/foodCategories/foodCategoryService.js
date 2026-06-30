@@ -15,4 +15,10 @@ export const foodCategoryService = {
 
     return response.data;
   },
+
+  async createFoodCategory(payload) {
+    const response = await apiClient.post("/food-categories", payload);
+
+    return response.data;
+  },
 };

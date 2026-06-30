@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   AppstoreOutlined,
   EyeOutlined,
+  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
@@ -19,6 +20,7 @@ import {
   message,
 } from "antd";
 import PageHeader from "../components/PageHeader";
+import FoodCategoryFormModal from "../features/foodCategories/FoodCategoryFormModal";
 import { foodCategoryService } from "../features/foodCategories/foodCategoryService";
 import { formatDateTime } from "../utils/format";
 
@@ -32,6 +34,8 @@ export default function FoodCategoryManagementPage() {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({ isActive: undefined });
@@ -102,6 +106,21 @@ export default function FoodCategoryManagementPage() {
     }
   };
 
+  const handleCreateCategory = async (values) => {
+    setSaving(true);
+
+    try {
+      await foodCategoryService.createFoodCategory(values);
+      message.success("Food category created");
+      setFormOpen(false);
+      await fetchCategories(1, pagination.pageSize, keyword, filters);
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const columns = [
     {
       title: "Category",
@@ -154,19 +173,31 @@ export default function FoodCategoryManagementPage() {
         description="Manage the category groups used to organize foods in UniLife."
         breadcrumbs={["Dashboard", "Food Categories"]}
         extra={
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() =>
-              fetchCategories(
-                pagination.current,
-                pagination.pageSize,
-                keyword,
-                filters,
-              )
-            }
-          >
-            Refresh
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() =>
+                fetchCategories(
+                  pagination.current,
+                  pagination.pageSize,
+                  keyword,
+                  filters,
+                )
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => {
+                setSelectedCategory(null);
+                setFormOpen(true);
+              }}
+            >
+              Create Category
+            </Button>
+          </Space>
         }
       />
 
@@ -274,6 +305,15 @@ export default function FoodCategoryManagementPage() {
           )}
         </Spin>
       </Drawer>
+
+      <FoodCategoryFormModal
+        open={formOpen}
+        mode="create"
+        initialValues={null}
+        loading={saving}
+        onCancel={() => setFormOpen(false)}
+        onSubmit={handleCreateCategory}
+      />
     </div>
   );
 }
