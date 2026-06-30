@@ -61,8 +61,8 @@ export default function SupplierFormModal({
           label="Contact Person"
           rules={[
             {
-              pattern: /^[\p{L}\s'-]{2,80}$/u,
-              message: "Contact name must contain only letters and spaces",
+              pattern: /^[\p{L}\s'.,\-]{2,80}$/u,
+              message: "Contact name must contain only letters, spaces and basic punctuation",
             },
           ]}
         >
