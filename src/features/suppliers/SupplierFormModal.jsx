@@ -49,12 +49,23 @@ export default function SupplierFormModal({
           rules={[
             { required: true, message: "Please enter supplier name" },
             { whitespace: true, message: "Supplier name cannot be empty" },
+            { min: 2, message: "Supplier name must be at least 2 characters" },
+            { max: 120, message: "Supplier name must not exceed 120 characters" },
           ]}
         >
           <Input placeholder="e.g. Fresh Farm Co." maxLength={120} showCount />
         </Form.Item>
 
-        <Form.Item name="contactName" label="Contact Person">
+        <Form.Item
+          name="contactName"
+          label="Contact Person"
+          rules={[
+            {
+              pattern: /^[\p{L}\s'-]{2,80}$/u,
+              message: "Contact name must contain only letters and spaces",
+            },
+          ]}
+        >
           <Input placeholder="e.g. Nguyen Van A" maxLength={80} />
         </Form.Item>
 
