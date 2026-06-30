@@ -21,4 +21,10 @@ export const foodCategoryService = {
 
     return response.data;
   },
+
+  async updateFoodCategory(id, payload) {
+    const response = await apiClient.patch(`/food-categories/${id}`, payload);
+
+    return response.data;
+  },
 };

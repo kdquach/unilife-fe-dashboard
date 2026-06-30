@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AppstoreOutlined,
+  EditOutlined,
   EyeOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -35,6 +36,7 @@ export default function FoodCategoryManagementPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
   const [saving, setSaving] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [keyword, setKeyword] = useState("");
@@ -106,14 +108,47 @@ export default function FoodCategoryManagementPage() {
     }
   };
 
-  const handleCreateCategory = async (values) => {
+  const openCreateModal = () => {
+    setSelectedCategory(null);
+    setFormMode("create");
+    setFormOpen(true);
+  };
+
+  const openEditModal = (category) => {
+    setSelectedCategory(category);
+    setFormMode("edit");
+    setFormOpen(true);
+  };
+
+  const handleSubmitCategory = async (values) => {
     setSaving(true);
 
     try {
-      await foodCategoryService.createFoodCategory(values);
-      message.success("Food category created");
+      const savedCategory =
+        formMode === "create"
+          ? await foodCategoryService.createFoodCategory(values)
+          : await foodCategoryService.updateFoodCategory(
+              selectedCategory._id,
+              values,
+            );
+
+      message.success(
+        formMode === "create"
+          ? "Food category created"
+          : "Food category updated",
+      );
       setFormOpen(false);
-      await fetchCategories(1, pagination.pageSize, keyword, filters);
+
+      if (detailOpen && selectedCategory?._id === savedCategory._id) {
+        setSelectedCategory(savedCategory);
+      }
+
+      await fetchCategories(
+        formMode === "create" ? 1 : pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
     } catch (error) {
       message.error(error.message);
     } finally {
@@ -159,9 +194,15 @@ export default function FoodCategoryManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 100,
+      width: 130,
       render: (_, record) => (
-        <Button icon={<EyeOutlined />} onClick={() => openDetailDrawer(record)} />
+        <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => openDetailDrawer(record)}
+          />
+          <Button icon={<EditOutlined />} onClick={() => openEditModal(record)} />
+        </Space>
       ),
     },
   ];
@@ -190,10 +231,7 @@ export default function FoodCategoryManagementPage() {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => {
-                setSelectedCategory(null);
-                setFormOpen(true);
-              }}
+              onClick={openCreateModal}
             >
               Create Category
             </Button>
@@ -308,11 +346,11 @@ export default function FoodCategoryManagementPage() {
 
       <FoodCategoryFormModal
         open={formOpen}
-        mode="create"
-        initialValues={null}
+        mode={formMode}
+        initialValues={formMode === "edit" ? selectedCategory : null}
         loading={saving}
         onCancel={() => setFormOpen(false)}
-        onSubmit={handleCreateCategory}
+        onSubmit={handleSubmitCategory}
       />
     </div>
   );
