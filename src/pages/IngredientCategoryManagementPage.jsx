@@ -1,24 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Card,
-  Table,
-  Tag,
-  Input,
-  Button,
-} from "antd";
+import { Card, Table, Tag, Input, Button } from "antd";
 import {
   PlusOutlined,
   AppstoreOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
 import { ingredientCategoryService } from "../features/ingredientCategories/ingredientCategoryService";
+import IngredientCategoryDetailDrawer from "../features/ingredientCategories/IngredientCategoryDetailDrawer";
 
 const { Search } = Input;
 
 export default function IngredientCategoryManagementPage() {
   const [categories, setCategories] = useState([]);
-
   const [loading, setLoading] = useState(false);
 
   const [keyword, setKeyword] = useState("");
@@ -29,10 +24,13 @@ export default function IngredientCategoryManagementPage() {
     total: 0,
   });
 
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState(null);
+
   const fetchCategories = async (
     page = pagination.current,
     pageSize = pagination.pageSize,
-    searchKeyword = keyword,
+    searchKeyword = keyword
   ) => {
     try {
       setLoading(true);
@@ -46,12 +44,9 @@ export default function IngredientCategoryManagementPage() {
 
       let data = response.data;
 
-      // search local
       if (searchKeyword) {
         data = data.filter((item) =>
-          item.name
-            .toLowerCase()
-            .includes(searchKeyword.toLowerCase()),
+          item.name.toLowerCase().includes(searchKeyword.toLowerCase())
         );
       }
 
@@ -62,6 +57,8 @@ export default function IngredientCategoryManagementPage() {
         pageSize: response.pagination.limit,
         total: response.pagination.total,
       });
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -72,15 +69,18 @@ export default function IngredientCategoryManagementPage() {
   }, []);
 
   const stats = useMemo(() => {
-    const active = categories.filter(
-      (x) => x.isActive,
-    ).length;
+    const active = categories.filter((item) => item.isActive).length;
 
     return {
       active,
       inactive: categories.length - active,
     };
   }, [categories]);
+
+  const openDrawer = (id) => {
+    setSelectedId(id);
+    setDrawerOpen(true);
+  };
 
   const columns = [
     {
@@ -100,14 +100,24 @@ export default function IngredientCategoryManagementPage() {
     {
       title: "Created",
       dataIndex: "createdAt",
-      render: (value) =>
-        new Date(value).toLocaleString("vi-VN"),
+      render: (value) => new Date(value).toLocaleString("vi-VN"),
     },
     {
       title: "Updated",
       dataIndex: "updatedAt",
-      render: (value) =>
-        new Date(value).toLocaleString("vi-VN"),
+      render: (value) => new Date(value).toLocaleString("vi-VN"),
+    },
+    {
+      title: "Action",
+      key: "action",
+      width: 100,
+      render: (_, record) => (
+        <Button
+          type="text"
+          icon={<EyeOutlined />}
+          onClick={() => openDrawer(record.id)}
+        />
+      ),
     },
   ];
 
@@ -116,15 +126,9 @@ export default function IngredientCategoryManagementPage() {
       <PageHeader
         title="Ingredient Category Management"
         description="Manage ingredient categories."
-        breadcrumbs={[
-          "Dashboard",
-          "Ingredient Categories",
-        ]}
+        breadcrumbs={["Dashboard", "Ingredient Categories"]}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-          >
+          <Button type="primary" icon={<PlusOutlined />}>
             Create Category
           </Button>
         }
@@ -138,33 +142,22 @@ export default function IngredientCategoryManagementPage() {
             </div>
 
             <div>
-              <div className="text-sm text-slate-500">
-                Categories
-              </div>
-
-              <div className="text-2xl font-bold">
-                {categories.length}
-              </div>
+              <div className="text-sm text-slate-500">Categories</div>
+              <div className="text-2xl font-bold">{categories.length}</div>
             </div>
           </div>
         </Card>
 
         <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">
-            Active
-          </div>
-
+          <div className="text-sm text-slate-500">Active</div>
           <div className="mt-1 text-2xl font-bold text-green-600">
             {stats.active}
           </div>
         </Card>
 
         <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">
-            Inactive
-          </div>
-
-          <div className="mt-1 text-2xl font-bold text-red-500">
+          <div className="text-sm text-slate-500">Inactive</div>
+          <div className="mt-1 text-2xl font-bold text-red-600">
             {stats.inactive}
           </div>
         </Card>
@@ -179,12 +172,7 @@ export default function IngredientCategoryManagementPage() {
             style={{ width: 250 }}
             onSearch={(value) => {
               setKeyword(value);
-
-              fetchCategories(
-                1,
-                pagination.pageSize,
-                value,
-              );
+              fetchCategories(1, pagination.pageSize, value);
             }}
           />
         }
@@ -199,17 +187,18 @@ export default function IngredientCategoryManagementPage() {
             pageSize: pagination.pageSize,
             total: pagination.total,
             showSizeChanger: true,
-            showTotal: (total) =>
-              `${total} categories`,
+            showTotal: (total) => `${total} categories`,
             onChange: (page, pageSize) =>
-              fetchCategories(
-                page,
-                pageSize,
-                keyword,
-              ),
+              fetchCategories(page, pageSize, keyword),
           }}
         />
       </Card>
+
+      <IngredientCategoryDetailDrawer
+        open={drawerOpen}
+        categoryId={selectedId}
+        onClose={() => setDrawerOpen(false)}
+      />
     </div>
   );
 }
