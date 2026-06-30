@@ -6,6 +6,7 @@ import FoodCategoryManagementPage from "../pages/FoodCategoryManagementPage";
 import KitchenQueuePage from "../pages/KitchenQueuePage";
 import LoginPage from "../pages/LoginPage";
 import OrdersPage from "../pages/OrdersPage";
+import SupplierManagementPage from "../pages/SupplierManagementPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import { useAuth } from "../features/auth/AuthContext";
 
@@ -47,6 +48,7 @@ export default function AppRouter() {
         <Route path="food-categories" element={<FoodCategoryManagementPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="kitchen-queue" element={<KitchenQueuePage />} />
+        <Route path="suppliers" element={<SupplierManagementPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

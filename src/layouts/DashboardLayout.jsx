@@ -5,6 +5,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShopOutlined,
   TeamOutlined,
   UserOutlined,
   ShoppingCartOutlined,
@@ -45,6 +46,11 @@ const menuItems = [
     key: "/kitchen-queue",
     icon: <OrderedListOutlined />,
     label: <Link to="/kitchen-queue">Kitchen Queue</Link>,
+  },
+  {
+    key: "/suppliers",
+    icon: <ShopOutlined />,
+    label: <Link to="/suppliers">Suppliers</Link>,
   },
 ];
 
