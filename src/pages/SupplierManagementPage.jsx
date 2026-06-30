@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
+  LinkOutlined,
   PhoneOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -36,6 +38,8 @@ const statusOptions = [
 ];
 
 export default function SupplierManagementPage() {
+  const navigate = useNavigate();
+
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -254,7 +258,7 @@ export default function SupplierManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 140,
+      width: 150,
       render: (_, record) => (
         <Space size={6}>
           <Button
@@ -400,16 +404,24 @@ export default function SupplierManagementPage() {
         onClose={() => setDetailOpen(false)}
         extra={
           selectedSupplier && (
-            <Button
-              type="primary"
-              icon={<EditOutlined />}
-              onClick={() => {
-                setDetailOpen(false);
-                openEditModal(selectedSupplier);
-              }}
-            >
-              Edit
-            </Button>
+            <Space>
+              <Button
+                icon={<LinkOutlined />}
+                onClick={() => navigate(`/suppliers/${selectedSupplier._id}`)}
+              >
+                Full Detail
+              </Button>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailOpen(false);
+                  openEditModal(selectedSupplier);
+                }}
+              >
+                Edit
+              </Button>
+            </Space>
           )
         }
       >

@@ -33,4 +33,13 @@ export const supplierService = {
 
     return response.data;
   },
+
+  async getSupplierBatches(id, params = {}) {
+    const response = await apiClient.get(`/suppliers/${id}/batches`, { params });
+
+    return {
+      data: response.data.items,
+      pagination: response.data.pagination,
+    };
+  },
 };
