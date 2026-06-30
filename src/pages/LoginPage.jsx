@@ -1,9 +1,10 @@
 import React from "react";
 import { LockOutlined, MailOutlined } from "@ant-design/icons";
-import { Button, Card, Checkbox, Form, Input, Typography, message } from "antd";
+import { Button, Card, Checkbox, Form, Input, Typography } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoLg from "../assets/logo-lg.png";
 import { useAuth } from "../features/auth/AuthContext";
+import { notify } from "../utils/notify";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -16,10 +17,10 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login(values);
-      message.success("Login successfully");
+      notify.success("Login successfully");
       navigate(location.state?.from?.pathname || "/", { replace: true });
     } catch (error) {
-      message.error(error.message);
+      notify.error("Login failed", error.message);
     } finally {
       setIsSubmitting(false);
     }

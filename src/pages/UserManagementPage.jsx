@@ -49,38 +49,47 @@ export default function UserManagementPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const filters = Form.useWatch([], form) || {};
+  const { Search } = Input;
+
+  const [keyword, setKeyword] = useState("");
+
+const [filters, setFilters] = useState({
+  role: undefined,
+  isActive: undefined,
+});
 
   const fetchUsers = async (
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-  ) => {
-    setLoading(true);
-    try {
-      const values = form.getFieldsValue();
-      const response = await userService.getUsers({
-        page,
-        limit: pageSize,
-        keyword: values.keyword,
-        role: values.role,
-        status: values.status,
-      });
-      setUsers(response.data);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  page = pagination.current,
+  pageSize = pagination.pageSize,
+  searchKeyword = keyword,
+  currentFilters = filters,
+) => {
+  setLoading(true);
+
+  try {
+    const response = await userService.getUsers({
+      page,
+      limit: pageSize,
+      keyword: searchKeyword,
+      ...currentFilters,
+    });
+
+    setUsers(response.data);
+
+    setPagination({
+      current: response.pagination.page,
+      pageSize: response.pagination.limit,
+      total: response.pagination.total,
+    });
+  } catch (error) {
+    message.error(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchUsers(1, pagination.pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stats = useMemo(() => {
@@ -113,7 +122,12 @@ export default function UserManagementPage() {
       else await userService.updateUser(selectedUser.id, payload);
       message.success(modalMode === "create" ? "User created" : "User updated");
       setModalOpen(false);
-      await fetchUsers(pagination.current, pagination.pageSize);
+      await fetchUsers(
+  pagination.current,
+  pagination.pageSize,
+  keyword,
+  filters
+);
     } catch (error) {
       message.error(error.message);
     } finally {
@@ -127,7 +141,12 @@ export default function UserManagementPage() {
       message.success(
         `${checked ? "Activated" : "Deactivated"} ${user.fullName}`,
       );
-      await fetchUsers(pagination.current, pagination.pageSize);
+      await fetchUsers(
+  pagination.current,
+  pagination.pageSize,
+  keyword,
+  filters
+);
     } catch (error) {
       message.error(error.message);
     }
@@ -137,7 +156,12 @@ export default function UserManagementPage() {
     try {
       await userService.updateUserRole(user.id, role);
       message.success(`Updated role for ${user.fullName}`);
-      await fetchUsers(pagination.current, pagination.pageSize);
+      await fetchUsers(
+  pagination.current,
+  pagination.pageSize,
+  keyword,
+  filters
+);
     } catch (error) {
       message.error(error.message);
     }
@@ -259,65 +283,106 @@ export default function UserManagementPage() {
         </Card>
       </div>
 
-      <Card className="dashboard-card mb-4">
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ keyword: "", role: undefined, status: "" }}
-        >
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr_1fr_auto] lg:items-end">
-            <Form.Item name="keyword" label="Keyword" className="!mb-0">
-              <Input
-                prefix={<SearchOutlined />}
-                placeholder="Search name, email or phone"
-                allowClear
-              />
-            </Form.Item>
-            <Form.Item name="role" label="Role" className="!mb-0">
-              <Select placeholder="All roles" allowClear options={USER_ROLES} />
-            </Form.Item>
-            <Form.Item name="status" label="Status" className="!mb-0">
-              <Select options={statusOptions} />
-            </Form.Item>
-            <Space>
-              <Button
-                type="primary"
-                icon={<SearchOutlined />}
-                onClick={() => fetchUsers(1, pagination.pageSize)}
-              >
-                Search
-              </Button>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => {
-                  form.resetFields();
-                  setTimeout(() => fetchUsers(1, pagination.pageSize), 0);
-                }}
-              >
-                Reset
-              </Button>
-            </Space>
-          </div>
-        </Form>
-      </Card>
 
-      <Card className="dashboard-card">
-        <Table
-          rowKey="id"
-          loading={loading}
-          dataSource={users}
-          columns={columns}
-          scroll={{ x: 1050 }}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} users`,
-            onChange: (page, pageSize) => fetchUsers(page, pageSize),
-          }}
-        />
-      </Card>
+      <Card
+  className="dashboard-card"
+  title="Users"
+  extra={
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap",
+      }}
+    >
+      <Search
+        placeholder="Search name, email or phone..."
+        allowClear
+        style={{ width: 250 }}
+        onSearch={(value) => {
+          setKeyword(value);
+
+          fetchUsers(
+            1,
+            pagination.pageSize,
+            value,
+            filters
+          );
+        }}
+      />
+
+      <Select
+        placeholder="Role"
+        allowClear
+        style={{ width: 150 }}
+        onChange={(value) => {
+          const newFilters = {
+            ...filters,
+            role: value,
+          };
+
+          setFilters(newFilters);
+
+          fetchUsers(
+            1,
+            pagination.pageSize,
+            keyword,
+            newFilters
+          );
+        }}
+        options={USER_ROLES}
+      />
+
+      <Select
+        placeholder="Status"
+        allowClear
+        style={{ width: 150 }}
+        onChange={(value) => {
+          const newFilters = {
+            ...filters,
+            isActive: value,
+          };
+
+          setFilters(newFilters);
+
+          fetchUsers(
+            1,
+            pagination.pageSize,
+            keyword,
+            newFilters
+          );
+        }}
+        options={[
+          {
+            label: "Active",
+            value: true,
+          },
+          {
+            label: "Inactive",
+            value: false,
+          },
+        ]}
+      />
+    </div>
+  }
+>
+  <Table
+    rowKey="id"
+    loading={loading}
+    dataSource={users}
+    columns={columns}
+    scroll={{ x: 1050 }}
+    pagination={{
+      current: pagination.current,
+      pageSize: pagination.pageSize,
+      total: pagination.total,
+      showSizeChanger: true,
+      showTotal: (total) => `${total} users`,
+      onChange: (page, pageSize) =>
+        fetchUsers(page, pageSize, keyword, filters),
+    }}
+  />
+</Card>
 
       <UserFormModal
         open={modalOpen}

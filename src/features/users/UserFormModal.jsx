@@ -60,6 +60,20 @@ export default function UserFormModal({
         >
           <Input placeholder="user@unilife.local" disabled={mode === "edit"} />
         </Form.Item>
+
+        {mode === "create" && (
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[
+              { required: true, message: "Please enter password" },
+              { min: 6, message: "Password must be at least 6 characters" },
+            ]}
+          >
+            <Input.Password placeholder="Enter password" />
+          </Form.Item>
+        )}
+
         <Form.Item
           name="phone"
           label="Phone"
