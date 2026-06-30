@@ -1,10 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AppstoreOutlined,
+  EyeOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Input, Select, Space, Table, Tag, message } from "antd";
+import {
+  Button,
+  Card,
+  Descriptions,
+  Drawer,
+  Input,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  message,
+} from "antd";
 import PageHeader from "../components/PageHeader";
 import { foodCategoryService } from "../features/foodCategories/foodCategoryService";
 import { formatDateTime } from "../utils/format";
@@ -17,6 +30,9 @@ const statusOptions = [
 export default function FoodCategoryManagementPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({ isActive: undefined });
   const [pagination, setPagination] = useState({
@@ -71,6 +87,21 @@ export default function FoodCategoryManagementPage() {
     fetchCategories(1, pagination.pageSize, keyword, newFilters);
   };
 
+  const openDetailDrawer = async (category) => {
+    setSelectedCategory(category);
+    setDetailOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const data = await foodCategoryService.getFoodCategoryById(category._id);
+      setSelectedCategory(data);
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const columns = [
     {
       title: "Category",
@@ -105,6 +136,14 @@ export default function FoodCategoryManagementPage() {
       dataIndex: "updatedAt",
       width: 180,
       render: formatDateTime,
+    },
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 100,
+      render: (_, record) => (
+        <Button icon={<EyeOutlined />} onClick={() => openDetailDrawer(record)} />
+      ),
     },
   ];
 
@@ -200,6 +239,41 @@ export default function FoodCategoryManagementPage() {
           }}
         />
       </Card>
+
+      <Drawer
+        title="Food Category Details"
+        placement="right"
+        width={520}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      >
+        <Spin spinning={detailLoading}>
+          {selectedCategory && (
+            <Descriptions bordered column={1}>
+              <Descriptions.Item label="Name">
+                {selectedCategory.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Description">
+                {selectedCategory.description || "No description"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag color={selectedCategory.isActive ? "green" : "red"}>
+                  {selectedCategory.isActive ? "Active" : "Inactive"}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Category ID">
+                {selectedCategory.foodCategoryId || selectedCategory._id}
+              </Descriptions.Item>
+              <Descriptions.Item label="Created at">
+                {formatDateTime(selectedCategory.createdAt)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Updated at">
+                {formatDateTime(selectedCategory.updatedAt)}
+              </Descriptions.Item>
+            </Descriptions>
+          )}
+        </Spin>
+      </Drawer>
     </div>
   );
 }
