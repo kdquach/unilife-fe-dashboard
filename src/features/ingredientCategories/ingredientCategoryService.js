@@ -19,4 +19,12 @@ export const ingredientCategoryService = {
     const response = await apiClient.get(`/ingredient-categories/${id}`)
     return response.data;
   },
+
+  async createIngredientCategory(data) {
+    return await apiClient.post("/ingredient-categories", data)
+  },
+
+  async updateIngredientCategory(id, data) {
+    return apiClient.patch(`/ingredient-categories/${id}`, data)
+  },
 };

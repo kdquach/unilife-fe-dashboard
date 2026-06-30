@@ -1,14 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Card, Table, Tag, Input, Button } from "antd";
+import { Card, Table, Tag, Input, Button, message, Space } from "antd";
 import {
   PlusOutlined,
   AppstoreOutlined,
   EyeOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
 import { ingredientCategoryService } from "../features/ingredientCategories/ingredientCategoryService";
 import IngredientCategoryDetailDrawer from "../features/ingredientCategories/IngredientCategoryDetailDrawer";
+import IngredientCategoryFormModal from "../features/ingredientCategories/IngredientCategoryFormModal";
 
 const { Search } = Input;
 
@@ -17,6 +19,11 @@ export default function IngredientCategoryManagementPage() {
   const [loading, setLoading] = useState(false);
 
   const [keyword, setKeyword] = useState("");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState("create"); // create | edit
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const [pagination, setPagination] = useState({
     current: 1,
@@ -27,6 +34,7 @@ export default function IngredientCategoryManagementPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
+  // ================= FETCH =================
   const fetchCategories = async (
     page = pagination.current,
     pageSize = pagination.pageSize,
@@ -42,15 +50,7 @@ export default function IngredientCategoryManagementPage() {
           keyword: searchKeyword,
         });
 
-      let data = response.data;
-
-      if (searchKeyword) {
-        data = data.filter((item) =>
-          item.name.toLowerCase().includes(searchKeyword.toLowerCase())
-        );
-      }
-
-      setCategories(data);
+      setCategories(response.data);
 
       setPagination({
         current: response.pagination.page,
@@ -58,7 +58,7 @@ export default function IngredientCategoryManagementPage() {
         total: response.pagination.total,
       });
     } catch (err) {
-      console.error(err);
+      message.error(err.message || "Fetch failed");
     } finally {
       setLoading(false);
     }
@@ -68,6 +68,7 @@ export default function IngredientCategoryManagementPage() {
     fetchCategories(1, 10);
   }, []);
 
+  // ================= STATS =================
   const stats = useMemo(() => {
     const active = categories.filter((item) => item.isActive).length;
 
@@ -77,11 +78,66 @@ export default function IngredientCategoryManagementPage() {
     };
   }, [categories]);
 
+  // ================= DRAWER =================
   const openDrawer = (id) => {
     setSelectedId(id);
     setDrawerOpen(true);
   };
 
+  // ================= CREATE =================
+  const openCreateModal = () => {
+    setSelectedCategory(null);
+    setModalMode("create");
+    setModalOpen(true);
+  };
+
+  // ================= EDIT =================
+  const openEditModal = (category) => {
+    setSelectedCategory(category);
+    setModalMode("edit");
+    setModalOpen(true);
+  };
+
+  // ================= CLOSE MODAL =================
+  const handleCloseModal = () => {
+    setModalOpen(false);
+    setSelectedCategory(null);
+    setModalMode("create");
+  };
+
+  // ================= SUBMIT (CREATE + UPDATE) =================
+  const handleSubmitCategory = async (values) => {
+    setSaving(true);
+
+    try {
+      if (modalMode === "create") {
+        await ingredientCategoryService.createIngredientCategory(values);
+        message.success("Category created successfully");
+      }
+
+      if (modalMode === "edit") {
+        await ingredientCategoryService.updateIngredientCategory(
+          selectedCategory._id,
+          values
+        );
+        message.success("Category updated successfully");
+      }
+
+      handleCloseModal();
+
+      await fetchCategories(
+        pagination.current,
+        pagination.pageSize,
+        keyword
+      );
+    } catch (err) {
+      message.error(err.message || "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ================= TABLE =================
   const columns = [
     {
       title: "Category Name",
@@ -108,32 +164,44 @@ export default function IngredientCategoryManagementPage() {
       render: (value) => new Date(value).toLocaleString("vi-VN"),
     },
     {
-      title: "Action",
-      key: "action",
-      width: 100,
-      render: (_, record) => (
-        <Button
-          type="text"
-          icon={<EyeOutlined />}
-          onClick={() => openDrawer(record.id)}
-        />
-      ),
-    },
+  title: "Actions",
+  fixed: "right",
+  width: 140,
+  render: (_, record) => (
+    <Space>
+      <Button
+        icon={<EyeOutlined />}
+        onClick={() => openDrawer(record._id)}
+      />
+
+      <Button
+        icon={<EditOutlined />}
+        onClick={() => openEditModal(record)}
+      />
+    </Space>
+  ),
+},
   ];
 
   return (
     <div>
+      {/* HEADER */}
       <PageHeader
         title="Ingredient Category Management"
-        description="Manage ingredient categories."
+        description="Manage ingredient categories"
         breadcrumbs={["Dashboard", "Ingredient Categories"]}
         extra={
-          <Button type="primary" icon={<PlusOutlined />}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreateModal}
+          >
             Create Category
           </Button>
         }
       />
 
+      {/* STATS */}
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card className="dashboard-card">
           <div className="flex items-center gap-4">
@@ -143,26 +211,29 @@ export default function IngredientCategoryManagementPage() {
 
             <div>
               <div className="text-sm text-slate-500">Categories</div>
-              <div className="text-2xl font-bold">{categories.length}</div>
+              <div className="text-2xl font-bold">
+                {categories.length}
+              </div>
             </div>
           </div>
         </Card>
 
-        <Card className="dashboard-card">
+        <Card>
           <div className="text-sm text-slate-500">Active</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">
+          <div className="text-2xl font-bold text-green-600">
             {stats.active}
           </div>
         </Card>
 
-        <Card className="dashboard-card">
+        <Card>
           <div className="text-sm text-slate-500">Inactive</div>
-          <div className="mt-1 text-2xl font-bold text-red-600">
+          <div className="text-2xl font-bold text-red-600">
             {stats.inactive}
           </div>
         </Card>
       </div>
 
+      {/* TABLE */}
       <Card
         title="Ingredient Categories"
         extra={
@@ -178,10 +249,10 @@ export default function IngredientCategoryManagementPage() {
         }
       >
         <Table
-          rowKey="id"
+          rowKey="_id"
           loading={loading}
-          columns={columns}
           dataSource={categories}
+          columns={columns}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
@@ -194,10 +265,21 @@ export default function IngredientCategoryManagementPage() {
         />
       </Card>
 
+      {/* DRAWER */}
       <IngredientCategoryDetailDrawer
         open={drawerOpen}
         categoryId={selectedId}
         onClose={() => setDrawerOpen(false)}
+      />
+
+      {/* MODAL */}
+      <IngredientCategoryFormModal
+        open={modalOpen}
+        mode={modalMode}
+        initialValues={selectedCategory}
+        loading={saving}
+        onCancel={handleCloseModal}
+        onSubmit={handleSubmitCategory}
       />
     </div>
   );
