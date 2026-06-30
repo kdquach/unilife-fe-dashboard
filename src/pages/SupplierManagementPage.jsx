@@ -25,6 +25,7 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
   message,
 } from "antd";
 import PageHeader from "../components/PageHeader";
@@ -167,7 +168,7 @@ export default function SupplierManagementPage() {
 
     try {
       await supplierService.deleteSupplier(id);
-      message.success("Supplier deleted");
+      message.success("Supplier deactivated successfully");
 
       if (detailOpen && selectedSupplier?._id === id) {
         setDetailOpen(false);
@@ -277,27 +278,33 @@ export default function SupplierManagementPage() {
       width: 150,
       render: (_, record) => (
         <Space size={6}>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => openDetailDrawer(record)}
-          />
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
-          />
+          <Tooltip title="View details">
+            <Button
+              icon={<EyeOutlined />}
+              onClick={() => openDetailDrawer(record)}
+            />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => openEditModal(record)}
+            />
+          </Tooltip>
           <Popconfirm
-            title="Delete supplier"
-            description="Are you sure you want to delete this supplier?"
-            okText="Delete"
+            title="Deactivate supplier"
+            description="This supplier will be deactivated and hidden from the list."
+            okText="Deactivate"
             okButtonProps={{ danger: true }}
             cancelText="Cancel"
             onConfirm={() => handleDeleteSupplier(record._id)}
           >
-            <Button
-              danger
-              icon={<DeleteOutlined />}
-              loading={deleting === record._id}
-            />
+            <Tooltip title="Deactivate">
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleting === record._id}
+              />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
