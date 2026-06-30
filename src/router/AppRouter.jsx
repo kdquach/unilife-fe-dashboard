@@ -7,6 +7,7 @@ import KitchenQueuePage from "../pages/KitchenQueuePage";
 import LoginPage from "../pages/LoginPage";
 import OrdersPage from "../pages/OrdersPage";
 import UserManagementPage from "../pages/UserManagementPage";
+import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -47,6 +48,9 @@ export default function AppRouter() {
         <Route path="food-categories" element={<FoodCategoryManagementPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="kitchen-queue" element={<KitchenQueuePage />} />
+        <Route
+            path="ingredient-categories" element={<IngredientCategoryManagementPage />}
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
