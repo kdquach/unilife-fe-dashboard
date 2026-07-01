@@ -10,7 +10,7 @@ export default function App() {
         token: {
           colorPrimary: "#FF4A2B",
           borderRadius: 14,
-          fontFamily: "Inter, system-ui, sans-serif",
+          fontFamily: "'Outfit', system-ui, sans-serif",
         },
         components: {
           Layout: {
