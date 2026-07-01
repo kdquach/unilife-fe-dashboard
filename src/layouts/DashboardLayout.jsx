@@ -12,6 +12,7 @@ import {
   OrderedListOutlined,
   TagsOutlined,
   DatabaseOutlined,
+  HistoryOutlined,
   InboxOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
@@ -56,6 +57,11 @@ const menuItems = [
     key: "/ingredients",
     icon: <InboxOutlined />,
     label: <Link to="/ingredients">Ingredients</Link>,
+  },
+  {
+    key: "/inventory-transactions",
+    icon: <HistoryOutlined />,
+    label: <Link to="/inventory-transactions">Inventory Transactions</Link>,
   },
   {
     key: "/kitchen-queue",

@@ -39,6 +39,12 @@ export const ingredientService = {
     return response?.data ?? null;
   },
 
+  async createIngredient(payload) {
+    const response = await apiClient.post("/ingredients", payload);
+
+    return response?.data ?? null;
+  },
+
   async updateIngredient(id, payload) {
     if (!id) throw new Error("Ingredient ID is required");
 
@@ -52,6 +58,17 @@ export const ingredientService = {
 
     const response = await apiClient.post(
       `/ingredients/${id}/adjust-stock`,
+      payload,
+    );
+
+    return response?.data ?? null;
+  },
+
+  async recordStockImport(id, payload) {
+    if (!id) throw new Error("Ingredient ID is required");
+
+    const response = await apiClient.post(
+      `/ingredients/${id}/stock-import`,
       payload,
     );
 

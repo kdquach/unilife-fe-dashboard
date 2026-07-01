@@ -11,6 +11,7 @@ import SupplierManagementPage from "../pages/SupplierManagementPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
 import IngredientManagementPage from "../pages/IngredientManagementPage";
+import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistoryPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -54,6 +55,10 @@ export default function AppRouter() {
         <Route path="suppliers" element={<SupplierManagementPage />} />
         <Route path="suppliers/:id" element={<SupplierDetailPage />} />
         <Route path="ingredients" element={<IngredientManagementPage />} />
+        <Route
+          path="inventory-transactions"
+          element={<InventoryTransactionHistoryPage />}
+        />
         <Route
             path="ingredient-categories" element={<IngredientCategoryManagementPage />}
         />
