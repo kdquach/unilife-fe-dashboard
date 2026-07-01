@@ -1,12 +1,9 @@
-import React, { useState } from 'react';
-import { Typography } from 'antd';
-
-const { Title, Text } = Typography;
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import useMenuSchedules from '../hooks/useMenuSchedules';
-import useMenuScheduleDetail from '../hooks/useMenuScheduleDetail';
 import MenuScheduleFilter from '../components/MenuScheduleFilter';
 import MenuScheduleTable from '../components/MenuScheduleTable';
-import MenuScheduleDetailDrawer from '../components/MenuScheduleDetailDrawer';
+import PageHeader from '../../../components/PageHeader';
 
 const MenuSchedulePage = () => {
   const { 
@@ -17,33 +14,19 @@ const MenuSchedulePage = () => {
     handleFilterChange 
   } = useMenuSchedules();
 
-  const { 
-    detail, 
-    loading: detailLoading, 
-    fetchDetail, 
-    resetDetail 
-  } = useMenuScheduleDetail();
-
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleViewDetail = (id) => {
-    fetchDetail(id);
-    setIsDrawerOpen(true);
-  };
-
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false);
-    resetDetail();
+    navigate(`/menu-schedules/${id}`);
   };
 
   return (
-    <div className="p-6 h-full flex flex-col bg-gray-50/50">
-      <div className="mb-6 flex justify-between items-center">
-        <div className="mb-6">
-          <Title level={3} className="!mb-1">Menu Schedule Management</Title>
-          <Text type="secondary">View list and details of menu schedules</Text>
-        </div>
-      </div>
+    <div className="p-6 h-full flex flex-col">
+      <PageHeader
+        title="Menu Schedule Management"
+        breadcrumbs={['Dashboard', 'Menu Schedules']}
+        description="View list and details of menu schedules"
+      />
 
       <MenuScheduleFilter onFilterChange={handleFilterChange} />
 
@@ -56,13 +39,6 @@ const MenuSchedulePage = () => {
           onViewDetail={handleViewDetail}
         />
       </div>
-
-      <MenuScheduleDetailDrawer
-        open={isDrawerOpen}
-        onClose={handleCloseDrawer}
-        detail={detail}
-        loading={detailLoading}
-      />
     </div>
   );
 };

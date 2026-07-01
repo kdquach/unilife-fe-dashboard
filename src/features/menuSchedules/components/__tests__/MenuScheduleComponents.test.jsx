@@ -13,6 +13,18 @@ describe('MenuSchedule Components', () => {
       expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument();
     });
+
+    it('submits dateFrom and dateTo on filter apply', async () => {
+      const mockOnFilterChange = vi.fn();
+      render(<MenuScheduleFilter onFilterChange={mockOnFilterChange} />);
+      const searchButton = screen.getByRole('button', { name: /search/i });
+      searchButton.click();
+      expect(mockOnFilterChange).toHaveBeenCalledWith({
+        status: undefined,
+        dateFrom: undefined,
+        dateTo: undefined
+      });
+    });
   });
 
   describe('MenuScheduleTable', () => {

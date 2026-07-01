@@ -8,6 +8,7 @@ import LoginPage from "../pages/LoginPage";
 import OrdersPage from "../pages/OrdersPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import MenuSchedulePage from "../features/menuSchedules/pages/MenuSchedulePage";
+import MenuScheduleDetailPage from "../features/menuSchedules/pages/MenuScheduleDetailPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -49,6 +50,7 @@ export default function AppRouter() {
         <Route path="orders" element={<OrdersPage />} />
         <Route path="kitchen-queue" element={<KitchenQueuePage />} />
         <Route path="menu-schedules" element={<MenuSchedulePage />} />
+        <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -12,8 +12,8 @@ const MenuScheduleFilter = ({ onFilterChange }) => {
   const handleApplyFilter = () => {
     const filters = {
       status: status.length > 0 ? status.join(',') : undefined,
-      startDate: dateRange?.[0] ? dateRange[0].format('YYYY-MM-DD') : undefined,
-      endDate: dateRange?.[1] ? dateRange[1].format('YYYY-MM-DD') : undefined,
+      dateFrom: dateRange?.[0] ? dateRange[0].format('YYYY-MM-DD') : undefined,
+      dateTo: dateRange?.[1] ? dateRange[1].format('YYYY-MM-DD') : undefined,
     };
     onFilterChange(filters);
   };
@@ -21,7 +21,7 @@ const MenuScheduleFilter = ({ onFilterChange }) => {
   const handleReset = () => {
     setStatus([]);
     setDateRange(null);
-    onFilterChange({ status: undefined, startDate: undefined, endDate: undefined });
+    onFilterChange({ status: undefined, dateFrom: undefined, dateTo: undefined });
   };
 
   return (
