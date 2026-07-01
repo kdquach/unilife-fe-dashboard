@@ -3,4 +3,5 @@ export const ROUTES = {
   DASHBOARD: '/',
   USERS: '/users',
   USER_DETAIL: '/users/:id',
+  INGREDIENTS: '/ingredients',
 };

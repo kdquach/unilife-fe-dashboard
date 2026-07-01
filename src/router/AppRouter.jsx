@@ -10,6 +10,7 @@ import SupplierDetailPage from "../pages/SupplierDetailPage";
 import SupplierManagementPage from "../pages/SupplierManagementPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
+import IngredientManagementPage from "../pages/IngredientManagementPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -52,6 +53,7 @@ export default function AppRouter() {
         <Route path="kitchen-queue" element={<KitchenQueuePage />} />
         <Route path="suppliers" element={<SupplierManagementPage />} />
         <Route path="suppliers/:id" element={<SupplierDetailPage />} />
+        <Route path="ingredients" element={<IngredientManagementPage />} />
         <Route
             path="ingredient-categories" element={<IngredientCategoryManagementPage />}
         />
