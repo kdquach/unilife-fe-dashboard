@@ -6,9 +6,13 @@ import FoodCategoryManagementPage from "../pages/FoodCategoryManagementPage";
 import KitchenQueuePage from "../pages/KitchenQueuePage";
 import LoginPage from "../pages/LoginPage";
 import OrdersPage from "../pages/OrdersPage";
+import SupplierDetailPage from "../pages/SupplierDetailPage";
+import SupplierManagementPage from "../pages/SupplierManagementPage";
 import UserManagementPage from "../pages/UserManagementPage";
 import MenuSchedulePage from "../features/menuSchedules/pages/MenuSchedulePage";
 import MenuScheduleDetailPage from "../features/menuSchedules/pages/MenuScheduleDetailPage";
+import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
+import IngredientManagementPage from "../pages/IngredientManagementPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -51,6 +55,12 @@ export default function AppRouter() {
         <Route path="kitchen-queue" element={<KitchenQueuePage />} />
         <Route path="menu-schedules" element={<MenuSchedulePage />} />
         <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
+        <Route path="suppliers" element={<SupplierManagementPage />} />
+        <Route path="suppliers/:id" element={<SupplierDetailPage />} />
+        <Route path="ingredients" element={<IngredientManagementPage />} />
+        <Route
+            path="ingredient-categories" element={<IngredientCategoryManagementPage />}
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

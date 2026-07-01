@@ -5,12 +5,15 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ShopOutlined,
   TeamOutlined,
   UserOutlined,
   ShoppingCartOutlined,
   OrderedListOutlined,
   TagsOutlined,
   CalendarOutlined,
+  DatabaseOutlined,
+  InboxOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -43,6 +46,19 @@ const menuItems = [
     label: <Link to="/food-categories">Food Categories</Link>,
   },
   {
+    key: "/ingredient-categories",
+    icon: <DatabaseOutlined />,
+    label:
+      <Link to="/ingredient-categories">
+        Ingredient Categories
+      </Link>
+  },
+  {
+    key: "/ingredients",
+    icon: <InboxOutlined />,
+    label: <Link to="/ingredients">Ingredients</Link>,
+  },
+  {
     key: "/kitchen-queue",
     icon: <OrderedListOutlined />,
     label: <Link to="/kitchen-queue">Kitchen Queue</Link>,
@@ -51,6 +67,9 @@ const menuItems = [
     key: "/menu-schedules",
     icon: <CalendarOutlined />,
     label: <Link to="/menu-schedules">Menu Schedules</Link>,
+    key: "/suppliers",
+    icon: <ShopOutlined />,
+    label: <Link to="/suppliers">Suppliers</Link>,
   },
 ];
 
