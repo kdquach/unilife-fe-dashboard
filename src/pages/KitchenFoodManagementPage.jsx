@@ -10,6 +10,7 @@ import {
   Card,
   Descriptions,
   Drawer,
+  Image,
   Input,
   InputNumber,
   Select,
@@ -18,6 +19,7 @@ import {
   Table,
   Tag,
 } from "antd";
+import imageNotFound from "../assets/image-not-found.png";
 import PageHeader from "../components/PageHeader";
 import { foodService } from "../features/foods/foodService";
 import { formatDateTime } from "../utils/format";
@@ -27,6 +29,17 @@ const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString("vi-VN")} VND`;
 
 const { Search } = Input;
+
+const apiOrigin = (
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1"
+).replace(/\/api\/v\d+\/?$/, "");
+
+const getFoodImageUrl = (food) => {
+  const imageUrl = food?.imageUrl || food?.image;
+  if (!imageUrl) return imageNotFound;
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+  return `${apiOrigin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
+};
 
 const hasActiveFilters = (filters) =>
   Object.values(filters).some(
@@ -160,10 +173,20 @@ export default function KitchenFoodManagementPage() {
       title: "Food",
       dataIndex: "name",
       render: (name, record) => (
-        <div>
-          <div className="font-semibold text-slate-900">{name}</div>
-          <div className="text-sm text-slate-500">
-            {record.description || "No description"}
+        <div className="flex items-center gap-3">
+          <Image
+            src={getFoodImageUrl(record)}
+            fallback={imageNotFound}
+            width={64}
+            height={64}
+            className="rounded-md object-cover"
+            preview={false}
+          />
+          <div>
+            <div className="font-semibold text-slate-900">{name}</div>
+            <div className="text-sm text-slate-500">
+              {record.description || "No description"}
+            </div>
           </div>
         </div>
       ),
@@ -342,35 +365,46 @@ export default function KitchenFoodManagementPage() {
       >
         <Spin spinning={detailLoading}>
           {selectedFood && (
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="Name">
-                {selectedFood.name}
-              </Descriptions.Item>
-              <Descriptions.Item label="Description">
-                {selectedFood.description || "No description"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Category">
-                {selectedFood.categoryId?.name || "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Type">
-                {renderFoodType(selectedFood.isMenuItem)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Stock quantity">
-                {selectedFood.isMenuItem ? "-" : selectedFood.stockQuantity ?? 0}
-              </Descriptions.Item>
-              <Descriptions.Item label="Price">
-                {formatCurrency(selectedFood.price)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Food ID">
-                {selectedFood.foodId || selectedFood._id}
-              </Descriptions.Item>
-              <Descriptions.Item label="Created at">
-                {formatDateTime(selectedFood.createdAt)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Updated at">
-                {formatDateTime(selectedFood.updatedAt)}
-              </Descriptions.Item>
-            </Descriptions>
+            <>
+              <Image
+                src={getFoodImageUrl(selectedFood)}
+                fallback={imageNotFound}
+                width="100%"
+                height={260}
+                className="mb-4 rounded-lg object-cover"
+              />
+              <Descriptions bordered column={1}>
+                <Descriptions.Item label="Name">
+                  {selectedFood.name}
+                </Descriptions.Item>
+                <Descriptions.Item label="Description">
+                  {selectedFood.description || "No description"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Category">
+                  {selectedFood.categoryId?.name || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Type">
+                  {renderFoodType(selectedFood.isMenuItem)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Stock quantity">
+                  {selectedFood.isMenuItem
+                    ? "-"
+                    : selectedFood.stockQuantity ?? 0}
+                </Descriptions.Item>
+                <Descriptions.Item label="Price">
+                  {formatCurrency(selectedFood.price)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Food ID">
+                  {selectedFood.foodId || selectedFood._id}
+                </Descriptions.Item>
+                <Descriptions.Item label="Created at">
+                  {formatDateTime(selectedFood.createdAt)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Updated at">
+                  {formatDateTime(selectedFood.updatedAt)}
+                </Descriptions.Item>
+              </Descriptions>
+            </>
           )}
         </Spin>
       </Drawer>
