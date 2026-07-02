@@ -41,6 +41,13 @@ const getCreatedSortValue = (batch) => {
   return Number.isFinite(createdTime) ? createdTime : Number.MAX_SAFE_INTEGER;
 };
 
+const getDateKey = (value) => {
+  if (!value) return "";
+
+  const date = dayjs(value);
+  return date.isValid() ? date.format("YYYY-MM-DD") : "";
+};
+
 export default function IngredientStockAdjustModal({
   open,
   ingredient,
@@ -199,6 +206,15 @@ export default function IngredientStockAdjustModal({
                 }
 
                 if (
+                  adjustmentType === ADJUSTMENT_TYPES.SET &&
+                  numberValue > currentStock
+                ) {
+                  return Promise.reject(
+                    new Error("Use Add stock when increasing stock so an expiry batch is recorded"),
+                  );
+                }
+
+                if (
                   adjustmentType !== ADJUSTMENT_TYPES.SET &&
                   numberValue === 0
                 ) {
@@ -230,12 +246,37 @@ export default function IngredientStockAdjustModal({
                   required: true,
                   message: "Please choose expiry date for the new batch",
                 },
+                {
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+
+                    if (!value.startOf("day").isAfter(dayjs().startOf("day"))) {
+                      return Promise.reject(
+                        new Error("Expiry date must be a future date"),
+                      );
+                    }
+
+                    const selectedDate = getDateKey(value);
+                    const duplicateBatch = batches.some(
+                      (batch) => getDateKey(batch.expiryDate) === selectedDate,
+                    );
+
+                    if (duplicateBatch) {
+                      return Promise.reject(
+                        new Error("A batch with this expiry date already exists"),
+                      );
+                    }
+
+                    return Promise.resolve();
+                  },
+                },
               ]}
             >
               <DatePicker
                 className="w-full"
                 disabledDate={(current) =>
-                  current && current.endOf("day").isBefore(dayjs())
+                  current &&
+                  !current.startOf("day").isAfter(dayjs().startOf("day"))
                 }
                 format="DD/MM/YYYY"
               />
@@ -296,7 +337,25 @@ export default function IngredientStockAdjustModal({
           label="Reason"
           rules={[
             { required: true, message: "Please enter the adjustment reason" },
-            { min: 5, message: "Reason should be at least 5 characters" },
+            {
+              validator: (_, value) => {
+                const reason = String(value || "").trim();
+
+                if (!reason) {
+                  return Promise.reject(
+                    new Error("Please enter the adjustment reason"),
+                  );
+                }
+
+                if (reason.length < 5) {
+                  return Promise.reject(
+                    new Error("Reason should be at least 5 characters"),
+                  );
+                }
+
+                return Promise.resolve();
+              },
+            },
           ]}
         >
           <Input.TextArea

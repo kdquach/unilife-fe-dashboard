@@ -33,6 +33,14 @@ export const ingredientTransactionService = {
     return unwrapListResponse(response);
   },
 
+  async getIngredientTransactionById(id) {
+    if (!id) return null;
+
+    const response = await apiClient.get(`/ingredient-transactions/${id}`);
+
+    return response?.data ?? null;
+  },
+
   async createIngredientTransaction(payload) {
     const response = await apiClient.post("/ingredient-transactions", payload);
 

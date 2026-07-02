@@ -15,15 +15,20 @@ import {
   DatabaseOutlined,
   EditOutlined,
   EyeOutlined,
+  ImportOutlined,
   InboxOutlined,
+  PlusOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
 import IngredientDetailDrawer from "../features/ingredients/IngredientDetailDrawer";
+import IngredientFormModal from "../features/ingredients/IngredientFormModal";
 import IngredientStockAdjustModal from "../features/ingredients/IngredientStockAdjustModal";
+import IngredientStockImportModal from "../features/ingredients/IngredientStockImportModal";
 import { ingredientService } from "../features/ingredients/ingredientService";
 import { ingredientCategoryService } from "../features/ingredientCategories/ingredientCategoryService";
+import { supplierService } from "../features/suppliers/supplierService";
 import { formatDateTime } from "../utils/format";
 
 const { Search } = Input;
@@ -49,8 +54,10 @@ const isLowStock = (record) => {
 export default function IngredientManagementPage() {
   const [ingredients, setIngredients] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [supplierLoading, setSupplierLoading] = useState(false);
   const [error, setError] = useState("");
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
@@ -69,6 +76,13 @@ export default function IngredientManagementPage() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [formModalOpen, setFormModalOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [editingIngredient, setEditingIngredient] = useState(null);
+  const [savingIngredient, setSavingIngredient] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importingStock, setImportingStock] = useState(false);
+  const [importBatches, setImportBatches] = useState([]);
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
   const [batchLoading, setBatchLoading] = useState(false);
@@ -132,9 +146,29 @@ export default function IngredientManagementPage() {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      setSupplierLoading(true);
+
+      const response = await supplierService.getSuppliers({
+        page: 1,
+        limit: 100,
+        isActive: true,
+      });
+
+      setSuppliers(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      setSuppliers([]);
+      message.warning(err.message || "Unable to load suppliers");
+    } finally {
+      setSupplierLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchIngredients({ page: 1, pageSize: 10 });
     fetchCategories();
+    fetchSuppliers();
   }, []);
 
   const stats = useMemo(() => {
@@ -211,6 +245,51 @@ export default function IngredientManagementPage() {
     setDrawerOpen(true);
   };
 
+  const openCreateModal = () => {
+    setEditingIngredient(null);
+    setFormMode("create");
+    setFormModalOpen(true);
+  };
+
+  const openEditModal = (record) => {
+    setEditingIngredient(record);
+    setFormMode("edit");
+    setFormModalOpen(true);
+  };
+
+  const closeFormModal = () => {
+    setFormModalOpen(false);
+    setEditingIngredient(null);
+    setFormMode("create");
+  };
+
+  const handleSubmitIngredient = async (values) => {
+    setSavingIngredient(true);
+
+    try {
+      if (formMode === "create") {
+        await ingredientService.createIngredient(values);
+        message.success("Ingredient created successfully");
+      } else {
+        const id = getRecordId(editingIngredient);
+        if (!id) throw new Error("Ingredient ID is missing");
+
+        await ingredientService.updateIngredient(id, values);
+        message.success("Ingredient updated successfully");
+      }
+
+      closeFormModal();
+      await fetchIngredients({
+        page: formMode === "create" ? 1 : pagination.current,
+        pageSize: pagination.pageSize,
+      });
+    } catch (err) {
+      message.error(err.message || "Unable to save ingredient");
+    } finally {
+      setSavingIngredient(false);
+    }
+  };
+
   const openAdjustModal = async (record) => {
     const id = getRecordId(record);
 
@@ -232,6 +311,70 @@ export default function IngredientManagementPage() {
       message.warning(err.message || "Unable to load ingredient batches");
     } finally {
       setBatchLoading(false);
+    }
+  };
+
+  const openImportModal = async (record) => {
+    const id = getRecordId(record);
+
+    if (!id) {
+      message.warning("Ingredient ID is missing");
+      return;
+    }
+
+    setSelectedIngredient(record);
+    setImportModalOpen(true);
+    setImportBatches([]);
+
+    try {
+      setBatchLoading(true);
+      const detail = await ingredientService.getIngredientById(id);
+      setSelectedIngredient(detail || record);
+      setImportBatches(Array.isArray(detail?.batches) ? detail.batches : []);
+    } catch (err) {
+      message.warning(err.message || "Unable to load ingredient batches");
+    } finally {
+      setBatchLoading(false);
+    }
+  };
+
+  const closeImportModal = () => {
+    setImportModalOpen(false);
+    setSelectedIngredient(null);
+    setImportBatches([]);
+  };
+
+  const handleRecordStockImport = async (values) => {
+    const id = getRecordId(selectedIngredient);
+
+    if (!id) {
+      message.warning("Ingredient ID is missing");
+      return;
+    }
+
+    setImportingStock(true);
+
+    try {
+      await ingredientService.recordStockImport(id, {
+        quantity: values.quantity,
+        expiryDate: values.expiryDate,
+        supplierId: values.supplierId,
+        unitPrice: values.unitPrice,
+        importCode: values.importCode,
+        reason: values.reason,
+        referenceType: "STOCK_IMPORT",
+      });
+
+      message.success("Stock import recorded and transaction history saved");
+      closeImportModal();
+      await fetchIngredients({
+        page: pagination.current,
+        pageSize: pagination.pageSize,
+      });
+    } catch (err) {
+      message.error(err.message || "Unable to record stock import");
+    } finally {
+      setImportingStock(false);
     }
   };
 
@@ -261,7 +404,7 @@ export default function IngredientManagementPage() {
         quantity: values.quantity,
         stockAfter: values.stockAfter,
         batchId: values.batchId,
-        expiryDate: values.expiryDate?.toISOString?.(),
+        expiryDate: values.expiryDate?.format?.("YYYY-MM-DD"),
         unitPrice: values.unitPrice,
         reason: values.reason.trim(),
         referenceType: "MANUAL_STOCK_ADJUSTMENT",
@@ -351,7 +494,7 @@ export default function IngredientManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 140,
+      width: 220,
       render: (_, record) => (
         <Space>
           <Button
@@ -360,6 +503,14 @@ export default function IngredientManagementPage() {
           />
           <Button
             icon={<EditOutlined />}
+            onClick={() => openEditModal(record)}
+          />
+          <Button
+            icon={<ImportOutlined />}
+            onClick={() => openImportModal(record)}
+          />
+          <Button
+            icon={<DatabaseOutlined />}
             onClick={() => openAdjustModal(record)}
           />
         </Space>
@@ -371,8 +522,17 @@ export default function IngredientManagementPage() {
     <div>
       <PageHeader
         title="Ingredient Management"
-        description="View ingredients and ingredient details for kitchen staff"
+        description="Manage ingredients, details, filters, and stock adjustments"
         breadcrumbs={["Dashboard", "Ingredients"]}
+        extra={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreateModal}
+          >
+            Create Ingredient
+          </Button>
+        }
       />
 
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -466,7 +626,7 @@ export default function IngredientManagementPage() {
           loading={loading}
           dataSource={ingredients}
           columns={columns}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1100 }}
           locale={{
             emptyText: (
               <div className="py-8">
@@ -490,6 +650,28 @@ export default function IngredientManagementPage() {
         open={drawerOpen}
         ingredientId={selectedId}
         onClose={() => setDrawerOpen(false)}
+      />
+
+      <IngredientFormModal
+        open={formModalOpen}
+        mode={formMode}
+        initialValues={editingIngredient}
+        categories={categories}
+        categoryLoading={categoryLoading}
+        loading={savingIngredient}
+        onCancel={closeFormModal}
+        onSubmit={handleSubmitIngredient}
+      />
+
+      <IngredientStockImportModal
+        open={importModalOpen}
+        ingredient={selectedIngredient}
+        batches={importBatches}
+        suppliers={suppliers}
+        supplierLoading={supplierLoading || batchLoading}
+        loading={importingStock}
+        onCancel={closeImportModal}
+        onSubmit={handleRecordStockImport}
       />
 
       <IngredientStockAdjustModal

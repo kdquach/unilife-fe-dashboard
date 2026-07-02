@@ -17,7 +17,6 @@ import {
 } from "@ant-design/icons";
 
 import { ingredientService } from "./ingredientService";
-import { ingredientTransactionService } from "./ingredientTransactionService";
 import { formatDate, formatDateTime } from "../../utils/format";
 
 const getIngredientId = (ingredient) =>
@@ -34,26 +33,10 @@ const asNumber = (value) => {
   return Number.isFinite(numberValue) ? numberValue : 0;
 };
 
-const getAdjustedByName = (adjustedBy) => {
-  if (!adjustedBy) return "System";
-  if (typeof adjustedBy === "string") return adjustedBy;
-
-  return (
-    adjustedBy.fullName ||
-    adjustedBy.name ||
-    adjustedBy.email ||
-    adjustedBy._id ||
-    "System"
-  );
-};
-
 export default function IngredientDetailDrawer({ open, ingredientId, onClose }) {
   const [loading, setLoading] = useState(false);
-  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [ingredient, setIngredient] = useState(null);
-  const [transactions, setTransactions] = useState([]);
   const [error, setError] = useState("");
-  const [transactionsError, setTransactionsError] = useState("");
 
   useEffect(() => {
     if (!open || !ingredientId) return;
@@ -64,7 +47,6 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
       try {
         setLoading(true);
         setError("");
-        setTransactionsError("");
 
         const data = await ingredientService.getIngredientById(ingredientId);
 
@@ -84,47 +66,6 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
     };
 
     fetchDetail();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [open, ingredientId]);
-
-  useEffect(() => {
-    if (!open || !ingredientId) return;
-
-    let isMounted = true;
-
-    const fetchTransactions = async () => {
-      try {
-        setTransactionsLoading(true);
-        setTransactionsError("");
-
-        const response =
-          await ingredientTransactionService.getIngredientTransactions({
-            ingredientId,
-            page: 1,
-            limit: 5,
-          });
-
-        if (isMounted) {
-          setTransactions(Array.isArray(response.data) ? response.data : []);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setTransactions([]);
-          setTransactionsError(
-            err.message || "Unable to load transaction history",
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setTransactionsLoading(false);
-        }
-      }
-    };
-
-    fetchTransactions();
 
     return () => {
       isMounted = false;
@@ -273,59 +214,6 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
                   description={
                     <div className="text-xs text-slate-500">
                       Batch ID: {batch._id || batch.id || "-"}
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-
-          <Typography.Title level={5} className="!mt-8">
-            Transaction History
-          </Typography.Title>
-
-          {transactionsError && (
-            <Alert
-              className="mb-4"
-              type="warning"
-              showIcon
-              message="Transaction history could not be loaded"
-              description={transactionsError}
-            />
-          )}
-
-          <List
-            loading={transactionsLoading}
-            dataSource={transactions}
-            locale={{ emptyText: "No transaction history yet" }}
-            renderItem={(transaction) => (
-              <List.Item>
-                <List.Item.Meta
-                  title={
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Tag color="blue">
-                        {transaction.transactionType || "TRANSACTION"}
-                      </Tag>
-                      <Typography.Text strong>
-                        {transaction.stockBefore ?? "-"}{" -> "}
-                        {transaction.stockAfter ?? "-"}{" "}
-                        {transaction.unit || ingredient.unit || ""}
-                      </Typography.Text>
-                      {transaction.batchId?.expiryDate && (
-                        <Tag color="orange">
-                          Exp: {formatDate(transaction.batchId.expiryDate)}
-                        </Tag>
-                      )}
-                    </div>
-                  }
-                  description={
-                    <div>
-                      <div>{transaction.reason || "No reason provided"}</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {formatDateTime(transaction.createdAt)}
-                        {" | Updated by: "}
-                        {getAdjustedByName(transaction.adjustedBy)}
-                      </div>
                     </div>
                   }
                 />
