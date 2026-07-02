@@ -21,4 +21,13 @@ export const foodService = {
 
     return response.data;
   },
+
+  async searchKitchenFoods(params = {}) {
+    const response = await apiClient.get("/foods/kitchen/search", { params });
+
+    return {
+      data: response.data.items,
+      pagination: response.data.pagination,
+    };
+  },
 };

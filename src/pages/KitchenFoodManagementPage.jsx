@@ -3,12 +3,14 @@ import {
   CoffeeOutlined,
   EyeOutlined,
   ReloadOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import {
   Button,
   Card,
   Descriptions,
   Drawer,
+  Input,
   Space,
   Spin,
   Table,
@@ -22,6 +24,8 @@ import { notify } from "../utils/notify";
 const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString("vi-VN")} VND`;
 
+const { Search } = Input;
+
 const renderFoodType = (isMenuItem) => (
   <Tag color={isMenuItem ? "purple" : "blue"}>
     {isMenuItem ? "Menu Item" : "Always Available"}
@@ -34,6 +38,7 @@ export default function KitchenFoodManagementPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
+  const [keyword, setKeyword] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -43,11 +48,19 @@ export default function KitchenFoodManagementPage() {
   const fetchFoods = async (
     page = pagination.current,
     limit = pagination.pageSize,
+    searchKeyword = keyword,
   ) => {
     try {
       setLoading(true);
 
-      const response = await foodService.getKitchenFoods({ page, limit });
+      const params = {
+        page,
+        limit,
+        keyword: searchKeyword || undefined,
+      };
+      const response = searchKeyword
+        ? await foodService.searchKitchenFoods(params)
+        : await foodService.getKitchenFoods(params);
 
       setFoods(response.data);
       setPagination({
@@ -154,7 +167,7 @@ export default function KitchenFoodManagementPage() {
           <Button
             icon={<ReloadOutlined />}
             loading={loading}
-            onClick={() => fetchFoods()}
+            onClick={() => fetchFoods(pagination.current, pagination.pageSize)}
           >
             Refresh
           </Button>
@@ -189,7 +202,22 @@ export default function KitchenFoodManagementPage() {
         </Card>
       </div>
 
-      <Card className="dashboard-card" title="Foods">
+      <Card
+        className="dashboard-card"
+        title="Foods"
+        extra={
+          <Search
+            allowClear
+            enterButton={<SearchOutlined />}
+            placeholder="Search food..."
+            style={{ width: 280 }}
+            onSearch={(value) => {
+              setKeyword(value);
+              fetchFoods(1, pagination.pageSize, value);
+            }}
+          />
+        }
+      >
         <Table
           rowKey="_id"
           loading={loading}
@@ -203,7 +231,9 @@ export default function KitchenFoodManagementPage() {
             showSizeChanger: true,
             showTotal: (total) => `${total} foods`,
           }}
-          onChange={(pager) => fetchFoods(pager.current, pager.pageSize)}
+          onChange={(pager) =>
+            fetchFoods(pager.current, pager.pageSize, keyword)
+          }
         />
       </Card>
 
