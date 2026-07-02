@@ -9,6 +9,8 @@ import OrdersPage from "../pages/OrdersPage";
 import SupplierDetailPage from "../pages/SupplierDetailPage";
 import SupplierManagementPage from "../pages/SupplierManagementPage";
 import UserManagementPage from "../pages/UserManagementPage";
+import MenuSchedulePage from "../features/menuSchedules/pages/MenuSchedulePage";
+import MenuScheduleDetailPage from "../features/menuSchedules/pages/MenuScheduleDetailPage";
 import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
 import IngredientManagementPage from "../pages/IngredientManagementPage";
 import { useAuth } from "../features/auth/AuthContext";
@@ -51,6 +53,8 @@ export default function AppRouter() {
         <Route path="food-categories" element={<FoodCategoryManagementPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="kitchen-queue" element={<KitchenQueuePage />} />
+        <Route path="menu-schedules" element={<MenuSchedulePage />} />
+        <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
         <Route path="suppliers" element={<SupplierManagementPage />} />
         <Route path="suppliers/:id" element={<SupplierDetailPage />} />
         <Route path="ingredients" element={<IngredientManagementPage />} />

@@ -11,6 +11,7 @@ import {
   ShoppingCartOutlined,
   OrderedListOutlined,
   TagsOutlined,
+  CalendarOutlined,
   DatabaseOutlined,
   InboxOutlined,
 } from "@ant-design/icons";
@@ -63,6 +64,9 @@ const menuItems = [
     label: <Link to="/kitchen-queue">Kitchen Queue</Link>,
   },
   {
+    key: "/menu-schedules",
+    icon: <CalendarOutlined />,
+    label: <Link to="/menu-schedules">Menu Schedules</Link>,
     key: "/suppliers",
     icon: <ShopOutlined />,
     label: <Link to="/suppliers">Suppliers</Link>,
