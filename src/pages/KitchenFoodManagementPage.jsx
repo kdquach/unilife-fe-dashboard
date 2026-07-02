@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   CoffeeOutlined,
+  EyeOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Space, Table, Tag } from "antd";
+import {
+  Button,
+  Card,
+  Descriptions,
+  Drawer,
+  Space,
+  Spin,
+  Table,
+  Tag,
+} from "antd";
 import PageHeader from "../components/PageHeader";
 import { foodService } from "../features/foods/foodService";
 import { formatDateTime } from "../utils/format";
@@ -21,6 +31,9 @@ const renderFoodType = (isMenuItem) => (
 export default function KitchenFoodManagementPage() {
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedFood, setSelectedFood] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -62,6 +75,21 @@ export default function KitchenFoodManagementPage() {
       alwaysAvailable: foods.length - menuItems,
     };
   }, [foods]);
+
+  const openDetailDrawer = async (food) => {
+    setSelectedFood(food);
+    setDetailOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const data = await foodService.getKitchenFoodById(food._id);
+      setSelectedFood(data);
+    } catch (error) {
+      notify.error("Kitchen Food Detail Failed", error.message);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
 
   const columns = [
     {
@@ -105,6 +133,14 @@ export default function KitchenFoodManagementPage() {
       dataIndex: "updatedAt",
       width: 170,
       render: formatDateTime,
+    },
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 90,
+      render: (_, record) => (
+        <Button icon={<EyeOutlined />} onClick={() => openDetailDrawer(record)} />
+      ),
     },
   ];
 
@@ -170,6 +206,48 @@ export default function KitchenFoodManagementPage() {
           onChange={(pager) => fetchFoods(pager.current, pager.pageSize)}
         />
       </Card>
+
+      <Drawer
+        title="Kitchen Food Detail"
+        placement="right"
+        width={560}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      >
+        <Spin spinning={detailLoading}>
+          {selectedFood && (
+            <Descriptions bordered column={1}>
+              <Descriptions.Item label="Name">
+                {selectedFood.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="Description">
+                {selectedFood.description || "No description"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Category">
+                {selectedFood.categoryId?.name || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Type">
+                {renderFoodType(selectedFood.isMenuItem)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Stock quantity">
+                {selectedFood.isMenuItem ? "-" : selectedFood.stockQuantity ?? 0}
+              </Descriptions.Item>
+              <Descriptions.Item label="Price">
+                {formatCurrency(selectedFood.price)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Food ID">
+                {selectedFood.foodId || selectedFood._id}
+              </Descriptions.Item>
+              <Descriptions.Item label="Created at">
+                {formatDateTime(selectedFood.createdAt)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Updated at">
+                {formatDateTime(selectedFood.updatedAt)}
+              </Descriptions.Item>
+            </Descriptions>
+          )}
+        </Spin>
+      </Drawer>
     </div>
   );
 }

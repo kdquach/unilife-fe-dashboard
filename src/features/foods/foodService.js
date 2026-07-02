@@ -15,4 +15,10 @@ export const foodService = {
       pagination: response.data.pagination,
     };
   },
+
+  async getKitchenFoodById(id) {
+    const response = await apiClient.get(`/foods/kitchen/${id}`);
+
+    return response.data;
+  },
 };
