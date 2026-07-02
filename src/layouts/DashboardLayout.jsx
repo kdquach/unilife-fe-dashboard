@@ -50,7 +50,7 @@ const menuItems = [
   {
     key: "/kitchen-foods",
     icon: <CoffeeOutlined />,
-    label: <Link to="/kitchen-foods">Kitchen Foods</Link>,
+    label: <Link to="/kitchen-foods">Foods</Link>,
   },
   {
     key: "/ingredient-categories",

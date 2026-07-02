@@ -90,7 +90,7 @@ export default function KitchenFoodManagementPage() {
         total: response.pagination.total,
       });
     } catch (error) {
-      notify.error("Kitchen Foods Load Failed", error.message);
+      notify.error("Foods Load Failed", error.message);
     } finally {
       setLoading(false);
     }
@@ -109,7 +109,7 @@ export default function KitchenFoodManagementPage() {
         kindOptions: data.kindOptions || [],
       });
     } catch (error) {
-      notify.error("Kitchen Food Filters Load Failed", error.message);
+      notify.error("Food Filters Load Failed", error.message);
     }
   };
 
@@ -132,7 +132,7 @@ export default function KitchenFoodManagementPage() {
       const data = await foodService.getKitchenFoodById(food._id);
       setSelectedFood(data);
     } catch (error) {
-      notify.error("Kitchen Food Detail Failed", error.message);
+      notify.error("Food Detail Failed", error.message);
     } finally {
       setDetailLoading(false);
     }
@@ -211,9 +211,9 @@ export default function KitchenFoodManagementPage() {
   return (
     <div>
       <PageHeader
-        title="Kitchen Foods"
+        title="Foods"
         description="View foods available for kitchen preparation and daily service."
-        breadcrumbs={["Dashboard", "Kitchen Foods"]}
+        breadcrumbs={["Dashboard", "Foods"]}
         extra={
           <Button
             icon={<ReloadOutlined />}
@@ -334,7 +334,7 @@ export default function KitchenFoodManagementPage() {
       </Card>
 
       <Drawer
-        title="Kitchen Food Detail"
+        title="Food Detail"
         placement="right"
         width={560}
         open={detailOpen}
