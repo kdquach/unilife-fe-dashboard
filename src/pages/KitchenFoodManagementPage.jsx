@@ -11,6 +11,8 @@ import {
   Descriptions,
   Drawer,
   Input,
+  InputNumber,
+  Select,
   Space,
   Spin,
   Table,
@@ -26,6 +28,11 @@ const formatCurrency = (value) =>
 
 const { Search } = Input;
 
+const hasActiveFilters = (filters) =>
+  Object.values(filters).some(
+    (value) => value !== undefined && value !== null && value !== "",
+  );
+
 const renderFoodType = (isMenuItem) => (
   <Tag color={isMenuItem ? "purple" : "blue"}>
     {isMenuItem ? "Menu Item" : "Always Available"}
@@ -39,6 +46,16 @@ export default function KitchenFoodManagementPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
   const [keyword, setKeyword] = useState("");
+  const [filterOptions, setFilterOptions] = useState({
+    categories: [],
+    kindOptions: [],
+  });
+  const [filters, setFilters] = useState({
+    categoryId: undefined,
+    kind: undefined,
+    minPrice: undefined,
+    maxPrice: undefined,
+  });
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -49,6 +66,7 @@ export default function KitchenFoodManagementPage() {
     page = pagination.current,
     limit = pagination.pageSize,
     searchKeyword = keyword,
+    currentFilters = filters,
   ) => {
     try {
       setLoading(true);
@@ -57,10 +75,13 @@ export default function KitchenFoodManagementPage() {
         page,
         limit,
         keyword: searchKeyword || undefined,
+        ...currentFilters,
       };
-      const response = searchKeyword
-        ? await foodService.searchKitchenFoods(params)
-        : await foodService.getKitchenFoods(params);
+      const response = hasActiveFilters(currentFilters)
+        ? await foodService.filterKitchenFoods(params)
+        : searchKeyword
+          ? await foodService.searchKitchenFoods(params)
+          : await foodService.getKitchenFoods(params);
 
       setFoods(response.data);
       setPagination({
@@ -77,7 +98,20 @@ export default function KitchenFoodManagementPage() {
 
   useEffect(() => {
     fetchFoods(1, 10);
+    fetchFilterOptions();
   }, []);
+
+  const fetchFilterOptions = async () => {
+    try {
+      const data = await foodService.getKitchenFoodFilterOptions();
+      setFilterOptions({
+        categories: data.categories || [],
+        kindOptions: data.kindOptions || [],
+      });
+    } catch (error) {
+      notify.error("Kitchen Food Filters Load Failed", error.message);
+    }
+  };
 
   const stats = useMemo(() => {
     const menuItems = foods.filter((food) => food.isMenuItem).length;
@@ -102,6 +136,23 @@ export default function KitchenFoodManagementPage() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleFilterChange = (key, value) => {
+    const nextFilters = { ...filters, [key]: value };
+    setFilters(nextFilters);
+    fetchFoods(1, pagination.pageSize, keyword, nextFilters);
+  };
+
+  const resetFilters = () => {
+    const nextFilters = {
+      categoryId: undefined,
+      kind: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+    };
+    setFilters(nextFilters);
+    fetchFoods(1, pagination.pageSize, keyword, nextFilters);
   };
 
   const columns = [
@@ -167,7 +218,9 @@ export default function KitchenFoodManagementPage() {
           <Button
             icon={<ReloadOutlined />}
             loading={loading}
-            onClick={() => fetchFoods(pagination.current, pagination.pageSize)}
+            onClick={() =>
+              fetchFoods(pagination.current, pagination.pageSize, keyword)
+            }
           >
             Refresh
           </Button>
@@ -206,16 +259,59 @@ export default function KitchenFoodManagementPage() {
         className="dashboard-card"
         title="Foods"
         extra={
-          <Search
-            allowClear
-            enterButton={<SearchOutlined />}
-            placeholder="Search food..."
-            style={{ width: 280 }}
-            onSearch={(value) => {
-              setKeyword(value);
-              fetchFoods(1, pagination.pageSize, value);
-            }}
-          />
+          <Space wrap>
+            <Search
+              allowClear
+              enterButton={<SearchOutlined />}
+              placeholder="Search food..."
+              style={{ width: 280 }}
+              onSearch={(value) => {
+                setKeyword(value);
+                fetchFoods(1, pagination.pageSize, value, filters);
+              }}
+            />
+            <Select
+              allowClear
+              placeholder="Category"
+              style={{ width: 180 }}
+              value={filters.categoryId}
+              options={filterOptions.categories.map((category) => ({
+                value: category.categoryId,
+                label: category.name || "Uncategorized",
+              }))}
+              onChange={(value) => handleFilterChange("categoryId", value)}
+            />
+            <Select
+              allowClear
+              placeholder="Type"
+              style={{ width: 180 }}
+              value={filters.kind}
+              options={[
+                { label: "Always Available", value: "alwaysAvailable" },
+                { label: "Menu Item", value: "menuItem" },
+              ].filter((option) =>
+                filterOptions.kindOptions.length
+                  ? filterOptions.kindOptions.includes(option.value)
+                  : true,
+              )}
+              onChange={(value) => handleFilterChange("kind", value)}
+            />
+            <InputNumber
+              min={0}
+              placeholder="Min price"
+              style={{ width: 130 }}
+              value={filters.minPrice}
+              onChange={(value) => handleFilterChange("minPrice", value)}
+            />
+            <InputNumber
+              min={0}
+              placeholder="Max price"
+              style={{ width: 130 }}
+              value={filters.maxPrice}
+              onChange={(value) => handleFilterChange("maxPrice", value)}
+            />
+            <Button onClick={resetFilters}>Reset Filters</Button>
+          </Space>
         }
       >
         <Table
@@ -232,7 +328,7 @@ export default function KitchenFoodManagementPage() {
             showTotal: (total) => `${total} foods`,
           }}
           onChange={(pager) =>
-            fetchFoods(pager.current, pager.pageSize, keyword)
+            fetchFoods(pager.current, pager.pageSize, keyword, filters)
           }
         />
       </Card>

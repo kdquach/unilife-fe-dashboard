@@ -30,4 +30,21 @@ export const foodService = {
       pagination: response.data.pagination,
     };
   },
+
+  async filterKitchenFoods(params = {}) {
+    const response = await apiClient.get("/foods/kitchen/filter", { params });
+
+    return {
+      data: response.data.items,
+      pagination: response.data.pagination,
+    };
+  },
+
+  async getKitchenFoodFilterOptions(params = {}) {
+    const response = await apiClient.get("/foods/kitchen/filter-options", {
+      params,
+    });
+
+    return response.data;
+  },
 };
