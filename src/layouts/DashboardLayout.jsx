@@ -49,10 +49,7 @@ const menuItems = [
   {
     key: "/ingredient-categories",
     icon: <DatabaseOutlined />,
-    label:
-      <Link to="/ingredient-categories">
-        Ingredient Categories
-      </Link>
+    label: <Link to="/ingredient-categories">Ingredient Categories</Link>,
   },
   {
     key: "/ingredients",
@@ -73,6 +70,8 @@ const menuItems = [
     key: "/menu-schedules",
     icon: <CalendarOutlined />,
     label: <Link to="/menu-schedules">Menu Schedules</Link>,
+  },
+  {
     key: "/suppliers",
     icon: <ShopOutlined />,
     label: <Link to="/suppliers">Suppliers</Link>,

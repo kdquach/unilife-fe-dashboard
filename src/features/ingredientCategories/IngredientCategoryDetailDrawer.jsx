@@ -43,7 +43,7 @@ export default function IngredientCategoryDetailDrawer({
 
   return (
     <Drawer
-      title="Ingredient Category Detail"
+      title="Ingredient Categories Detail"
       width={520}
       open={open}
       onClose={onClose}
