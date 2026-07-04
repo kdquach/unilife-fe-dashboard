@@ -14,6 +14,7 @@ import MenuScheduleDetailPage from "../features/menuSchedules/pages/MenuSchedule
 import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
 import IngredientManagementPage from "../pages/IngredientManagementPage";
 import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistoryPage";
+import ActivityLogPage from "../pages/ActivityLogPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -79,6 +80,7 @@ export default function AppRouter() {
             path="ingredient-categories"
             element={<IngredientCategoryManagementPage />}
           />
+          <Route path="activity-logs" element={<ActivityLogPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
