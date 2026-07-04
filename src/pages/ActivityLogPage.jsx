@@ -2,20 +2,28 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   AuditOutlined,
   EyeOutlined,
+  FilterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import {
   Button,
   Card,
+  DatePicker,
+  Input,
+  Select,
   Space,
   Table,
   Tag,
   message,
 } from "antd";
+import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 import { activityLogService } from "../features/activityLogs/activityLogService";
 import ActivityLogDetailDrawer from "../features/activityLogs/ActivityLogDetailDrawer";
 import { formatDateTime } from "../utils/format";
+
+const { Search } = Input;
+const { RangePicker } = DatePicker;
 
 // Màu sắc theo action
 const ACTION_COLORS = {
@@ -34,6 +42,29 @@ const getActionColor = (action = "") => {
   return ACTION_COLORS[key] || "purple";
 };
 
+// Danh sách targetType phổ biến trong hệ thống
+const TARGET_TYPE_OPTIONS = [
+  { label: "Order", value: "Order" },
+  { label: "User", value: "User" },
+  { label: "Food", value: "Food" },
+  { label: "FoodCategory", value: "FoodCategory" },
+  { label: "Ingredient", value: "Ingredient" },
+  { label: "IngredientCategory", value: "IngredientCategory" },
+  { label: "IngredientBatch", value: "IngredientBatch" },
+  { label: "MenuSchedule", value: "MenuSchedule" },
+  { label: "Supplier", value: "Supplier" },
+  { label: "Payment", value: "Payment" },
+  { label: "Queue", value: "Queue" },
+  { label: "DATABASE", value: "DATABASE" },
+];
+
+const EMPTY_FILTERS = {
+  keyword: undefined,
+  targetType: undefined,
+  startDate: undefined,
+  endDate: undefined,
+};
+
 export default function ActivityLogPage() {
   const [logs, setLogs] = useState([]);
   const [pagination, setPagination] = useState({
@@ -48,21 +79,24 @@ export default function ActivityLogPage() {
   const [selectedLogId, setSelectedLogId] = useState(null);
 
   // Filter state (UC3)
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
+  const [dateRange, setDateRange] = useState(null);
 
   const fetchLogs = useCallback(
     async (
-      page = pagination.current,
-      pageSize = pagination.pageSize,
+      page = 1,
+      pageSize = 10,
       currentFilters = filters,
     ) => {
       setLoading(true);
       try {
-        const response = await activityLogService.getActivityLogs({
-          page,
-          limit: pageSize,
-          ...currentFilters,
-        });
+        const params = { page, limit: pageSize };
+        if (currentFilters.keyword) params.keyword = currentFilters.keyword;
+        if (currentFilters.targetType) params.targetType = currentFilters.targetType;
+        if (currentFilters.startDate) params.startDate = currentFilters.startDate;
+        if (currentFilters.endDate) params.endDate = currentFilters.endDate;
+
+        const response = await activityLogService.getActivityLogs(params);
         setLogs(response.items);
         setPagination({
           current: response.pagination.page,
@@ -79,13 +113,45 @@ export default function ActivityLogPage() {
   );
 
   useEffect(() => {
-    fetchLogs(1, 10, {});
+    fetchLogs(1, 10, EMPTY_FILTERS);
   }, []);
 
   const openDrawer = (log) => {
     setSelectedLogId(log.activityLogId || log._id);
     setDrawerOpen(true);
   };
+
+  const handleSearch = (value) => {
+    const newFilters = { ...filters, keyword: value || undefined };
+    setFilters(newFilters);
+    fetchLogs(1, pagination.pageSize, newFilters);
+  };
+
+  const handleTargetTypeChange = (value) => {
+    const newFilters = { ...filters, targetType: value || undefined };
+    setFilters(newFilters);
+    fetchLogs(1, pagination.pageSize, newFilters);
+  };
+
+  const handleDateRangeChange = (dates) => {
+    setDateRange(dates);
+    const newFilters = {
+      ...filters,
+      startDate: dates?.[0] ? dates[0].format("YYYY-MM-DD") : undefined,
+      endDate: dates?.[1] ? dates[1].format("YYYY-MM-DD") : undefined,
+    };
+    setFilters(newFilters);
+    fetchLogs(1, pagination.pageSize, newFilters);
+  };
+
+  const handleReset = () => {
+    setDateRange(null);
+    setFilters({ ...EMPTY_FILTERS });
+    fetchLogs(1, pagination.pageSize, EMPTY_FILTERS);
+  };
+
+  const hasActiveFilter =
+    filters.keyword || filters.targetType || filters.startDate || filters.endDate;
 
   const columns = [
     {
@@ -113,7 +179,7 @@ export default function ActivityLogPage() {
     {
       title: "Action",
       dataIndex: "action",
-      width: 180,
+      width: 200,
       render: (action) => (
         <Tag color={getActionColor(action)} className="font-mono text-xs">
           {action}
@@ -123,7 +189,7 @@ export default function ActivityLogPage() {
     {
       title: "Target Type",
       dataIndex: "targetType",
-      width: 140,
+      width: 150,
       render: (targetType) =>
         targetType ? (
           <Tag color="geekblue">{targetType}</Tag>
@@ -206,14 +272,58 @@ export default function ActivityLogPage() {
         </Card>
       </div>
 
-      {/* Table */}
-      <Card className="dashboard-card" title="Activity Logs">
+      {/* Table with filters */}
+      <Card
+        className="dashboard-card"
+        title="Activity Logs"
+        extra={
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <Search
+              placeholder="Search action or description..."
+              allowClear
+              style={{ width: 240 }}
+              onSearch={handleSearch}
+              onChange={(e) => {
+                if (!e.target.value) handleSearch("");
+              }}
+            />
+
+            <Select
+              placeholder="Target Type"
+              allowClear
+              style={{ width: 170 }}
+              options={TARGET_TYPE_OPTIONS}
+              onChange={handleTargetTypeChange}
+              value={filters.targetType}
+            />
+
+            <RangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              format="DD/MM/YYYY"
+              placeholder={["Start date", "End date"]}
+              style={{ width: 240 }}
+              disabledDate={(current) => current && current > dayjs().endOf("day")}
+            />
+
+            {hasActiveFilter && (
+              <Button
+                icon={<FilterOutlined />}
+                onClick={handleReset}
+                danger
+              >
+                Reset
+              </Button>
+            )}
+          </div>
+        }
+      >
         <Table
           rowKey={(record) => record.activityLogId || record._id}
           loading={loading}
           dataSource={logs}
           columns={columns}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1050 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
