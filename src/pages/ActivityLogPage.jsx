@@ -45,7 +45,7 @@ export default function ActivityLogPage() {
 
   // Drawer state (UC2)
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState(null);
+  const [selectedLogId, setSelectedLogId] = useState(null);
 
   // Filter state (UC3)
   const [filters, setFilters] = useState({});
@@ -83,7 +83,7 @@ export default function ActivityLogPage() {
   }, []);
 
   const openDrawer = (log) => {
-    setSelectedLog(log);
+    setSelectedLogId(log.activityLogId || log._id);
     setDrawerOpen(true);
   };
 
@@ -227,7 +227,7 @@ export default function ActivityLogPage() {
 
       <ActivityLogDetailDrawer
         open={drawerOpen}
-        log={selectedLog}
+        logId={selectedLogId}
         onClose={() => setDrawerOpen(false)}
       />
     </div>

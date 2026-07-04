@@ -1,6 +1,7 @@
-import React from "react";
-import { Descriptions, Drawer, Skeleton, Tag, Typography } from "antd";
+import React, { useEffect, useState } from "react";
+import { Descriptions, Drawer, Skeleton, Tag, Typography, message } from "antd";
 import { formatDateTime } from "../../utils/format";
+import { activityLogService } from "./activityLogService";
 
 const ACTION_COLORS = {
   LOGIN: "green",
@@ -18,7 +19,29 @@ const getActionColor = (action = "") => {
   return ACTION_COLORS[key] || "purple";
 };
 
-export default function ActivityLogDetailDrawer({ open, log, onClose }) {
+export default function ActivityLogDetailDrawer({ open, logId, onClose }) {
+  const [log, setLog] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !logId) {
+      setLog(null);
+      return;
+    }
+    const fetchDetail = async () => {
+      setLoading(true);
+      try {
+        const data = await activityLogService.getActivityLogById(logId);
+        setLog(data);
+      } catch (error) {
+        message.error(error.message || "Failed to load log detail");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [open, logId]);
+
   return (
     <Drawer
       title="Activity Log Detail"
@@ -26,9 +49,9 @@ export default function ActivityLogDetailDrawer({ open, log, onClose }) {
       open={open}
       onClose={onClose}
     >
-      {!log ? (
+      {loading ? (
         <Skeleton active paragraph={{ rows: 8 }} />
-      ) : (
+      ) : !log ? null : (
         <div>
           {/* Header summary */}
           <div className="mb-6 rounded-3xl bg-unilife-soft p-5">
