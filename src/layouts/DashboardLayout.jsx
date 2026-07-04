@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  AuditOutlined,
   AppstoreOutlined,
   BellOutlined,
   LogoutOutlined,
@@ -75,6 +76,11 @@ const menuItems = [
     key: "/suppliers",
     icon: <ShopOutlined />,
     label: <Link to="/suppliers">Suppliers</Link>,
+  },
+  {
+    key: "/activity-logs",
+    icon: <AuditOutlined />,
+    label: <Link to="/activity-logs">Activity Logs</Link>,
   },
 ];
 
