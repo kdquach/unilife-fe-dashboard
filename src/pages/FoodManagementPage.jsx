@@ -157,6 +157,12 @@ export default function FoodManagementPage() {
     setFormOpen(true);
   };
 
+  const openEditModal = (record) => {
+    setEditingFood(record);
+    setFormMode("edit");
+    setFormOpen(true);
+  };
+
   const closeFormModal = () => {
     setFormOpen(false);
     setEditingFood(null);
@@ -167,10 +173,22 @@ export default function FoodManagementPage() {
     setSaving(true);
 
     try {
-      await foodService.createFood(values);
-      message.success("Food created successfully");
+      if (formMode === "create") {
+        await foodService.createFood(values);
+        message.success("Food created successfully");
+      } else {
+        const id = getRecordId(editingFood);
+        if (!id) throw new Error("Food ID is missing");
+
+        await foodService.updateFood(id, values);
+        message.success("Food updated successfully");
+      }
+
       closeFormModal();
-      await fetchFoods({ page: 1, pageSize: pagination.pageSize });
+      await fetchFoods({
+        page: formMode === "create" ? 1 : pagination.current,
+        pageSize: pagination.pageSize,
+      });
     } catch (error) {
       message.error(error.message || "Unable to save food");
     } finally {
@@ -240,8 +258,12 @@ export default function FoodManagementPage() {
       title: "Actions",
       fixed: "right",
       width: 90,
-      render: () => (
-        <Button icon={<EditOutlined />} disabled title="Update Food" />
+      render: (_, record) => (
+        <Button
+          icon={<EditOutlined />}
+          title="Update Food"
+          onClick={() => openEditModal(record)}
+        />
       ),
     },
   ];
