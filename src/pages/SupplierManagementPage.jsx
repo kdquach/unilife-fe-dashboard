@@ -4,7 +4,6 @@ import {
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
-  LinkOutlined,
   PhoneOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -16,13 +15,10 @@ import {
 import {
   Button,
   Card,
-  Descriptions,
-  Drawer,
   Input,
   Popconfirm,
   Select,
   Space,
-  Spin,
   Table,
   Tag,
   Tooltip,
@@ -43,8 +39,6 @@ export default function SupplierManagementPage() {
 
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [saving, setSaving] = useState(false);
@@ -105,21 +99,6 @@ export default function SupplierManagementPage() {
     fetchSuppliers(1, pagination.pageSize, keyword, newFilters);
   };
 
-  const openDetailDrawer = async (supplier) => {
-    setSelectedSupplier(supplier);
-    setDetailOpen(true);
-    setDetailLoading(true);
-
-    try {
-      const data = await supplierService.getSupplierById(supplier._id);
-      setSelectedSupplier(data);
-    } catch (error) {
-      message.error(error.message);
-    } finally {
-      setDetailLoading(false);
-    }
-  };
-
   const openCreateModal = () => {
     setSelectedSupplier(null);
     setFormMode("create");
@@ -136,19 +115,14 @@ export default function SupplierManagementPage() {
     setSaving(true);
 
     try {
-      const saved =
-        formMode === "create"
-          ? await supplierService.createSupplier(values)
-          : await supplierService.updateSupplier(selectedSupplier._id, values);
+      await (formMode === "create"
+        ? supplierService.createSupplier(values)
+        : supplierService.updateSupplier(selectedSupplier._id, values));
 
       message.success(
         formMode === "create" ? "Supplier created" : "Supplier updated",
       );
       setFormOpen(false);
-
-      if (detailOpen && selectedSupplier?._id === saved._id) {
-        setSelectedSupplier(saved);
-      }
 
       await fetchSuppliers(
         formMode === "create" ? 1 : pagination.current,
@@ -169,11 +143,6 @@ export default function SupplierManagementPage() {
     try {
       await supplierService.deleteSupplier(id);
       message.success("Supplier deactivated successfully");
-
-      if (detailOpen && selectedSupplier?._id === id) {
-        setDetailOpen(false);
-        setSelectedSupplier(null);
-      }
 
       await fetchSuppliers(
         suppliers.length === 1 && pagination.current > 1
@@ -275,13 +244,13 @@ export default function SupplierManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 150,
+      width: 130,
       render: (_, record) => (
         <Space size={6}>
           <Tooltip title="View details">
             <Button
               icon={<EyeOutlined />}
-              onClick={() => openDetailDrawer(record)}
+              onClick={() => navigate(`/suppliers/${record._id}`)}
             />
           </Tooltip>
           <Tooltip title="Edit">
@@ -417,98 +386,6 @@ export default function SupplierManagementPage() {
           }}
         />
       </Card>
-
-      {/* Detail Drawer */}
-      <Drawer
-        title="Supplier Details"
-        placement="right"
-        width={520}
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-        extra={
-          selectedSupplier && (
-            <Space>
-              <Button
-                icon={<LinkOutlined />}
-                onClick={() => navigate(`/suppliers/${selectedSupplier._id}`)}
-              >
-                Full Detail
-              </Button>
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={() => {
-                  setDetailOpen(false);
-                  openEditModal(selectedSupplier);
-                }}
-              >
-                Edit
-              </Button>
-            </Space>
-          )
-        }
-      >
-        <Spin spinning={detailLoading}>
-          {selectedSupplier && (
-            <Descriptions bordered column={1} size="middle">
-              <Descriptions.Item label="Supplier Name">
-                <span className="font-semibold">{selectedSupplier.name}</span>
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Contact Person">
-                {selectedSupplier.contactName || (
-                  <span className="text-slate-400">Not provided</span>
-                )}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Phone">
-                {selectedSupplier.phone ? (
-                  <a
-                    href={`tel:${selectedSupplier.phone}`}
-                    className="text-unilife"
-                  >
-                    {selectedSupplier.phone}
-                  </a>
-                ) : (
-                  <span className="text-slate-400">Not provided</span>
-                )}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Address">
-                {selectedSupplier.address || (
-                  <span className="text-slate-400">Not provided</span>
-                )}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Note">
-                {selectedSupplier.note || (
-                  <span className="text-slate-400">No notes</span>
-                )}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Status">
-                <Tag color={selectedSupplier.isActive ? "green" : "red"}>
-                  {selectedSupplier.isActive ? "Active" : "Inactive"}
-                </Tag>
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Supplier ID">
-                <code className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-                  {selectedSupplier.supplierId || selectedSupplier._id}
-                </code>
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Created At">
-                {formatDateTime(selectedSupplier.createdAt)}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Updated At">
-                {formatDateTime(selectedSupplier.updatedAt)}
-              </Descriptions.Item>
-            </Descriptions>
-          )}
-        </Spin>
-      </Drawer>
 
       {/* Form Modal */}
       <SupplierFormModal
