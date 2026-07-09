@@ -12,6 +12,7 @@ import {
   Descriptions,
   Drawer,
   Input,
+  Modal,
   Select,
   Space,
   Spin,
@@ -47,6 +48,7 @@ export default function StaffManagementPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [changingRoleId, setChangingRoleId] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     role: undefined,
@@ -121,6 +123,40 @@ export default function StaffManagementPage() {
     }
   };
 
+  const handleRoleChange = async (staff, role) => {
+    const staffId = getStaffId(staff);
+    setChangingRoleId(staffId);
+
+    try {
+      const updatedStaff = await staffService.changeStaffRole(staffId, role);
+      message.success(`Updated role for ${updatedStaff.fullName}`);
+
+      if (getStaffId(selectedStaff) === staffId) {
+        setSelectedStaff(updatedStaff);
+      }
+
+      await fetchStaffs(
+        pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setChangingRoleId(null);
+    }
+  };
+
+  const confirmRoleChange = (staff, role) => {
+    Modal.confirm({
+      title: "Change staff role?",
+      content: `${staff.fullName} will be changed from ${roleLabels[staff.role]} to ${roleLabels[role]}.`,
+      okText: "Change Role",
+      onOk: () => handleRoleChange(staff, role),
+    });
+  };
+
   const columns = [
     {
       title: "Staff",
@@ -141,8 +177,17 @@ export default function StaffManagementPage() {
     {
       title: "Role",
       dataIndex: "role",
-      width: 160,
-      render: (role) => <Tag color={roleColors[role]}>{roleLabels[role]}</Tag>,
+      width: 210,
+      render: (role, record) => (
+        <Select
+          value={role}
+          className="w-44"
+          loading={changingRoleId === getStaffId(record)}
+          disabled={changingRoleId === getStaffId(record)}
+          options={STAFF_ROLE_OPTIONS}
+          onChange={(value) => confirmRoleChange(record, value)}
+        />
+      ),
     },
     {
       title: "Status",
@@ -256,7 +301,7 @@ export default function StaffManagementPage() {
           loading={loading}
           dataSource={staffs}
           columns={columns}
-          scroll={{ x: 850 }}
+          scroll={{ x: 950 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,

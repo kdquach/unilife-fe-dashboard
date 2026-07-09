@@ -15,4 +15,12 @@ export const staffService = {
 
     return response.data;
   },
+
+  async changeStaffRole(id, role) {
+    const response = await apiClient.patch(`/users/staffs/${id}/role`, {
+      role,
+    });
+
+    return response.data;
+  },
 };
