@@ -9,4 +9,10 @@ export const staffService = {
       pagination: response.data.pagination,
     };
   },
+
+  async getStaffById(id) {
+    const response = await apiClient.get(`/users/staffs/${id}`);
+
+    return response.data;
+  },
 };

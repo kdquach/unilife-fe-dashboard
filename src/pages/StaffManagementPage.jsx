@@ -1,10 +1,25 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  EyeOutlined,
   ReloadOutlined,
   SearchOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Input, Select, Space, Table, Tag, message } from "antd";
+import {
+  Avatar,
+  Button,
+  Card,
+  Descriptions,
+  Drawer,
+  Input,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Typography,
+  message,
+} from "antd";
 import PageHeader from "../components/PageHeader";
 import { roleColors, roleLabels } from "../constants/roles";
 import { staffService } from "../features/staffs/staffService";
@@ -29,6 +44,9 @@ const getStaffId = (staff) => staff?._id || staff?.id || staff?.userId;
 export default function StaffManagementPage() {
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     role: undefined,
@@ -88,6 +106,21 @@ export default function StaffManagementPage() {
     fetchStaffs(1, pagination.pageSize, keyword, nextFilters);
   };
 
+  const openDetailDrawer = async (staff) => {
+    setSelectedStaff(staff);
+    setDetailOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const data = await staffService.getStaffById(getStaffId(staff));
+      setSelectedStaff(data);
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const columns = [
     {
       title: "Staff",
@@ -126,6 +159,14 @@ export default function StaffManagementPage() {
       dataIndex: "createdAt",
       width: 180,
       render: formatDateTime,
+    },
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 90,
+      render: (_, record) => (
+        <Button icon={<EyeOutlined />} onClick={() => openDetailDrawer(record)} />
+      ),
     },
   ];
 
@@ -228,6 +269,68 @@ export default function StaffManagementPage() {
           }
         />
       </Card>
+
+      <Drawer
+        title="Staff Detail"
+        width={560}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      >
+        <Spin spinning={detailLoading}>
+          {selectedStaff && (
+            <>
+              <div className="mb-6 flex items-center gap-4 rounded-3xl bg-unilife-soft p-5">
+                <Avatar size={72} className="bg-unilife text-xl font-bold">
+                  {selectedStaff.fullName?.[0]}
+                </Avatar>
+                <div>
+                  <Typography.Title level={4} className="!mb-1">
+                    {selectedStaff.fullName}
+                  </Typography.Title>
+                  <Typography.Text className="text-slate-500">
+                    {selectedStaff.email}
+                  </Typography.Text>
+                  <div className="mt-2 flex gap-2">
+                    <Tag color={roleColors[selectedStaff.role]}>
+                      {roleLabels[selectedStaff.role]}
+                    </Tag>
+                    <Tag color={selectedStaff.isActive ? "green" : "red"}>
+                      {selectedStaff.isActive ? "Active" : "Inactive"}
+                    </Tag>
+                  </div>
+                </div>
+              </div>
+
+              <Descriptions bordered column={1}>
+                <Descriptions.Item label="Staff ID">
+                  {getStaffId(selectedStaff)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Full name">
+                  {selectedStaff.fullName}
+                </Descriptions.Item>
+                <Descriptions.Item label="Email">
+                  {selectedStaff.email}
+                </Descriptions.Item>
+                <Descriptions.Item label="Phone">
+                  {selectedStaff.phone || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Role">
+                  {roleLabels[selectedStaff.role]}
+                </Descriptions.Item>
+                <Descriptions.Item label="Status">
+                  {selectedStaff.isActive ? "Active" : "Inactive"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Created at">
+                  {formatDateTime(selectedStaff.createdAt)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Updated at">
+                  {formatDateTime(selectedStaff.updatedAt)}
+                </Descriptions.Item>
+              </Descriptions>
+            </>
+          )}
+        </Spin>
+      </Drawer>
     </div>
   );
 }
