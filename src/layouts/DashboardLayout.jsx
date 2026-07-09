@@ -48,6 +48,11 @@ const menuItems = [
     label: <Link to="/orders">Orders</Link>,
   },
   {
+    key: "/foods",
+    icon: <AppstoreOutlined />,
+    label: <Link to="/foods">Foods</Link>,
+  },
+  {
     key: "/food-categories",
     icon: <TagsOutlined />,
     label: <Link to="/food-categories">Food Categories</Link>,

@@ -6,4 +6,19 @@ export const foodService = {
 
     return response.data.items;
   },
+
+  async getManagedFoods(params = {}) {
+    const response = await apiClient.get("/foods", { params });
+
+    return {
+      data: response.data.items,
+      pagination: response.data.pagination,
+    };
+  },
+
+  async createFood(payload) {
+    const response = await apiClient.post("/foods", payload);
+
+    return response.data;
+  },
 };
