@@ -281,15 +281,15 @@ export default function FoodFormModal({
         <Form.List name="ingredients">
           {(fields, { add, remove }) => (
             <div className="mt-3">
-              {fields.map((field) => (
+              {fields.map(({ key, name, ...restField }) => (
                 <Space
-                  key={field.key}
+                  key={key}
                   align="baseline"
                   className="mb-2 flex w-full"
                 >
                   <Form.Item
-                    {...field}
-                    name={[field.name, "ingredientId"]}
+                    {...restField}
+                    name={[name, "ingredientId"]}
                     rules={[
                       { required: true, message: "Ingredient is required" },
                     ]}
@@ -302,14 +302,14 @@ export default function FoodFormModal({
                       optionFilterProp="label"
                       placeholder="Ingredient"
                       onChange={(value) =>
-                        handleIngredientChange(field.name, value)
+                        handleIngredientChange(name, value)
                       }
                     />
                   </Form.Item>
 
                   <Form.Item
-                    {...field}
-                    name={[field.name, "quantityPerServing"]}
+                    {...restField}
+                    name={[name, "quantityPerServing"]}
                     rules={[
                       {
                         required: true,
@@ -320,7 +320,7 @@ export default function FoodFormModal({
                     <InputNumber min={0.01} precision={2} placeholder="Qty" />
                   </Form.Item>
 
-                  <Form.Item {...field} name={[field.name, "unit"]}>
+                  <Form.Item {...restField} name={[name, "unit"]}>
                     <Input placeholder="Unit" className="w-20" />
                   </Form.Item>
 
@@ -328,7 +328,7 @@ export default function FoodFormModal({
                     danger
                     type="text"
                     icon={<MinusCircleOutlined />}
-                    onClick={() => remove(field.name)}
+                    onClick={() => remove(name)}
                   />
                 </Space>
               ))}
