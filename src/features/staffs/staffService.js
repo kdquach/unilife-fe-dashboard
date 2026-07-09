@@ -29,4 +29,10 @@ export const staffService = {
 
     return response.data;
   },
+
+  async createStaff(payload) {
+    const response = await apiClient.post("/users/staffs", payload);
+
+    return response.data;
+  },
 };

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   EditOutlined,
   EyeOutlined,
+  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
   TeamOutlined,
@@ -54,6 +55,7 @@ export default function StaffManagementPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("edit");
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [changingRoleId, setChangingRoleId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -118,6 +120,17 @@ export default function StaffManagementPage() {
     );
   }, [user?.role]);
 
+  const createRoleOptions = useMemo(() => {
+    const allowedRoles =
+      user?.role === "ADMIN"
+        ? ["MANAGER", "COUNTER_STAFF", "KITCHEN_STAFF"]
+        : ["COUNTER_STAFF", "KITCHEN_STAFF"];
+
+    return STAFF_ROLE_OPTIONS.filter((option) =>
+      allowedRoles.includes(option.value),
+    );
+  }, [user?.role]);
+
   const canChangeRole = (staff) => {
     if (getStaffId(staff) === getStaffId(user)) return false;
     if (user?.role === "ADMIN") return true;
@@ -150,12 +163,28 @@ export default function StaffManagementPage() {
 
   const openUpdateModal = (staff) => {
     setSelectedStaff(staff);
+    setFormMode("edit");
     form.setFieldsValue({
       fullName: staff.fullName,
       email: staff.email,
       phone: staff.phone || "",
       role: staff.role,
       isActive: staff.isActive,
+      password: undefined,
+    });
+    setFormOpen(true);
+  };
+
+  const openCreateModal = () => {
+    setSelectedStaff(null);
+    setFormMode("create");
+    form.setFieldsValue({
+      fullName: "",
+      email: "",
+      phone: "",
+      password: "",
+      role: createRoleOptions[0]?.value,
+      isActive: true,
     });
     setFormOpen(true);
   };
@@ -196,24 +225,35 @@ export default function StaffManagementPage() {
 
   const handleSubmitStaff = async () => {
     const values = await form.validateFields();
-    const staffId = getStaffId(selectedStaff);
     setSaving(true);
 
     try {
-      const updatedStaff = await staffService.updateStaff(staffId, {
+      const payload = {
         ...values,
         phone: values.phone ? normalizePhone(values.phone) : null,
-      });
+      };
 
-      message.success(`Updated ${updatedStaff.fullName}`);
+      const savedStaff =
+        formMode === "create"
+          ? await staffService.createStaff(payload)
+          : await staffService.updateStaff(getStaffId(selectedStaff), payload);
+
+      message.success(
+        formMode === "create"
+          ? `Created ${savedStaff.fullName}`
+          : `Updated ${savedStaff.fullName}`,
+      );
       setFormOpen(false);
 
-      if (getStaffId(selectedStaff) === staffId) {
-        setSelectedStaff(updatedStaff);
+      if (
+        formMode === "edit" &&
+        getStaffId(selectedStaff) === getStaffId(savedStaff)
+      ) {
+        setSelectedStaff(savedStaff);
       }
 
       await fetchStaffs(
-        pagination.current,
+        formMode === "create" ? 1 : pagination.current,
         pagination.pageSize,
         keyword,
         filters,
@@ -306,15 +346,24 @@ export default function StaffManagementPage() {
         description="View and manage staff accounts used by the UniLife operation team."
         breadcrumbs={["Dashboard", "Staff Management"]}
         extra={
-          <Button
-            icon={<ReloadOutlined />}
-            loading={loading}
-            onClick={() =>
-              fetchStaffs(pagination.current, pagination.pageSize)
-            }
-          >
-            Refresh
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchStaffs(pagination.current, pagination.pageSize)
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create Staff
+            </Button>
+          </Space>
         }
       />
 
@@ -462,11 +511,13 @@ export default function StaffManagementPage() {
       </Drawer>
 
       <Modal
-        title="Update Staff Information"
+        title={
+          formMode === "create" ? "Create Staff" : "Update Staff Information"
+        }
         open={formOpen}
         onCancel={() => setFormOpen(false)}
         onOk={handleSubmitStaff}
-        okText="Save changes"
+        okText={formMode === "create" ? "Create" : "Save changes"}
         confirmLoading={saving}
         destroyOnClose
       >
@@ -491,6 +542,18 @@ export default function StaffManagementPage() {
           >
             <Input placeholder="staff@unilife.local" />
           </Form.Item>
+          {formMode === "create" && (
+            <Form.Item
+              name="password"
+              label="Password"
+              rules={[
+                { required: true, message: "Please enter password" },
+                { min: 6, message: "Password must be at least 6 characters" },
+              ]}
+            >
+              <Input.Password placeholder="Enter temporary password" />
+            </Form.Item>
+          )}
           <Form.Item
             name="phone"
             label="Phone"
@@ -508,7 +571,11 @@ export default function StaffManagementPage() {
             label="Role"
             rules={[{ required: true, message: "Please select role" }]}
           >
-            <Select options={roleChangeOptions} />
+            <Select
+              options={
+                formMode === "create" ? createRoleOptions : roleChangeOptions
+              }
+            />
           </Form.Item>
           <Form.Item
             name="isActive"
