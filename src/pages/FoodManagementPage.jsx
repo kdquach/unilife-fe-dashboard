@@ -22,6 +22,7 @@ import imageNotFound from "../assets/image-not-found.png";
 import FoodFormModal from "../features/foods/FoodFormModal";
 import { foodService } from "../features/foods/foodService";
 import { foodCategoryService } from "../features/foodCategories/foodCategoryService";
+import { ingredientService } from "../features/ingredients/ingredientService";
 import { formatDateTime } from "../utils/format";
 
 const { Search } = Input;
@@ -50,8 +51,10 @@ const resolveImageUrl = (imageUrl) => {
 export default function FoodManagementPage() {
   const [foods, setFoods] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [ingredientLoading, setIngredientLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
@@ -117,9 +120,28 @@ export default function FoodManagementPage() {
     }
   };
 
+  const fetchIngredients = async () => {
+    try {
+      setIngredientLoading(true);
+      const response = await ingredientService.getIngredients({
+        page: 1,
+        limit: 100,
+        isActive: true,
+      });
+
+      setIngredients(Array.isArray(response.data) ? response.data : []);
+    } catch (error) {
+      setIngredients([]);
+      message.warning(error.message || "Unable to load ingredients");
+    } finally {
+      setIngredientLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchFoods({ page: 1, pageSize: 10 });
     fetchCategories();
+    fetchIngredients();
   }, []);
 
   const stats = useMemo(() => {
@@ -240,6 +262,16 @@ export default function FoodManagementPage() {
       dataIndex: "stockQuantity",
       width: 120,
       render: (value) => (value === null || value === undefined ? "-" : value),
+    },
+    {
+      title: "Recipe",
+      dataIndex: "ingredients",
+      width: 120,
+      render: (value = []) => (
+        <Tag color={value.length > 0 ? "green" : "default"}>
+          {value.length} items
+        </Tag>
+      ),
     },
     {
       title: "Status",
@@ -399,7 +431,9 @@ export default function FoodManagementPage() {
         mode={formMode}
         initialValues={editingFood}
         categories={categories}
+        ingredients={ingredients}
         categoryLoading={categoryLoading}
+        ingredientLoading={ingredientLoading}
         loading={saving}
         onCancel={closeFormModal}
         onSubmit={handleSubmitFood}

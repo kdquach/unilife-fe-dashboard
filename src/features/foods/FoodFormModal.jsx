@@ -1,5 +1,17 @@
 import React, { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
+import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Switch,
+  Typography,
+} from "antd";
 
 const normalizeText = (value) =>
   String(value || "")
@@ -21,6 +33,16 @@ const normalizeInitialValues = (values) => ({
       : Number(values.stockQuantity),
   isMenuItem: values?.isMenuItem === true,
   isActive: values?.isActive !== false,
+  ingredients: Array.isArray(values?.ingredients)
+    ? values.ingredients.map((item) => ({
+        ingredientId:
+          typeof item?.ingredientId === "object"
+            ? item.ingredientId?._id
+            : item?.ingredientId,
+        quantityPerServing: Number(item?.quantityPerServing || 0),
+        unit: item?.unit || item?.ingredientId?.unit || "",
+      }))
+    : [],
 });
 
 export default function FoodFormModal({
@@ -28,12 +50,15 @@ export default function FoodFormModal({
   mode = "create",
   initialValues,
   categories = [],
+  ingredients = [],
   categoryLoading = false,
+  ingredientLoading = false,
   loading,
   onCancel,
   onSubmit,
 }) {
   const [form] = Form.useForm();
+  const isMenuItem = Form.useWatch("isMenuItem", form);
 
   const fillForm = () => {
     form.resetFields();
@@ -52,8 +77,31 @@ export default function FoodFormModal({
     }))
     .filter((option) => option.value);
 
+  const ingredientOptions = ingredients
+    .map((ingredient) => ({
+      label: ingredient.unit
+        ? `${ingredient.name || "Unnamed Ingredient"} (${ingredient.unit})`
+        : ingredient.name || "Unnamed Ingredient",
+      value: ingredient._id || ingredient.id,
+      unit: ingredient.unit || "",
+    }))
+    .filter((option) => option.value);
+
+  const handleIngredientChange = (fieldName, ingredientId) => {
+    const selected = ingredientOptions.find((item) => item.value === ingredientId);
+    form.setFieldValue(["ingredients", fieldName, "unit"], selected?.unit || "");
+  };
+
   const handleOk = async () => {
     const values = await form.validateFields();
+    const nextIsMenuItem = Boolean(values.isMenuItem);
+    const recipeItems = (values.ingredients || [])
+      .filter((item) => item?.ingredientId)
+      .map((item) => ({
+        ingredientId: item.ingredientId,
+        quantityPerServing: Number(item.quantityPerServing || 0),
+        unit: normalizeText(item.unit),
+      }));
 
     await onSubmit({
       ...values,
@@ -62,12 +110,10 @@ export default function FoodFormModal({
       imageUrl: normalizeText(values.imageUrl),
       categoryId: values.categoryId || null,
       price: Number(values.price || 0),
-      stockQuantity:
-        values.stockQuantity === null || values.stockQuantity === undefined
-          ? null
-          : Number(values.stockQuantity),
-      isMenuItem: Boolean(values.isMenuItem),
+      stockQuantity: nextIsMenuItem ? null : Number(values.stockQuantity || 0),
+      isMenuItem: nextIsMenuItem,
       isActive: Boolean(values.isActive),
+      ingredients: recipeItems,
     });
   };
 
@@ -122,9 +168,17 @@ export default function FoodFormModal({
           />
         </Form.Item>
 
-        <Form.Item name="stockQuantity" label="Stock Quantity">
-          <InputNumber className="w-full" min={0} precision={0} />
-        </Form.Item>
+        {!isMenuItem && (
+          <Form.Item
+            name="stockQuantity"
+            label="Daily Stock Quantity"
+            rules={[
+              { required: true, message: "Daily stock quantity is required" },
+            ]}
+          >
+            <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+        )}
 
         <Form.Item name="imageUrl" label="Image URL">
           <Input placeholder="/uploads/foods/example.jpg" maxLength={500} />
@@ -143,6 +197,76 @@ export default function FoodFormModal({
             <Switch />
           </Form.Item>
         </div>
+
+        <Divider />
+
+        <Typography.Text strong>Recipe Ingredients</Typography.Text>
+        <Form.List name="ingredients">
+          {(fields, { add, remove }) => (
+            <div className="mt-3">
+              {fields.map((field) => (
+                <Space
+                  key={field.key}
+                  align="baseline"
+                  className="mb-2 flex w-full"
+                >
+                  <Form.Item
+                    {...field}
+                    name={[field.name, "ingredientId"]}
+                    rules={[
+                      { required: true, message: "Ingredient is required" },
+                    ]}
+                    className="flex-1"
+                  >
+                    <Select
+                      showSearch
+                      loading={ingredientLoading}
+                      options={ingredientOptions}
+                      optionFilterProp="label"
+                      placeholder="Ingredient"
+                      onChange={(value) =>
+                        handleIngredientChange(field.name, value)
+                      }
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    {...field}
+                    name={[field.name, "quantityPerServing"]}
+                    rules={[
+                      {
+                        required: true,
+                        message: "Quantity is required",
+                      },
+                    ]}
+                  >
+                    <InputNumber min={0.01} precision={2} placeholder="Qty" />
+                  </Form.Item>
+
+                  <Form.Item {...field} name={[field.name, "unit"]}>
+                    <Input placeholder="Unit" className="w-20" />
+                  </Form.Item>
+
+                  <Button
+                    danger
+                    type="text"
+                    icon={<MinusCircleOutlined />}
+                    onClick={() => remove(field.name)}
+                  />
+                </Space>
+              ))}
+
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={() => add({ quantityPerServing: 1 })}
+                block
+              >
+                Add Ingredient
+              </Button>
+            </div>
+          )}
+        </Form.List>
       </Form>
     </Modal>
   );
