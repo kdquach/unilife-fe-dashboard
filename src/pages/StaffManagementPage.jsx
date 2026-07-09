@@ -23,6 +23,7 @@ import {
 } from "antd";
 import PageHeader from "../components/PageHeader";
 import { roleColors, roleLabels } from "../constants/roles";
+import { useAuth } from "../features/auth/AuthContext";
 import { staffService } from "../features/staffs/staffService";
 import { formatDateTime } from "../utils/format";
 
@@ -43,6 +44,7 @@ const STATUS_OPTIONS = [
 const getStaffId = (staff) => staff?._id || staff?.id || staff?.userId;
 
 export default function StaffManagementPage() {
+  const { user } = useAuth();
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -101,6 +103,21 @@ export default function StaffManagementPage() {
       inactive: staffs.length - active,
     };
   }, [staffs]);
+
+  const roleChangeOptions = useMemo(() => {
+    if (user?.role === "ADMIN") return STAFF_ROLE_OPTIONS;
+
+    return STAFF_ROLE_OPTIONS.filter((option) =>
+      ["COUNTER_STAFF", "KITCHEN_STAFF"].includes(option.value),
+    );
+  }, [user?.role]);
+
+  const canChangeRole = (staff) => {
+    if (getStaffId(staff) === getStaffId(user)) return false;
+    if (user?.role === "ADMIN") return true;
+
+    return ["COUNTER_STAFF", "KITCHEN_STAFF"].includes(staff?.role);
+  };
 
   const handleFilterChange = (key, value) => {
     const nextFilters = { ...filters, [key]: value };
@@ -183,8 +200,14 @@ export default function StaffManagementPage() {
           value={role}
           className="w-44"
           loading={changingRoleId === getStaffId(record)}
-          disabled={changingRoleId === getStaffId(record)}
-          options={STAFF_ROLE_OPTIONS}
+          disabled={
+            changingRoleId === getStaffId(record) || !canChangeRole(record)
+          }
+          options={
+            canChangeRole(record)
+              ? roleChangeOptions
+              : STAFF_ROLE_OPTIONS.filter((option) => option.value === role)
+          }
           onChange={(value) => confirmRoleChange(record, value)}
         />
       ),
