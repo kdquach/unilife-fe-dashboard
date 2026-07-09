@@ -16,6 +16,7 @@ import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagem
 import IngredientManagementPage from "../pages/IngredientManagementPage";
 import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistoryPage";
 import ActivityLogPage from "../pages/ActivityLogPage";
+import RevenueReportPage from "../pages/RevenueReportPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -66,11 +67,17 @@ export default function AppRouter() {
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="staffs" element={<StaffManagementPage />} />
-          <Route path="food-categories" element={<FoodCategoryManagementPage />} />
+          <Route
+            path="food-categories"
+            element={<FoodCategoryManagementPage />}
+          />
           <Route path="orders" element={<OrdersPage />} />
           <Route path="kitchen-queue" element={<KitchenQueuePage />} />
           <Route path="menu-schedules" element={<MenuSchedulePage />} />
-          <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
+          <Route
+            path="menu-schedules/:id"
+            element={<MenuScheduleDetailPage />}
+          />
           <Route path="suppliers" element={<SupplierManagementPage />} />
           <Route path="suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="ingredients" element={<IngredientManagementPage />} />
@@ -82,6 +89,7 @@ export default function AppRouter() {
             path="ingredient-categories"
             element={<IngredientCategoryManagementPage />}
           />
+          <Route path="reports/revenue" element={<RevenueReportPage />} />
           <Route path="activity-logs" element={<ActivityLogPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

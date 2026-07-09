@@ -16,6 +16,7 @@ import {
   DatabaseOutlined,
   HistoryOutlined,
   InboxOutlined,
+  BarChartOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -86,6 +87,11 @@ const menuItems = [
     key: "/activity-logs",
     icon: <AuditOutlined />,
     label: <Link to="/activity-logs">Activity Logs</Link>,
+  },
+  {
+    key: "/reports/revenue",
+    icon: <BarChartOutlined />,
+    label: <Link to="/reports/revenue">Revenue Report</Link>,
   },
 ];
 
