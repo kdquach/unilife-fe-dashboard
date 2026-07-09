@@ -13,6 +13,7 @@ import {
   OrderedListOutlined,
   TagsOutlined,
   CalendarOutlined,
+  CoffeeOutlined,
   DatabaseOutlined,
   HistoryOutlined,
   InboxOutlined,
@@ -56,6 +57,11 @@ const menuItems = [
     key: "/food-categories",
     icon: <TagsOutlined />,
     label: <Link to="/food-categories">Food Categories</Link>,
+  },
+  {
+    key: "/kitchen-foods",
+    icon: <CoffeeOutlined />,
+    label: <Link to="/kitchen-foods">Foods</Link>,
   },
   {
     key: "/ingredient-categories",

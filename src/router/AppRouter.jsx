@@ -16,6 +16,7 @@ import MenuScheduleDetailPage from "../features/menuSchedules/pages/MenuSchedule
 import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
 import IngredientManagementPage from "../pages/IngredientManagementPage";
 import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistoryPage";
+import KitchenFoodManagementPage from "../pages/KitchenFoodManagementPage";
 import ActivityLogPage from "../pages/ActivityLogPage";
 import { useAuth } from "../features/auth/AuthContext";
 
@@ -70,6 +71,7 @@ export default function AppRouter() {
           <Route path="foods" element={<FoodManagementPage />} />
           <Route path="food-categories" element={<FoodCategoryManagementPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="kitchen-foods" element={<KitchenFoodManagementPage />} />
           <Route path="kitchen-queue" element={<KitchenQueuePage />} />
           <Route path="menu-schedules" element={<MenuSchedulePage />} />
           <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
