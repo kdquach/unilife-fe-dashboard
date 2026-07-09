@@ -190,7 +190,7 @@ export default function FoodFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Update"}
-      destroyOnClose
+      destroyOnHidden
       forceRender
       afterOpenChange={(visible) => {
         if (!visible) form.resetFields();
@@ -227,15 +227,10 @@ export default function FoodFormModal({
 
         <Form.Item
           name="price"
-          label="Price"
+          label="Price (VND)"
           rules={[{ required: true, message: "Food price is required" }]}
         >
-          <InputNumber
-            className="w-full"
-            min={0}
-            precision={0}
-            addonAfter="VND"
-          />
+          <InputNumber className="w-full" min={0} precision={0} />
         </Form.Item>
 
         {!isMenuItem && (
@@ -300,11 +295,7 @@ export default function FoodFormModal({
         <Divider />
 
         <Typography.Text strong>Recipe Ingredients</Typography.Text>
-        <Form.List
-          key={`ingredients-${formKey}`}
-          name="ingredients"
-          initialValue={normalizedValues.ingredients}
-        >
+        <Form.List key={`ingredients-${formKey}`} name="ingredients">
           {(fields, { add, remove }) => (
             <div className="mt-3">
               {fields.map(({ key, name, ...restField }) => (
