@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  EditOutlined,
   EyeOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -11,6 +12,7 @@ import {
   Card,
   Descriptions,
   Drawer,
+  Form,
   Input,
   Modal,
   Select,
@@ -20,12 +22,13 @@ import {
   Tag,
   Typography,
   message,
+  Switch,
 } from "antd";
 import PageHeader from "../components/PageHeader";
 import { roleColors, roleLabels } from "../constants/roles";
 import { useAuth } from "../features/auth/AuthContext";
 import { staffService } from "../features/staffs/staffService";
-import { formatDateTime } from "../utils/format";
+import { formatDateTime, normalizePhone } from "../utils/format";
 
 const { Search } = Input;
 
@@ -45,12 +48,15 @@ const getStaffId = (staff) => staff?._id || staff?.id || staff?.userId;
 
 export default function StaffManagementPage() {
   const { user } = useAuth();
+  const [form] = Form.useForm();
   const [staffs, setStaffs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [changingRoleId, setChangingRoleId] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     role: undefined,
@@ -119,6 +125,8 @@ export default function StaffManagementPage() {
     return ["COUNTER_STAFF", "KITCHEN_STAFF"].includes(staff?.role);
   };
 
+  const canManageStaff = (staff) => canChangeRole(staff);
+
   const handleFilterChange = (key, value) => {
     const nextFilters = { ...filters, [key]: value };
     setFilters(nextFilters);
@@ -138,6 +146,18 @@ export default function StaffManagementPage() {
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const openUpdateModal = (staff) => {
+    setSelectedStaff(staff);
+    form.setFieldsValue({
+      fullName: staff.fullName,
+      email: staff.email,
+      phone: staff.phone || "",
+      role: staff.role,
+      isActive: staff.isActive,
+    });
+    setFormOpen(true);
   };
 
   const handleRoleChange = async (staff, role) => {
@@ -172,6 +192,37 @@ export default function StaffManagementPage() {
       okText: "Change Role",
       onOk: () => handleRoleChange(staff, role),
     });
+  };
+
+  const handleSubmitStaff = async () => {
+    const values = await form.validateFields();
+    const staffId = getStaffId(selectedStaff);
+    setSaving(true);
+
+    try {
+      const updatedStaff = await staffService.updateStaff(staffId, {
+        ...values,
+        phone: values.phone ? normalizePhone(values.phone) : null,
+      });
+
+      message.success(`Updated ${updatedStaff.fullName}`);
+      setFormOpen(false);
+
+      if (getStaffId(selectedStaff) === staffId) {
+        setSelectedStaff(updatedStaff);
+      }
+
+      await fetchStaffs(
+        pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const columns = [
@@ -231,9 +282,19 @@ export default function StaffManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 90,
+      width: 130,
       render: (_, record) => (
-        <Button icon={<EyeOutlined />} onClick={() => openDetailDrawer(record)} />
+        <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => openDetailDrawer(record)}
+          />
+          <Button
+            icon={<EditOutlined />}
+            disabled={!canManageStaff(record)}
+            onClick={() => openUpdateModal(record)}
+          />
+        </Space>
       ),
     },
   ];
@@ -399,6 +460,65 @@ export default function StaffManagementPage() {
           )}
         </Spin>
       </Drawer>
+
+      <Modal
+        title="Update Staff Information"
+        open={formOpen}
+        onCancel={() => setFormOpen(false)}
+        onOk={handleSubmitStaff}
+        okText="Save changes"
+        confirmLoading={saving}
+        destroyOnClose
+      >
+        <Form form={form} layout="vertical" className="pt-4">
+          <Form.Item
+            name="fullName"
+            label="Full name"
+            rules={[
+              { required: true, message: "Please enter full name" },
+              { whitespace: true, message: "Full name cannot be empty" },
+            ]}
+          >
+            <Input placeholder="Nguyen Van A" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Please enter email" },
+              { type: "email", message: "Invalid email" },
+            ]}
+          >
+            <Input placeholder="staff@unilife.local" />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="Phone"
+            rules={[
+              {
+                pattern: /^[0-9]{9,15}$/,
+                message: "Phone must contain 9-15 digits",
+              },
+            ]}
+          >
+            <Input placeholder="0900000000" />
+          </Form.Item>
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: "Please select role" }]}
+          >
+            <Select options={roleChangeOptions} />
+          </Form.Item>
+          <Form.Item
+            name="isActive"
+            label="Active account"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

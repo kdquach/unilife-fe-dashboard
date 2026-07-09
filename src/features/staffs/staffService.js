@@ -23,4 +23,10 @@ export const staffService = {
 
     return response.data;
   },
+
+  async updateStaff(id, payload) {
+    const response = await apiClient.patch(`/users/staffs/${id}`, payload);
+
+    return response.data;
+  },
 };
