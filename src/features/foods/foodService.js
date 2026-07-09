@@ -5,6 +5,12 @@ const toListResult = (response) => ({
   pagination: response.data.pagination,
 });
 
+const multipartConfig = {
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+};
+
 const toFoodFormData = (payload = {}) => {
   const formData = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
@@ -47,7 +53,11 @@ export const foodService = {
   },
 
   async createFood(payload) {
-    const response = await apiClient.post("/foods", toFoodFormData(payload));
+    const response = await apiClient.post(
+      "/foods",
+      toFoodFormData(payload),
+      multipartConfig,
+    );
 
     return response.data;
   },
@@ -56,6 +66,7 @@ export const foodService = {
     const response = await apiClient.patch(
       `/foods/${id}`,
       toFoodFormData(payload),
+      multipartConfig,
     );
 
     return response.data;

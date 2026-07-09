@@ -3,6 +3,7 @@ import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
   Divider,
+  Image,
   Form,
   Input,
   InputNumber,
@@ -13,11 +14,32 @@ import {
   Typography,
   Upload,
 } from "antd";
+import imageNotFound from "../../assets/image-not-found.png";
 
 const normalizeText = (value) =>
   String(value || "")
     .trim()
     .replace(/\s+/g, " ");
+
+const getIngredientId = (item = {}) => {
+  const ingredient =
+    item.ingredientId || item.ingredient || item.ingredient_id;
+  if (!ingredient) return undefined;
+  if (typeof ingredient === "object") {
+    return ingredient._id || ingredient.id || ingredient.ingredientId;
+  }
+  return ingredient;
+};
+
+const getIngredientUnit = (item = {}) => {
+  const ingredient = item.ingredientId || item.ingredient;
+  if (item.unit) return item.unit;
+  if (typeof ingredient === "object") return ingredient.unit || "";
+  return "";
+};
+
+const getQuantityPerServing = (item = {}) =>
+  item.quantityPerServing ?? item.quantity ?? item.qty ?? item.amount ?? null;
 
 const normalizeInitialValues = (values) => ({
   categoryId:
@@ -35,14 +57,16 @@ const normalizeInitialValues = (values) => ({
   isMenuItem: values?.isMenuItem === true,
   isActive: values?.isActive !== false,
   ingredients: Array.isArray(values?.ingredients)
-    ? values.ingredients.map((item) => ({
-        ingredientId:
-          typeof item?.ingredientId === "object"
-            ? item.ingredientId?._id
-            : item?.ingredientId,
-        quantityPerServing: Number(item?.quantityPerServing || 0),
-        unit: item?.unit || item?.ingredientId?.unit || "",
-      }))
+    ? values.ingredients
+        .map((item) => ({
+          ingredientId: getIngredientId(item),
+          quantityPerServing:
+            getQuantityPerServing(item) === null
+              ? undefined
+              : Number(getQuantityPerServing(item)),
+          unit: getIngredientUnit(item),
+        }))
+        .filter((item) => item.ingredientId || item.quantityPerServing || item.unit)
     : [],
 });
 
@@ -79,15 +103,26 @@ export default function FoodFormModal({
     }))
     .filter((option) => option.value);
 
-  const ingredientOptions = ingredients
+  const ingredientOptions = [
+    ...ingredients,
+    ...(Array.isArray(initialValues?.ingredients)
+      ? initialValues.ingredients
+          .map((item) => item.ingredientId || item.ingredient)
+          .filter((item) => item && typeof item === "object")
+      : []),
+  ]
     .map((ingredient) => ({
       label: ingredient.unit
         ? `${ingredient.name || "Unnamed Ingredient"} (${ingredient.unit})`
         : ingredient.name || "Unnamed Ingredient",
-      value: ingredient._id || ingredient.id,
+      value: ingredient._id || ingredient.id || ingredient.ingredientId,
       unit: ingredient.unit || "",
     }))
-    .filter((option) => option.value);
+    .filter((option) => option.value)
+    .filter(
+      (option, index, options) =>
+        options.findIndex((item) => item.value === option.value) === index,
+    );
 
   const handleIngredientChange = (fieldName, ingredientId) => {
     const selected = ingredientOptions.find((item) => item.value === ingredientId);
@@ -214,10 +249,14 @@ export default function FoodFormModal({
             <Typography.Text className="mb-2 block text-xs text-slate-500">
               Current image
             </Typography.Text>
-            <img
+            <Image
               src={currentImageUrl}
+              fallback={imageNotFound}
               alt={initialValues?.name || "Food"}
-              className="h-28 w-28 rounded-md object-cover"
+              width={112}
+              height={112}
+              className="rounded-md object-cover"
+              preview={Boolean(initialValues?.imageUrl)}
             />
           </div>
         )}
