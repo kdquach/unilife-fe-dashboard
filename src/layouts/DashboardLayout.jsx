@@ -38,6 +38,11 @@ const menuItems = [
     label: <Link to="/users">User Management</Link>,
   },
   {
+    key: "/staffs",
+    icon: <TeamOutlined />,
+    label: <Link to="/staffs">Staff Management</Link>,
+  },
+  {
     key: "/orders",
     icon: <ShoppingCartOutlined />,
     label: <Link to="/orders">Orders</Link>,
