@@ -2,16 +2,20 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   AppstoreOutlined,
   EditOutlined,
+  EyeOutlined,
   PlusOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import {
   Button,
   Card,
+  Descriptions,
+  Drawer,
   Image,
   Input,
   Select,
   Space,
+  Spin,
   Table,
   Tag,
   Typography,
@@ -42,6 +46,12 @@ const getCategoryName = (category) => {
   return category.name || "Uncategorized";
 };
 
+const getIngredientName = (ingredient) => {
+  if (!ingredient) return "-";
+  if (typeof ingredient === "string") return ingredient;
+  return ingredient.name || "-";
+};
+
 const resolveImageUrl = (imageUrl) => {
   if (!imageUrl) return imageNotFound;
   if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
@@ -59,6 +69,10 @@ export default function FoodManagementPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [editingFood, setEditingFood] = useState(null);
+  const [selectedFood, setSelectedFood] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     categoryId: undefined,
@@ -179,10 +193,42 @@ export default function FoodManagementPage() {
     setFormOpen(true);
   };
 
-  const openEditModal = (record) => {
-    setEditingFood(record);
-    setFormMode("edit");
-    setFormOpen(true);
+  const fetchFoodDetail = async (record) => {
+    const id = getRecordId(record);
+    if (!id) throw new Error("Food ID is missing");
+
+    return foodService.getManagedFoodById(id);
+  };
+
+  const openDetailDrawer = async (record) => {
+    setSelectedFood(record);
+    setDetailOpen(true);
+    setDetailLoading(true);
+
+    try {
+      const detail = await fetchFoodDetail(record);
+      setSelectedFood(detail);
+    } catch (error) {
+      message.error(error.message || "Unable to load food detail");
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const openEditModal = async (record) => {
+    const id = getRecordId(record);
+
+    try {
+      setActionLoadingId(id);
+      const detail = await fetchFoodDetail(record);
+      setEditingFood(detail);
+      setFormMode("edit");
+      setFormOpen(true);
+    } catch (error) {
+      message.error(error.message || "Unable to load food detail");
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const closeFormModal = () => {
@@ -195,15 +241,20 @@ export default function FoodManagementPage() {
     setSaving(true);
 
     try {
+      let savedFood;
       if (formMode === "create") {
-        await foodService.createFood(values);
+        savedFood = await foodService.createFood(values);
         message.success("Food created successfully");
       } else {
         const id = getRecordId(editingFood);
         if (!id) throw new Error("Food ID is missing");
 
-        await foodService.updateFood(id, values);
+        savedFood = await foodService.updateFood(id, values);
         message.success("Food updated successfully");
+      }
+
+      if (detailOpen && getRecordId(selectedFood) === getRecordId(savedFood)) {
+        setSelectedFood(savedFood);
       }
 
       closeFormModal();
@@ -289,14 +340,41 @@ export default function FoodManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 90,
+      width: 130,
       render: (_, record) => (
-        <Button
-          icon={<EditOutlined />}
-          title="Update Food"
-          onClick={() => openEditModal(record)}
-        />
+        <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            title="View Food Detail"
+            onClick={() => openDetailDrawer(record)}
+          />
+          <Button
+            icon={<EditOutlined />}
+            title="Update Food"
+            loading={actionLoadingId === getRecordId(record)}
+            onClick={() => openEditModal(record)}
+          />
+        </Space>
       ),
+    },
+  ];
+
+  const recipeColumns = [
+    {
+      title: "Ingredient",
+      render: (_, record) => getIngredientName(record.ingredientId),
+    },
+    {
+      title: "Quantity",
+      dataIndex: "quantityPerServing",
+      width: 130,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Unit",
+      dataIndex: "unit",
+      width: 100,
+      render: (value, record) => value || record.ingredientId?.unit || "-",
     },
   ];
 
@@ -426,6 +504,86 @@ export default function FoodManagementPage() {
         />
       </Card>
 
+      <Drawer
+        title="Food Details"
+        placement="right"
+        width={620}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      >
+        <Spin spinning={detailLoading}>
+          {selectedFood && (
+            <div>
+              <div className="mb-5 flex items-center gap-4">
+                <Image
+                  src={resolveImageUrl(selectedFood.imageUrl)}
+                  fallback={imageNotFound}
+                  alt={selectedFood.name || "Food"}
+                  width={104}
+                  height={104}
+                  className="rounded-md object-cover"
+                  preview={Boolean(selectedFood.imageUrl)}
+                />
+                <div>
+                  <Typography.Title level={4} className="!mb-1">
+                    {selectedFood.name || "Unnamed Food"}
+                  </Typography.Title>
+                  <Typography.Text className="text-slate-500">
+                    {getCategoryName(selectedFood.categoryId)}
+                  </Typography.Text>
+                </div>
+              </div>
+
+              <Descriptions bordered column={1} size="small">
+                <Descriptions.Item label="Price">
+                  {formatCurrency(selectedFood.price)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Type">
+                  {selectedFood.isMenuItem ? (
+                    <Tag color="purple">Menu item</Tag>
+                  ) : (
+                    <Tag color="blue">Daily</Tag>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Daily Stock">
+                  {selectedFood.stockQuantity === null ||
+                  selectedFood.stockQuantity === undefined
+                    ? "-"
+                    : selectedFood.stockQuantity}
+                </Descriptions.Item>
+                <Descriptions.Item label="Status">
+                  {selectedFood.isActive ? (
+                    <Tag color="green">Active</Tag>
+                  ) : (
+                    <Tag color="red">Inactive</Tag>
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Description">
+                  {selectedFood.description || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Created">
+                  {formatDateTime(selectedFood.createdAt)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Updated">
+                  {formatDateTime(selectedFood.updatedAt)}
+                </Descriptions.Item>
+              </Descriptions>
+
+              <Typography.Title level={5} className="!mb-3 !mt-6">
+                Recipe Ingredients
+              </Typography.Title>
+              <Table
+                rowKey={(record) => record._id || record.ingredientId?._id}
+                size="small"
+                pagination={false}
+                columns={recipeColumns}
+                dataSource={selectedFood.ingredients || []}
+              />
+            </div>
+          )}
+        </Spin>
+      </Drawer>
+
       <FoodFormModal
         open={formOpen}
         mode={formMode}
@@ -435,6 +593,7 @@ export default function FoodManagementPage() {
         categoryLoading={categoryLoading}
         ingredientLoading={ingredientLoading}
         loading={saving}
+        getImageUrl={resolveImageUrl}
         onCancel={closeFormModal}
         onSubmit={handleSubmitFood}
       />

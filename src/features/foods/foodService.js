@@ -5,6 +5,28 @@ const toListResult = (response) => ({
   pagination: response.data.pagination,
 });
 
+const toFoodFormData = (payload = {}) => {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined || key === "imageFile") return;
+    if (key === "ingredients") {
+      formData.append(key, JSON.stringify(value || []));
+      return;
+    }
+    if (value === null) {
+      formData.append(key, "");
+      return;
+    }
+    formData.append(key, value);
+  });
+
+  if (payload.imageFile) {
+    formData.append("image", payload.imageFile);
+  }
+
+  return formData;
+};
+
 export const foodService = {
   async getFoods() {
     const response = await apiClient.get("/foods");
@@ -18,14 +40,23 @@ export const foodService = {
     return toListResult(response);
   },
 
+  async getManagedFoodById(id) {
+    const response = await apiClient.get(`/foods/${id}`);
+
+    return response.data;
+  },
+
   async createFood(payload) {
-    const response = await apiClient.post("/foods", payload);
+    const response = await apiClient.post("/foods", toFoodFormData(payload));
 
     return response.data;
   },
 
   async updateFood(id, payload) {
-    const response = await apiClient.patch(`/foods/${id}`, payload);
+    const response = await apiClient.patch(
+      `/foods/${id}`,
+      toFoodFormData(payload),
+    );
 
     return response.data;
   },

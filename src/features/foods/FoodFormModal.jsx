@@ -11,6 +11,7 @@ import {
   Space,
   Switch,
   Typography,
+  Upload,
 } from "antd";
 
 const normalizeText = (value) =>
@@ -25,7 +26,7 @@ const normalizeInitialValues = (values) => ({
       : values?.categoryId,
   name: values?.name || "",
   description: values?.description || "",
-  imageUrl: values?.imageUrl || "",
+  imageFile: [],
   price: Number(values?.price || 0),
   stockQuantity:
     values?.stockQuantity === null || values?.stockQuantity === undefined
@@ -54,6 +55,7 @@ export default function FoodFormModal({
   categoryLoading = false,
   ingredientLoading = false,
   loading,
+  getImageUrl,
   onCancel,
   onSubmit,
 }) {
@@ -95,6 +97,7 @@ export default function FoodFormModal({
   const handleOk = async () => {
     const values = await form.validateFields();
     const nextIsMenuItem = Boolean(values.isMenuItem);
+    const imageFile = values.imageFile?.[0]?.originFileObj;
     const recipeItems = (values.ingredients || [])
       .filter((item) => item?.ingredientId)
       .map((item) => ({
@@ -107,15 +110,25 @@ export default function FoodFormModal({
       ...values,
       name: normalizeText(values.name),
       description: normalizeText(values.description),
-      imageUrl: normalizeText(values.imageUrl),
       categoryId: values.categoryId || null,
       price: Number(values.price || 0),
       stockQuantity: nextIsMenuItem ? null : Number(values.stockQuantity || 0),
       isMenuItem: nextIsMenuItem,
       isActive: Boolean(values.isActive),
       ingredients: recipeItems,
+      imageFile,
     });
   };
+
+  const normalizeUploadFileList = (event) => {
+    if (Array.isArray(event)) return event;
+    return event?.fileList || [];
+  };
+
+  const currentImageUrl =
+    initialValues?.imageUrl && getImageUrl
+      ? getImageUrl(initialValues.imageUrl)
+      : null;
 
   return (
     <Modal
@@ -180,9 +193,34 @@ export default function FoodFormModal({
           </Form.Item>
         )}
 
-        <Form.Item name="imageUrl" label="Image URL">
-          <Input placeholder="/uploads/foods/example.jpg" maxLength={500} />
+        <Form.Item
+          name="imageFile"
+          label="Food Image"
+          valuePropName="fileList"
+          getValueFromEvent={normalizeUploadFileList}
+        >
+          <Upload
+            accept="image/*"
+            beforeUpload={() => false}
+            listType="picture"
+            maxCount={1}
+          >
+            <Button icon={<PlusOutlined />}>Select Image</Button>
+          </Upload>
         </Form.Item>
+
+        {currentImageUrl && (
+          <div className="mb-4">
+            <Typography.Text className="mb-2 block text-xs text-slate-500">
+              Current image
+            </Typography.Text>
+            <img
+              src={currentImageUrl}
+              alt={initialValues?.name || "Food"}
+              className="h-28 w-28 rounded-md object-cover"
+            />
+          </div>
+        )}
 
         <Form.Item name="description" label="Description">
           <Input.TextArea rows={4} maxLength={500} showCount />
