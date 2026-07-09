@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -89,15 +89,22 @@ export default function FoodFormModal({
 }) {
   const [form] = Form.useForm();
   const isMenuItem = Form.useWatch("isMenuItem", form);
+  const initialValuesRef = useRef(initialValues);
+
+  useEffect(() => {
+    initialValuesRef.current = initialValues;
+  }, [initialValues]);
+
+  const applyInitialValues = useCallback(() => {
+    const nextValues = normalizeInitialValues(initialValuesRef.current);
+    form.resetFields();
+    form.setFieldsValue(nextValues);
+  }, [form]);
 
   useEffect(() => {
     if (!open) return;
-
-    const nextValues = normalizeInitialValues(initialValues);
-    form.resetFields();
-    form.setFieldsValue(nextValues);
-    form.setFieldValue("ingredients", nextValues.ingredients);
-  }, [form, initialValues, open]);
+    applyInitialValues();
+  }, [applyInitialValues, initialValues, open]);
 
   const categoryOptions = categories
     .map((category) => ({
@@ -179,7 +186,11 @@ export default function FoodFormModal({
       destroyOnHidden
       forceRender
       afterOpenChange={(visible) => {
-        if (!visible) form.resetFields();
+        if (visible) {
+          applyInitialValues();
+        } else {
+          form.resetFields();
+        }
       }}
     >
       <Form
