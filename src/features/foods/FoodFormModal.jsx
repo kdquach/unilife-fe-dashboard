@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect } from "react";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -21,14 +21,21 @@ const normalizeText = (value) =>
     .trim()
     .replace(/\s+/g, " ");
 
+const toId = (value) => {
+  if (!value) return undefined;
+
+  if (typeof value === "object") {
+    const id = value._id || value.id || value.ingredientId;
+    return id && typeof id === "object" ? toId(id) : id ? String(id) : undefined;
+  }
+
+  return String(value);
+};
+
 const getIngredientId = (item = {}) => {
   const ingredient =
     item.ingredientId || item.ingredient || item.ingredient_id;
-  if (!ingredient) return undefined;
-  if (typeof ingredient === "object") {
-    return ingredient._id || ingredient.id || ingredient.ingredientId;
-  }
-  return ingredient;
+  return toId(ingredient);
 };
 
 const getIngredientUnit = (item = {}) => {
@@ -41,13 +48,8 @@ const getIngredientUnit = (item = {}) => {
 const getQuantityPerServing = (item = {}) =>
   item.quantityPerServing ?? item.quantity ?? item.qty ?? item.amount ?? null;
 
-const getFoodId = (values = {}) => values?._id || values?.id || values?.foodId;
-
 const normalizeInitialValues = (values) => ({
-  categoryId:
-    typeof values?.categoryId === "object"
-      ? values.categoryId?._id
-      : values?.categoryId,
+  categoryId: toId(values?.categoryId),
   name: values?.name || "",
   description: values?.description || "",
   imageFile: [],
@@ -87,36 +89,20 @@ export default function FoodFormModal({
 }) {
   const [form] = Form.useForm();
   const isMenuItem = Form.useWatch("isMenuItem", form);
-  const normalizedValues = useMemo(
-    () => normalizeInitialValues(initialValues),
-    [initialValues],
-  );
-  const formKey = `${mode}-${getFoodId(initialValues) || "new"}-${
-    normalizedValues.ingredients
-      .map(
-        (item) =>
-          `${item.ingredientId || ""}:${item.quantityPerServing || ""}:${
-            item.unit || ""
-          }`,
-      )
-      .join("|")
-  }`;
-
-  const fillForm = () => {
-    form.resetFields();
-    form.setFieldsValue(normalizedValues);
-    form.setFieldValue("ingredients", normalizedValues.ingredients);
-  };
 
   useEffect(() => {
     if (!open) return;
-    fillForm();
-  }, [normalizedValues, open]);
+
+    const nextValues = normalizeInitialValues(initialValues);
+    form.resetFields();
+    form.setFieldsValue(nextValues);
+    form.setFieldValue("ingredients", nextValues.ingredients);
+  }, [form, initialValues, open]);
 
   const categoryOptions = categories
     .map((category) => ({
       label: category.name || "Unnamed Category",
-      value: category._id || category.id,
+      value: toId(category),
     }))
     .filter((option) => option.value);
 
@@ -132,7 +118,7 @@ export default function FoodFormModal({
       label: ingredient.unit
         ? `${ingredient.name || "Unnamed Ingredient"} (${ingredient.unit})`
         : ingredient.name || "Unnamed Ingredient",
-      value: ingredient._id || ingredient.id || ingredient.ingredientId,
+      value: toId(ingredient),
       unit: ingredient.unit || "",
     }))
     .filter((option) => option.value)
@@ -197,11 +183,9 @@ export default function FoodFormModal({
       }}
     >
       <Form
-        key={formKey}
         form={form}
         layout="vertical"
         preserve={false}
-        initialValues={normalizedValues}
       >
         <Form.Item
           name="name"
@@ -295,7 +279,7 @@ export default function FoodFormModal({
         <Divider />
 
         <Typography.Text strong>Recipe Ingredients</Typography.Text>
-        <Form.List key={`ingredients-${formKey}`} name="ingredients">
+        <Form.List name="ingredients">
           {(fields, { add, remove }) => (
             <div className="mt-3">
               {fields.map(({ key, name, ...restField }) => (
