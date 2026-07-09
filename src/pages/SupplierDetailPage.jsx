@@ -267,13 +267,10 @@ export default function SupplierDetailPage() {
 
             <Descriptions.Item label="Phone">
               {supplier.phone ? (
-                <a
-                  href={`tel:${supplier.phone}`}
-                  className="flex items-center gap-1.5 text-unilife"
-                >
-                  <PhoneOutlined />
+                <span className="flex items-center gap-1.5 text-slate-700">
+                  <PhoneOutlined className="text-slate-400" />
                   {supplier.phone}
-                </a>
+                </span>
               ) : (
                 <span className="text-slate-400">Not provided</span>
               )}
