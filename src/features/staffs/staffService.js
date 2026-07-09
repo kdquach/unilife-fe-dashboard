@@ -1,0 +1,38 @@
+import apiClient from "../../services/apiClient";
+
+export const staffService = {
+  async getStaffs(params = {}) {
+    const response = await apiClient.get("/users/staffs", { params });
+
+    return {
+      data: response.data.items,
+      pagination: response.data.pagination,
+    };
+  },
+
+  async getStaffById(id) {
+    const response = await apiClient.get(`/users/staffs/${id}`);
+
+    return response.data;
+  },
+
+  async changeStaffRole(id, role) {
+    const response = await apiClient.patch(`/users/staffs/${id}/role`, {
+      role,
+    });
+
+    return response.data;
+  },
+
+  async updateStaff(id, payload) {
+    const response = await apiClient.patch(`/users/staffs/${id}`, payload);
+
+    return response.data;
+  },
+
+  async createStaff(payload) {
+    const response = await apiClient.post("/users/staffs", payload);
+
+    return response.data;
+  },
+};

@@ -187,7 +187,7 @@ export default function IngredientCategoryManagementPage() {
     <div>
       {/* HEADER */}
       <PageHeader
-        title="Ingredient Category Management"
+        title="Ingredient Categories"
         description="Manage ingredient categories"
         breadcrumbs={["Dashboard", "Ingredient Categories"]}
         extra={

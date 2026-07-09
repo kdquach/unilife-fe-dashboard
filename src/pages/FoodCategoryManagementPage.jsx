@@ -5,7 +5,6 @@ import {
   EyeOutlined,
   PlusOutlined,
   ReloadOutlined,
-  SearchOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -274,7 +273,6 @@ export default function FoodCategoryManagementPage() {
           <Space wrap>
             <Search
               allowClear
-              enterButton={<SearchOutlined />}
               placeholder="Search category..."
               style={{ width: 260 }}
               onSearch={(value) => {

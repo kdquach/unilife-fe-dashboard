@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  AuditOutlined,
   AppstoreOutlined,
   BellOutlined,
   LogoutOutlined,
@@ -38,6 +39,11 @@ const menuItems = [
     label: <Link to="/users">User Management</Link>,
   },
   {
+    key: "/staffs",
+    icon: <TeamOutlined />,
+    label: <Link to="/staffs">Staff Management</Link>,
+  },
+  {
     key: "/orders",
     icon: <ShoppingCartOutlined />,
     label: <Link to="/orders">Orders</Link>,
@@ -55,10 +61,7 @@ const menuItems = [
   {
     key: "/ingredient-categories",
     icon: <DatabaseOutlined />,
-    label:
-      <Link to="/ingredient-categories">
-        Ingredient Categories
-      </Link>
+    label: <Link to="/ingredient-categories">Ingredient Categories</Link>,
   },
   {
     key: "/ingredients",
@@ -79,9 +82,16 @@ const menuItems = [
     key: "/menu-schedules",
     icon: <CalendarOutlined />,
     label: <Link to="/menu-schedules">Menu Schedules</Link>,
+  },
+  {
     key: "/suppliers",
     icon: <ShopOutlined />,
     label: <Link to="/suppliers">Suppliers</Link>,
+  },
+  {
+    key: "/activity-logs",
+    icon: <AuditOutlined />,
+    label: <Link to="/activity-logs">Activity Logs</Link>,
   },
 ];
 
