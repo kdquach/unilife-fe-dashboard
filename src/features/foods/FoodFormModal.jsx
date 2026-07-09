@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -26,15 +26,18 @@ const toId = (value) => {
 
   if (typeof value === "object") {
     const id = value._id || value.id || value.ingredientId;
-    return id && typeof id === "object" ? toId(id) : id ? String(id) : undefined;
+    return id && typeof id === "object"
+      ? toId(id)
+      : id
+        ? String(id)
+        : undefined;
   }
 
   return String(value);
 };
 
 const getIngredientId = (item = {}) => {
-  const ingredient =
-    item.ingredientId || item.ingredient || item.ingredient_id;
+  const ingredient = item.ingredientId || item.ingredient || item.ingredient_id;
   return toId(ingredient);
 };
 
@@ -48,6 +51,14 @@ const getIngredientUnit = (item = {}) => {
 const getQuantityPerServing = (item = {}) =>
   item.quantityPerServing ?? item.quantity ?? item.qty ?? item.amount ?? null;
 
+const getRecipeItems = (values) => {
+  if (!values) return [];
+  if (Array.isArray(values.ingredients)) return values.ingredients;
+  if (Array.isArray(values.foodIngredients)) return values.foodIngredients;
+  if (Array.isArray(values.recipeIngredients)) return values.recipeIngredients;
+  return [];
+};
+
 const normalizeInitialValues = (values) => ({
   categoryId: toId(values?.categoryId),
   name: values?.name || "",
@@ -60,18 +71,18 @@ const normalizeInitialValues = (values) => ({
       : Number(values.stockQuantity),
   isMenuItem: values?.isMenuItem === true,
   isActive: values?.isActive !== false,
-  ingredients: Array.isArray(values?.ingredients)
-    ? values.ingredients
-        .map((item) => ({
-          ingredientId: getIngredientId(item),
-          quantityPerServing:
-            getQuantityPerServing(item) === null
-              ? undefined
-              : Number(getQuantityPerServing(item)),
-          unit: getIngredientUnit(item),
-        }))
-        .filter((item) => item.ingredientId || item.quantityPerServing || item.unit)
-    : [],
+  ingredients: getRecipeItems(values)
+    .map((item) => ({
+      ingredientId: getIngredientId(item),
+      quantityPerServing:
+        getQuantityPerServing(item) === null
+          ? undefined
+          : Number(getQuantityPerServing(item)),
+      unit: getIngredientUnit(item),
+    }))
+    .filter(
+      (item) => item.ingredientId || item.quantityPerServing || item.unit,
+    ),
 });
 
 export default function FoodFormModal({
@@ -88,23 +99,34 @@ export default function FoodFormModal({
   onSubmit,
 }) {
   const [form] = Form.useForm();
+  const [recipeRows, setRecipeRows] = useState([]);
   const isMenuItem = Form.useWatch("isMenuItem", form);
-  const initialValuesRef = useRef(initialValues);
+
+  const normalizedInitialValues = useMemo(
+    () => normalizeInitialValues(initialValues),
+    [initialValues],
+  );
+  const formKey =
+    mode === "create"
+      ? "create"
+      : initialValues?._id || initialValues?.id || "update";
 
   useEffect(() => {
-    initialValuesRef.current = initialValues;
-  }, [initialValues]);
+    if (!open) {
+      form.resetFields();
+      setRecipeRows([]);
+      return;
+    }
 
-  const applyInitialValues = useCallback(() => {
-    const nextValues = normalizeInitialValues(initialValuesRef.current);
     form.resetFields();
-    form.setFieldsValue(nextValues);
-  }, [form]);
-
-  useEffect(() => {
-    if (!open) return;
-    applyInitialValues();
-  }, [applyInitialValues, initialValues, open]);
+    form.setFieldsValue(normalizedInitialValues);
+    setRecipeRows(
+      normalizedInitialValues.ingredients.map((item, index) => ({
+        ...item,
+        rowKey: `${item.ingredientId || "ingredient"}-${index}`,
+      })),
+    );
+  }, [form, formKey, normalizedInitialValues, open]);
 
   const categoryOptions = categories
     .map((category) => ({
@@ -115,8 +137,8 @@ export default function FoodFormModal({
 
   const ingredientOptions = [
     ...ingredients,
-    ...(Array.isArray(initialValues?.ingredients)
-      ? initialValues.ingredients
+    ...(getRecipeItems(initialValues).length
+      ? getRecipeItems(initialValues)
           .map((item) => item.ingredientId || item.ingredient)
           .filter((item) => item && typeof item === "object")
       : []),
@@ -135,15 +157,51 @@ export default function FoodFormModal({
     );
 
   const handleIngredientChange = (fieldName, ingredientId) => {
-    const selected = ingredientOptions.find((item) => item.value === ingredientId);
-    form.setFieldValue(["ingredients", fieldName, "unit"], selected?.unit || "");
+    const selected = ingredientOptions.find(
+      (item) => item.value === ingredientId,
+    );
+    setRecipeRows((rows) =>
+      rows.map((row, index) =>
+        index === fieldName
+          ? {
+              ...row,
+              ingredientId,
+              unit: selected?.unit || row.unit || "",
+            }
+          : row,
+      ),
+    );
+  };
+
+  const handleRecipeFieldChange = (fieldName, key, value) => {
+    setRecipeRows((rows) =>
+      rows.map((row, index) =>
+        index === fieldName ? { ...row, [key]: value } : row,
+      ),
+    );
+  };
+
+  const addRecipeRow = () => {
+    setRecipeRows((rows) => [
+      ...rows,
+      {
+        rowKey: `new-${Date.now()}-${rows.length}`,
+        ingredientId: undefined,
+        quantityPerServing: 1,
+        unit: "",
+      },
+    ]);
+  };
+
+  const removeRecipeRow = (fieldName) => {
+    setRecipeRows((rows) => rows.filter((_, index) => index !== fieldName));
   };
 
   const handleOk = async () => {
     const values = await form.validateFields();
     const nextIsMenuItem = Boolean(values.isMenuItem);
     const imageFile = values.imageFile?.[0]?.originFileObj;
-    const recipeItems = (values.ingredients || [])
+    const recipeItems = recipeRows
       .filter((item) => item?.ingredientId)
       .map((item) => ({
         ingredientId: item.ingredientId,
@@ -185,18 +243,13 @@ export default function FoodFormModal({
       okText={mode === "create" ? "Create" : "Update"}
       destroyOnHidden
       forceRender
-      afterOpenChange={(visible) => {
-        if (visible) {
-          applyInitialValues();
-        } else {
-          form.resetFields();
-        }
-      }}
     >
       <Form
+        key={formKey}
         form={form}
         layout="vertical"
         preserve={false}
+        initialValues={normalizedInitialValues}
       >
         <Form.Item
           name="name"
@@ -278,7 +331,11 @@ export default function FoodFormModal({
         </Form.Item>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Form.Item name="isMenuItem" label="Menu Schedule Item" valuePropName="checked">
+          <Form.Item
+            name="isMenuItem"
+            label="Menu Schedule Item"
+            valuePropName="checked"
+          >
             <Switch />
           </Form.Item>
 
@@ -290,72 +347,61 @@ export default function FoodFormModal({
         <Divider />
 
         <Typography.Text strong>Recipe Ingredients</Typography.Text>
-        <Form.List name="ingredients">
-          {(fields, { add, remove }) => (
-            <div className="mt-3">
-              {fields.map(({ key, name, ...restField }) => (
-                <Space
-                  key={key}
-                  align="baseline"
-                  className="mb-2 flex w-full"
-                >
-                  <Form.Item
-                    {...restField}
-                    name={[name, "ingredientId"]}
-                    rules={[
-                      { required: true, message: "Ingredient is required" },
-                    ]}
-                    className="flex-1"
-                  >
-                    <Select
-                      showSearch
-                      loading={ingredientLoading}
-                      options={ingredientOptions}
-                      optionFilterProp="label"
-                      placeholder="Ingredient"
-                      onChange={(value) =>
-                        handleIngredientChange(name, value)
-                      }
-                    />
-                  </Form.Item>
+        <div className="mt-3">
+          {recipeRows.map((row, index) => (
+            <Space
+              key={row.rowKey || `${row.ingredientId || "ingredient"}-${index}`}
+              align="baseline"
+              className="mb-2 flex w-full"
+            >
+              <Select
+                showSearch
+                loading={ingredientLoading}
+                options={ingredientOptions}
+                optionFilterProp="label"
+                placeholder="Ingredient"
+                value={row.ingredientId}
+                onChange={(value) => handleIngredientChange(index, value)}
+                className="flex-1"
+              />
 
-                  <Form.Item
-                    {...restField}
-                    name={[name, "quantityPerServing"]}
-                    rules={[
-                      {
-                        required: true,
-                        message: "Quantity is required",
-                      },
-                    ]}
-                  >
-                    <InputNumber min={0.01} precision={2} placeholder="Qty" />
-                  </Form.Item>
+              <InputNumber
+                min={0.01}
+                precision={2}
+                placeholder="Qty"
+                value={row.quantityPerServing}
+                onChange={(value) =>
+                  handleRecipeFieldChange(index, "quantityPerServing", value)
+                }
+              />
 
-                  <Form.Item {...restField} name={[name, "unit"]}>
-                    <Input placeholder="Unit" className="w-20" />
-                  </Form.Item>
-
-                  <Button
-                    danger
-                    type="text"
-                    icon={<MinusCircleOutlined />}
-                    onClick={() => remove(name)}
-                  />
-                </Space>
-              ))}
+              <Input
+                placeholder="Unit"
+                className="w-20"
+                value={row.unit}
+                onChange={(event) =>
+                  handleRecipeFieldChange(index, "unit", event.target.value)
+                }
+              />
 
               <Button
-                type="dashed"
-                icon={<PlusOutlined />}
-                onClick={() => add({ quantityPerServing: 1 })}
-                block
-              >
-                Add Ingredient
-              </Button>
-            </div>
-          )}
-        </Form.List>
+                danger
+                type="text"
+                icon={<MinusCircleOutlined />}
+                onClick={() => removeRecipeRow(index)}
+              />
+            </Space>
+          ))}
+
+          <Button
+            type="dashed"
+            icon={<PlusOutlined />}
+            onClick={addRecipeRow}
+            block
+          >
+            Add Ingredient
+          </Button>
+        </div>
       </Form>
     </Modal>
   );
