@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   Button,
@@ -40,6 +40,8 @@ const getIngredientUnit = (item = {}) => {
 
 const getQuantityPerServing = (item = {}) =>
   item.quantityPerServing ?? item.quantity ?? item.qty ?? item.amount ?? null;
+
+const getFoodId = (values = {}) => values?._id || values?.id || values?.foodId;
 
 const normalizeInitialValues = (values) => ({
   categoryId:
@@ -85,16 +87,31 @@ export default function FoodFormModal({
 }) {
   const [form] = Form.useForm();
   const isMenuItem = Form.useWatch("isMenuItem", form);
+  const normalizedValues = useMemo(
+    () => normalizeInitialValues(initialValues),
+    [initialValues],
+  );
+  const formKey = `${mode}-${getFoodId(initialValues) || "new"}-${
+    normalizedValues.ingredients
+      .map(
+        (item) =>
+          `${item.ingredientId || ""}:${item.quantityPerServing || ""}:${
+            item.unit || ""
+          }`,
+      )
+      .join("|")
+  }`;
 
   const fillForm = () => {
     form.resetFields();
-    form.setFieldsValue(normalizeInitialValues(initialValues));
+    form.setFieldsValue(normalizedValues);
+    form.setFieldValue("ingredients", normalizedValues.ingredients);
   };
 
   useEffect(() => {
     if (!open) return;
     fillForm();
-  }, [initialValues, open]);
+  }, [normalizedValues, open]);
 
   const categoryOptions = categories
     .map((category) => ({
@@ -176,11 +193,16 @@ export default function FoodFormModal({
       destroyOnClose
       forceRender
       afterOpenChange={(visible) => {
-        if (visible) fillForm();
-        else form.resetFields();
+        if (!visible) form.resetFields();
       }}
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form
+        key={formKey}
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={normalizedValues}
+      >
         <Form.Item
           name="name"
           label="Food Name"
@@ -278,7 +300,11 @@ export default function FoodFormModal({
         <Divider />
 
         <Typography.Text strong>Recipe Ingredients</Typography.Text>
-        <Form.List name="ingredients">
+        <Form.List
+          key={`ingredients-${formKey}`}
+          name="ingredients"
+          initialValue={normalizedValues.ingredients}
+        >
           {(fields, { add, remove }) => (
             <div className="mt-3">
               {fields.map(({ key, name, ...restField }) => (
