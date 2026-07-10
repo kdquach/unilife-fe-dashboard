@@ -11,4 +11,11 @@ export const reportService = {
       revenue: response.data.revenue,
     };
   },
-};  
+  async getPeakHourReport(params = {}) {
+    const response = await apiClient.get("/reports/peak-hour", {
+      params,
+    });
+
+    return response.data;
+  },
+};

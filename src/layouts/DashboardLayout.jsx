@@ -17,6 +17,7 @@ import {
   HistoryOutlined,
   InboxOutlined,
   BarChartOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -93,6 +94,11 @@ const menuItems = [
     icon: <BarChartOutlined />,
     label: <Link to="/reports/revenue">Revenue Report</Link>,
   },
+  {
+  key: "/reports/peak-hour",
+  icon: <ClockCircleOutlined />,
+  label: <Link to="/reports/peak-hour">Peak Hour Report</Link>,
+},
 ];
 
 export default function DashboardLayout() {

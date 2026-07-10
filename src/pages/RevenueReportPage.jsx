@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Select, DatePicker, Button, Space, message } from "antd";
-
+import { Card, Table, Select, DatePicker, Button, Space } from "antd";
+import { notify } from "../utils/notify";
 import dayjs from "dayjs";
 
 import PageHeader from "../components/PageHeader";
 
-import RevenueSummaryCards from "../features/reports/RevenueSummaryCards";
-import RevenueTrendChart from "../features/reports/RevenueTrendChart";
+import RevenueSummaryCards from "../features/reports/revenue/RevenueSummaryCards";
+import RevenueTrendChart from "../features/reports/revenue/RevenueTrendChart";
 import { reportService } from "../features/reports/reportService";
 
 const formatMoney = (value = 0) =>
@@ -71,7 +71,7 @@ export default function RevenueReportPage() {
       setRevenue(response.revenue);
     } catch (err) {
       console.log(err);
-      message.error("Cannot load revenue report");
+      notify.error("Cannot load revenue report");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export default function RevenueReportPage() {
       !filters.month &&
       !(filters.from && filters.to)
     ) {
-      return message.warning("Please select a month to view daily report.");
+      return notify.warning("Please select a month to view daily report.");
     }
 
     if (
@@ -95,7 +95,7 @@ export default function RevenueReportPage() {
       !filters.year &&
       !(filters.from && filters.to)
     ) {
-      return message.warning("Please select a year to view monthly report.");
+      return notify.warning("Please select a year to view monthly report.");
     }
 
     fetchRevenueReport(filters);
