@@ -18,6 +18,7 @@ import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistor
 import ActivityLogPage from "../pages/ActivityLogPage";
 import RevenueReportPage from "../pages/RevenueReportPage";
 import PeakHourReportPage from "../pages/PeakHourReportPage";
+import OrderStatisticsReportPage from "../pages/OrderStatisticsReportPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -91,7 +92,11 @@ export default function AppRouter() {
             element={<IngredientCategoryManagementPage />}
           />
           <Route path="reports/revenue" element={<RevenueReportPage />} />
-          <Route path="/reports/peak-hour" element={<PeakHourReportPage />} />
+          <Route path="reports/peak-hour" element={<PeakHourReportPage />} />
+          <Route
+            path="reports/order-statistics"
+            element={<OrderStatisticsReportPage />}
+          />
           <Route path="activity-logs" element={<ActivityLogPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

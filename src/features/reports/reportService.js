@@ -18,4 +18,12 @@ export const reportService = {
 
     return response.data;
   },
+
+  async getOrderStatisticsReport(params = {}) {
+    const response = await apiClient.get("/reports/order-statistics", {
+      params,
+    });
+
+    return response.data;
+  },
 };
