@@ -26,4 +26,12 @@ export const reportService = {
 
     return response.data;
   },
+
+  async getPopularFoodReport(params = {}) {
+    const response = await apiClient.get("/reports/popular-food", {
+      params,
+    });
+
+    return response.data;
+  },
 };

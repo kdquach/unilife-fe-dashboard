@@ -19,6 +19,7 @@ import ActivityLogPage from "../pages/ActivityLogPage";
 import RevenueReportPage from "../pages/RevenueReportPage";
 import PeakHourReportPage from "../pages/PeakHourReportPage";
 import OrderStatisticsReportPage from "../pages/OrderStatisticsReportPage";
+import PopularFoodReportPage from "../pages/PopularFoodReportPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 function ProtectedRoute({ children }) {
@@ -96,6 +97,10 @@ export default function AppRouter() {
           <Route
             path="reports/order-statistics"
             element={<OrderStatisticsReportPage />}
+          />
+          <Route
+            path="/reports/popular-food"
+            element={<PopularFoodReportPage />}
           />
           <Route path="activity-logs" element={<ActivityLogPage />} />
         </Route>

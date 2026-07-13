@@ -14,7 +14,8 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   ClockCircleOutlined,
-  PieChartOutlined
+  PieChartOutlined,
+  FireOutlined,
 } from "@ant-design/icons";
 
 import { Link } from "react-router-dom";
@@ -143,6 +144,15 @@ const menuItems = [
         </Link>
       ),
     },
+    {
+    key: "/reports/popular-food",
+    icon: <FireOutlined />,
+    label: (
+        <Link to="/reports/popular-food">
+            Popular Food Report
+        </Link>
+    ),
+},
     ],
   },
 
