@@ -19,15 +19,17 @@ const MenuScheduleTable = ({ data, loading, pagination, onChange, onViewDetail }
 
   const columns = [
     {
-      title: 'Date',
+      title: 'Serving Date',
       dataIndex: 'date',
       key: 'date',
+      sorter: (a, b) => new Date(a.date) - new Date(b.date),
       render: (text) => <span className="font-medium text-gray-800">{formatDate(text)}</span>,
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
+      sorter: (a, b) => a.status.localeCompare(b.status),
       render: (status) => (
         <Tag color={getStatusColor(status)} className="px-2 py-0.5 rounded font-medium">
           {status}
@@ -38,6 +40,7 @@ const MenuScheduleTable = ({ data, loading, pagination, onChange, onViewDetail }
       title: 'Created At',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
       render: (text) => <span className="text-gray-500">{formatDateTime(text)}</span>,
     },
     {
