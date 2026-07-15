@@ -15,6 +15,7 @@ const RatingsPage = () => {
     pagination,
     handleTableChange,
     handleFilterChange,
+    refresh,
   } = useRatings();
 
   const {
@@ -63,6 +64,10 @@ const RatingsPage = () => {
         detail={detail}
         loading={detailLoading}
         error={detailError}
+        onReplySuccess={() => {
+          refresh();
+          if (detail && detail._id) fetchDetail(detail._id);
+        }}
       />
     </div>
   );

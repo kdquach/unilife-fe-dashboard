@@ -43,4 +43,22 @@ describe('RatingDetailModal', () => {
     expect(screen.getByText('Thanks!')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
   });
+
+  it('renders reply form if no staff reply', () => {
+    render(
+      <RatingDetailModal
+        isOpen={true}
+        onClose={() => {}}
+        detail={{
+          _id: '1',
+          ratingType: 'FOOD',
+          stars: 5,
+          staffReply: null,
+        }}
+        loading={false}
+      />
+    );
+    expect(screen.getByPlaceholderText('Write your reply here...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /send reply/i })).toBeInTheDocument();
+  });
 });

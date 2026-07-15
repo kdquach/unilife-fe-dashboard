@@ -1,11 +1,28 @@
-import React from 'react';
-import { Modal, Descriptions, Tag, Avatar, Space, Typography, Rate, Skeleton, Alert } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Modal, Descriptions, Tag, Avatar, Space, Typography, Rate, Skeleton, Alert, Input, Button } from 'antd';
+import { UserOutlined, SendOutlined } from '@ant-design/icons';
 import { formatDate } from '../../../utils/format';
+import useReplyRating from '../hooks/useReplyRating';
 
 const { Text, Paragraph } = Typography;
 
-const RatingDetailModal = ({ isOpen, onClose, detail, loading, error }) => {
+const RatingDetailModal = ({ isOpen, onClose, detail, loading, error, onReplySuccess }) => {
+  const [replyText, setReplyText] = useState('');
+  const { submitReply, loading: replying } = useReplyRating();
+
+  useEffect(() => {
+    if (isOpen) {
+      setReplyText('');
+    }
+  }, [isOpen]);
+
+  const handleReplySubmit = () => {
+    if (detail && detail._id) {
+      submitReply(detail._id, replyText, () => {
+        if (onReplySuccess) onReplySuccess();
+      });
+    }
+  };
   return (
     <Modal
       title="Rating Detail"
@@ -67,7 +84,7 @@ const RatingDetailModal = ({ isOpen, onClose, detail, loading, error }) => {
             </div>
           </Descriptions.Item>
 
-          {detail.staffReply && (
+          {detail.staffReply ? (
             <Descriptions.Item label="Staff Reply">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -83,6 +100,27 @@ const RatingDetailModal = ({ isOpen, onClose, detail, loading, error }) => {
                 <Paragraph className="mb-0 p-3 bg-blue-50 rounded-md border border-blue-100 text-blue-800">
                   {detail.staffReply}
                 </Paragraph>
+              </div>
+            </Descriptions.Item>
+          ) : (
+            <Descriptions.Item label="Reply to Customer">
+              <div className="flex flex-col items-end gap-3 w-full">
+                <Input.TextArea 
+                  rows={4} 
+                  placeholder="Write your reply here..." 
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  disabled={replying}
+                />
+                <Button 
+                  type="primary" 
+                  icon={<SendOutlined />} 
+                  loading={replying}
+                  disabled={!replyText.trim()}
+                  onClick={handleReplySubmit}
+                >
+                  Send Reply
+                </Button>
               </div>
             </Descriptions.Item>
           )}
