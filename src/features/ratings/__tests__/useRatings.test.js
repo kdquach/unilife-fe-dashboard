@@ -21,7 +21,7 @@ describe('useRatings hook', () => {
   it('should fetch ratings successfully', async () => {
     const mockData = {
       items: [{ _id: '1', ratingType: 'FOOD', stars: 5 }],
-      pagination: { currentPage: 1, limit: 10, totalItems: 1 }
+      pagination: { page: 1, limit: 10, total: 1 }
     };
     ratingApi.getRatings.mockResolvedValueOnce({ data: mockData });
 
@@ -38,7 +38,7 @@ describe('useRatings hook', () => {
   });
 
   it('should handle pagination changes', async () => {
-    ratingApi.getRatings.mockResolvedValue({ data: { items: [], pagination: { currentPage: 2, limit: 10, totalItems: 20 } } });
+    ratingApi.getRatings.mockResolvedValue({ data: { items: [], pagination: { page: 2, limit: 10, total: 20 } } });
 
     const { result } = renderHook(() => useRatings());
     
@@ -54,7 +54,7 @@ describe('useRatings hook', () => {
   });
 
   it('should apply filters and reset to page 1', async () => {
-    ratingApi.getRatings.mockResolvedValue({ data: { items: [], pagination: { currentPage: 1, limit: 10, totalItems: 0 } } });
+    ratingApi.getRatings.mockResolvedValue({ data: { items: [], pagination: { page: 1, limit: 10, total: 0 } } });
 
     const { result } = renderHook(() => useRatings());
     

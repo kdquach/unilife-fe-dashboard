@@ -5,7 +5,7 @@ import { formatDate } from '../../../utils/format';
 
 const { Text, Paragraph } = Typography;
 
-const RatingsTable = ({ data, loading, pagination, onChange }) => {
+const RatingsTable = ({ data, loading, pagination, onChange, onViewDetail }) => {
   const columns = [
     {
       title: 'Customer',
@@ -88,10 +88,13 @@ const RatingsTable = ({ data, loading, pagination, onChange }) => {
       key: 'action',
       width: 100,
       fixed: 'right',
-      render: () => (
+      render: (_, record) => (
         <Space>
           <Tooltip title="View Detail">
-            <Typography.Link className="flex items-center justify-center w-8 h-8 rounded hover:bg-slate-100">
+            <Typography.Link 
+              className="flex items-center justify-center w-8 h-8 rounded hover:bg-slate-100"
+              onClick={() => onViewDetail && onViewDetail(record._id)}
+            >
               <FileTextOutlined className="text-lg text-blue-600" />
             </Typography.Link>
           </Tooltip>

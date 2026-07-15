@@ -19,9 +19,9 @@ const useRatings = () => {
       if (response && response.data) {
         setRatings(response.data.items || []);
         setPagination({
-          current: response.data.pagination?.currentPage || page,
+          current: response.data.pagination?.page || page,
           pageSize: response.data.pagination?.limit || pageSize,
-          total: response.data.pagination?.totalItems || 0,
+          total: response.data.pagination?.total || 0,
         });
       }
     } catch (error) {

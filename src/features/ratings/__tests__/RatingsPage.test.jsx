@@ -34,6 +34,6 @@ describe('RatingsPage', () => {
     
     // Check if FilterBar and Table are rendered by looking for their texts
     expect(screen.getByPlaceholderText('Search by keyword...')).toBeInTheDocument();
-    expect(screen.getByText('Customer')).toBeInTheDocument(); // Table Column
+    expect(screen.getAllByText('Customer').length).toBeGreaterThan(0); // Table headerColumn
   });
 });
