@@ -18,6 +18,10 @@ import IngredientManagementPage from "../pages/IngredientManagementPage";
 import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistoryPage";
 import KitchenFoodManagementPage from "../pages/KitchenFoodManagementPage";
 import ActivityLogPage from "../pages/ActivityLogPage";
+import RevenueReportPage from "../pages/RevenueReportPage";
+import PeakHourReportPage from "../pages/PeakHourReportPage";
+import OrderStatisticsReportPage from "../pages/OrderStatisticsReportPage";
+import PopularFoodReportPage from "../pages/PopularFoodReportPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 import RatingsPage from "../features/ratings/pages/RatingsPage";
@@ -76,7 +80,10 @@ export default function AppRouter() {
           <Route path="kitchen-foods" element={<KitchenFoodManagementPage />} />
           <Route path="kitchen-queue" element={<KitchenQueuePage />} />
           <Route path="menu-schedules" element={<MenuSchedulePage />} />
-          <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
+          <Route
+            path="menu-schedules/:id"
+            element={<MenuScheduleDetailPage />}
+          />
           <Route path="suppliers" element={<SupplierManagementPage />} />
           <Route path="suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="ingredients" element={<IngredientManagementPage />} />
@@ -87,6 +94,16 @@ export default function AppRouter() {
           <Route
             path="ingredient-categories"
             element={<IngredientCategoryManagementPage />}
+          />
+          <Route path="reports/revenue" element={<RevenueReportPage />} />
+          <Route path="reports/peak-hour" element={<PeakHourReportPage />} />
+          <Route
+            path="reports/order-statistics"
+            element={<OrderStatisticsReportPage />}
+          />
+          <Route
+            path="/reports/popular-food"
+            element={<PopularFoodReportPage />}
           />
           <Route path="activity-logs" element={<ActivityLogPage />} />
           <Route path="ratings" element={<RatingsPage />} />
