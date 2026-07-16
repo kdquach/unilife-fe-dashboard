@@ -17,6 +17,7 @@ import {
   DatabaseOutlined,
   HistoryOutlined,
   InboxOutlined,
+  StarOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Dropdown, Layout, Menu, Typography } from "antd";
 import { useState } from "react";
@@ -47,6 +48,11 @@ const menuItems = [
     key: "/orders",
     icon: <ShoppingCartOutlined />,
     label: <Link to="/orders">Orders</Link>,
+  },
+  {
+    key: "/ratings",
+    icon: <StarOutlined />,
+    label: <Link to="/ratings">Ratings</Link>,
   },
   {
     key: "/foods",

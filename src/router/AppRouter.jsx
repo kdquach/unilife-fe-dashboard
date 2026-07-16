@@ -20,6 +20,8 @@ import KitchenFoodManagementPage from "../pages/KitchenFoodManagementPage";
 import ActivityLogPage from "../pages/ActivityLogPage";
 import { useAuth } from "../features/auth/AuthContext";
 
+import RatingsPage from "../features/ratings/pages/RatingsPage";
+
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
@@ -87,6 +89,7 @@ export default function AppRouter() {
             element={<IngredientCategoryManagementPage />}
           />
           <Route path="activity-logs" element={<ActivityLogPage />} />
+          <Route path="ratings" element={<RatingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
