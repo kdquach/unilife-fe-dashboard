@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Select, DatePicker, Button } from 'antd';
+import { Select, DatePicker, Button, Switch } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 
 const { RangePicker } = DatePicker;
@@ -8,12 +8,14 @@ const { Option } = Select;
 const MenuScheduleFilter = ({ onFilterChange }) => {
   const [status, setStatus] = useState([]);
   const [dateRange, setDateRange] = useState(null);
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   const handleApplyFilter = () => {
     const filters = {
       status: status.length > 0 ? status.join(',') : undefined,
       dateFrom: dateRange?.[0] ? dateRange[0].format('YYYY-MM-DD') : undefined,
       dateTo: dateRange?.[1] ? dateRange[1].format('YYYY-MM-DD') : undefined,
+      includeInactive: includeInactive ? true : undefined,
     };
     onFilterChange(filters);
   };
@@ -21,7 +23,8 @@ const MenuScheduleFilter = ({ onFilterChange }) => {
   const handleReset = () => {
     setStatus([]);
     setDateRange(null);
-    onFilterChange({ status: undefined, dateFrom: undefined, dateTo: undefined });
+    setIncludeInactive(false);
+    onFilterChange({ status: undefined, dateFrom: undefined, dateTo: undefined, includeInactive: undefined });
   };
 
   return (
@@ -50,6 +53,13 @@ const MenuScheduleFilter = ({ onFilterChange }) => {
             onChange={setDateRange}
             format="DD/MM/YYYY"
           />
+        </div>
+        <div className="flex items-center gap-2 mb-1">
+          <Switch 
+            checked={includeInactive} 
+            onChange={setIncludeInactive} 
+          />
+          <span className="text-sm font-medium text-gray-700">Show Inactive</span>
         </div>
         <div className="flex gap-2">
           <Button 

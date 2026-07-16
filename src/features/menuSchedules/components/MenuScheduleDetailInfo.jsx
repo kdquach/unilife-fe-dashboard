@@ -1,8 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Descriptions, Tag } from 'antd';
 import { formatDate, formatDateTime } from '../../../utils/format';
+import { staffService } from '../../staffs/staffService';
 
 const MenuScheduleDetailInfo = ({ detail, loading }) => {
+  const [creatorInfo, setCreatorInfo] = useState(null);
+
+  useEffect(() => {
+    if (detail?.createdBy && typeof detail.createdBy === 'string') {
+      const fetchUser = async () => {
+        try {
+          const response = await staffService.getStaffById(detail.createdBy);
+          if (response) {
+            setCreatorInfo(response);
+          }
+        } catch (error) {
+          console.error("Failed to fetch creator info", error);
+        }
+      };
+      fetchUser();
+    } else if (detail?.createdBy && typeof detail.createdBy === 'object') {
+      setCreatorInfo(detail.createdBy);
+    }
+  }, [detail]);
+
   if (loading) {
     return <Card loading={true} className="mb-6 rounded-3xl border border-slate-100 shadow-soft" />;
   }
@@ -23,7 +44,7 @@ const MenuScheduleDetailInfo = ({ detail, loading }) => {
   return (
     <Card className="mb-6 rounded-3xl border border-slate-100 bg-white shadow-soft">
       <Descriptions title="Schedule Information" column={{ xxl: 3, xl: 3, lg: 3, md: 2, sm: 1, xs: 1 }}>
-        <Descriptions.Item label="Date">
+        <Descriptions.Item label="Serving Date">
           <span className="font-medium text-slate-800">
             {formatDate(detail.date)}
           </span>
@@ -35,7 +56,9 @@ const MenuScheduleDetailInfo = ({ detail, loading }) => {
         </Descriptions.Item>
         <Descriptions.Item label="Created By">
           <span className="text-slate-600">
-            {detail.createdBy?.name || (typeof detail.createdBy === 'string' && detail.createdBy.length > 10 ? `#${detail.createdBy.substring(0, 6)}...` : detail.createdBy) || 'System'}
+            {creatorInfo?.fullName 
+              ? `${creatorInfo.fullName} - ${creatorInfo.role || 'Admin'}`
+              : (typeof detail.createdBy === 'string' ? `User ID: ${detail.createdBy}` : 'System')}
           </span>
         </Descriptions.Item>
         <Descriptions.Item label="Published At">

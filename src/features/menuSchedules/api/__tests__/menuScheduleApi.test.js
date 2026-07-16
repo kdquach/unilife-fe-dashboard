@@ -62,4 +62,31 @@ describe('menuScheduleApi', () => {
       expect(response).toEqual(mockResponse);
     });
   });
+
+  describe('createMenuSchedule', () => {
+    it('should create a new menu schedule via POST', async () => {
+      const mockResponse = { success: true, data: { _id: '1' } };
+      apiClient.post.mockResolvedValueOnce(mockResponse);
+
+      const payload = { date: '2026-07-20T00:00:00.000Z', status: 'DRAFT' };
+      const response = await menuScheduleApi.createMenuSchedule(payload);
+
+      expect(apiClient.post).toHaveBeenCalledWith('/menu-schedules', payload);
+      expect(response).toEqual(mockResponse);
+    });
+  });
+
+  describe('updateMenuSchedule', () => {
+    it('should update menu schedule via PATCH with __v', async () => {
+      const mockResponse = { success: true };
+      apiClient.patch.mockResolvedValueOnce(mockResponse);
+
+      const id = '1';
+      const payload = { date: '2026-07-20T00:00:00.000Z', status: 'PUBLISHED', __v: 0 };
+      const response = await menuScheduleApi.updateMenuSchedule(id, payload);
+
+      expect(apiClient.patch).toHaveBeenCalledWith(`/menu-schedules/${id}`, payload);
+      expect(response).toEqual(mockResponse);
+    });
+  });
 });
