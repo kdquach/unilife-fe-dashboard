@@ -1,7 +1,7 @@
-import React from "react";
 import {
   AppstoreOutlined,
   TeamOutlined,
+  UserSwitchOutlined,
   ShoppingCartOutlined,
   TagsOutlined,
   CalendarOutlined,
@@ -11,11 +11,15 @@ import {
   AuditOutlined,
   ShopOutlined,
   OrderedListOutlined,
+  CoffeeOutlined,
   FileTextOutlined,
   BarChartOutlined,
   ClockCircleOutlined,
   PieChartOutlined,
   FireOutlined,
+  FolderOpenOutlined,
+  ApartmentOutlined,
+  ShoppingOutlined 
 } from "@ant-design/icons";
 
 import { Link } from "react-router-dom";
@@ -30,15 +34,17 @@ const menuItems = [
   // ================= USERS =================
   {
     key: "users",
-    icon: <TeamOutlined />,
+    icon: <ApartmentOutlined />,
     label: "Users",
     children: [
       {
         key: "/users",
+        icon: <TeamOutlined />,
         label: <Link to="/users">User Management</Link>,
       },
       {
         key: "/staffs",
+        icon: <UserSwitchOutlined />,
         label: <Link to="/staffs">Staff Management</Link>,
       },
     ],
@@ -47,19 +53,27 @@ const menuItems = [
   // ================= ORDERS =================
   {
     key: "orders",
-    icon: <ShoppingCartOutlined />,
+    icon: <ShoppingOutlined  />,
     label: "Orders",
     children: [
       {
         key: "/orders",
+        icon: <ShoppingCartOutlined />,
         label: <Link to="/orders">Order Management</Link>,
       },
       {
+        key: "/foods",
+        icon: <CoffeeOutlined />,
+        label: <Link to="/foods">Foods</Link>,
+      },
+      {
         key: "/kitchen-queue",
+        icon: <OrderedListOutlined />,
         label: <Link to="/kitchen-queue">Kitchen Queue</Link>,
       },
       {
         key: "/menu-schedules",
+        icon: <CalendarOutlined />,
         label: <Link to="/menu-schedules">Menu Schedules</Link>,
       },
     ],
@@ -73,16 +87,12 @@ const menuItems = [
     children: [
       {
         key: "/food-categories",
-        icon: <TagsOutlined />,
-        label: (
-          <Link to="/food-categories">
-            Food Categories
-          </Link>
-        ),
+        icon: <FolderOpenOutlined />,
+        label: <Link to="/food-categories">Food Categories</Link>,
       },
       {
         key: "/ingredient-categories",
-        icon: <DatabaseOutlined />,
+        icon: <TagsOutlined />,
         label: (
           <Link to="/ingredient-categories">
             Ingredient Categories
@@ -114,7 +124,7 @@ const menuItems = [
   // ================= REPORTS =================
   {
     key: "reports",
-    icon: <FileTextOutlined />,
+    icon: <BarChartOutlined />,
     label: "Reports",
     children: [
       {
@@ -136,23 +146,23 @@ const menuItems = [
         ),
       },
       {
-      key: "/reports/order-statistics",
-      icon: <PieChartOutlined />,
-      label: (
-        <Link to="/reports/order-statistics">
-          Order Statistics
-        </Link>
-      ),
-    },
-    {
-    key: "/reports/popular-food",
-    icon: <FireOutlined />,
-    label: (
-        <Link to="/reports/popular-food">
+        key: "/reports/order-statistics",
+        icon: <PieChartOutlined />,
+        label: (
+          <Link to="/reports/order-statistics">
+            Order Statistics
+          </Link>
+        ),
+      },
+      {
+        key: "/reports/popular-food",
+        icon: <FireOutlined />,
+        label: (
+          <Link to="/reports/popular-food">
             Popular Food Report
-        </Link>
-    ),
-},
+          </Link>
+        ),
+      },
     ],
   },
 

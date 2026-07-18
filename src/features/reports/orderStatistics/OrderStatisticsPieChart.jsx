@@ -1,60 +1,68 @@
 import React from "react";
-import { Pie } from "@ant-design/plots";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-export default function OrderStatisticsPieChart({ data = [], onSliceClick }) {
+const COLORS = [
+  "#1677ff",
+  "#52c41a",
+  "#faad14",
+  "#ff4d4f",
+  "#722ed1",
+  "#13c2c2",
+  "#eb2f96",
+];
+
+export default function OrderStatisticsPieChart({
+  data = [],
+  onSliceClick,
+}) {
   const chartData = data.map((item) => ({
     ...item,
-    status: item._id,
+    name: item.status,
+    value: item.orders,
   }));
 
-  const config = {
-    data: chartData,
+  return (
+    <ResponsiveContainer width="100%" height={420}>
+      <PieChart>
+        <Pie
+          data={chartData}
+          dataKey="value"
+          nameKey="name"
+          outerRadius={160}
+          innerRadius={90}
+          labelLine
+          label={({ name, percent }) =>
+            `${name} ${(percent * 100).toFixed(1)}%`
+          }
+          onClick={(item) => {
+            console.log(item);
+            onSliceClick?.(item.payload);
+          }}
+        >
+          {chartData.map((_, index) => (
+            <Cell
+              key={index}
+              fill={COLORS[index % COLORS.length]}
+            />
+          ))}
+        </Pie>
 
-    angleField: "orders",
+        <Tooltip
+          formatter={(value, name, props) => [
+            `${props.payload.orders} orders (${props.payload.percentage}%)`,
+            props.payload.status,
+          ]}
+        />
 
-    colorField: "status",
-
-    radius: 0.9,
-
-    innerRadius: 0.5,
-
-    label: false,
-
-    legend: {
-      position: "bottom",
-    },
-
-    tooltip: {
-      title: (d) => d.status,
-      items: [
-        (d) => ({
-          name: "Orders",
-          value: d.orders,
-        }),
-        (d) => ({
-          name: "Percentage",
-          value: `${d.percentage}%`,
-        }),
-      ],
-    },
-
-    interactions: [
-      {
-        type: "element-active",
-      },
-    ],
-
-    onReady: (plot) => {
-      plot.on("element:click", (evt) => {
-        console.log("CLICK:", evt);
-        const item = evt.data;
-
-        if (item && onSliceClick) {
-          onSliceClick(item);
-        }
-      });
-    },
-  };
-
-  return <Pie {...config} height={420} />;
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  );
 }

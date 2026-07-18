@@ -31,7 +31,7 @@ export default function OrderStatisticsTable({
   const columns = [
     {
       title: "Status",
-      dataIndex: "_id",
+      dataIndex: "status",
       render: (value) => (
         <Tag color={STATUS_COLOR[value] || "default"}>
           {STATUS_LABEL[value] || value}
@@ -54,7 +54,7 @@ export default function OrderStatisticsTable({
   return (
     <Table
       style={{ marginTop: 24 }}
-      rowKey="_id"
+      rowKey="status"
       loading={loading}
       columns={columns}
       dataSource={data}
