@@ -24,8 +24,8 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
+import { notify } from "../utils/notify";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { dashboardService } from "../features/dashboard/dashboardService";
@@ -148,7 +148,7 @@ export default function DashboardPage() {
         modules,
       });
     } catch (error) {
-      message.error(error.message);
+      notify.error(error.message);
     } finally {
       setLoading(false);
     }

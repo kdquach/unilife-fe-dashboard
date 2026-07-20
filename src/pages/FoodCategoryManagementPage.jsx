@@ -17,8 +17,8 @@ import {
   Spin,
   Table,
   Tag,
-  message,
 } from "antd";
+import { notify } from "../utils/notify";
 import PageHeader from "../components/PageHeader";
 import FoodCategoryFormModal from "../features/foodCategories/FoodCategoryFormModal";
 import { foodCategoryService } from "../features/foodCategories/foodCategoryService";
@@ -71,7 +71,7 @@ export default function FoodCategoryManagementPage() {
         total: response.pagination.total,
       });
     } catch (error) {
-      message.error(error.message);
+      notify.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export default function FoodCategoryManagementPage() {
       const data = await foodCategoryService.getFoodCategoryById(category._id);
       setSelectedCategory(data);
     } catch (error) {
-      message.error(error.message);
+      notify.error(error.message);
     } finally {
       setDetailLoading(false);
     }
@@ -131,7 +131,7 @@ export default function FoodCategoryManagementPage() {
               values,
             );
 
-      message.success(
+      notify.success(
         formMode === "create"
           ? "Food category created"
           : "Food category updated",
@@ -149,7 +149,7 @@ export default function FoodCategoryManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
+      notify.error(error.message);
     } finally {
       setSaving(false);
     }

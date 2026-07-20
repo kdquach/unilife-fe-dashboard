@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Descriptions, Drawer, Skeleton, Tag, Typography, message } from "antd";
+import { Descriptions, Drawer, Skeleton, Tag, Typography } from "antd";
+import { notify } from "../utils/notify";
 import { formatDateTime } from "../../utils/format";
 import { activityLogService } from "./activityLogService";
 
@@ -34,7 +35,7 @@ export default function ActivityLogDetailDrawer({ open, logId, onClose }) {
         const data = await activityLogService.getActivityLogById(logId);
         setLog(data);
       } catch (error) {
-        message.error(error.message || "Failed to load log detail");
+        notify.error(error.message || "Failed to load log detail");
       } finally {
         setLoading(false);
       }

@@ -14,8 +14,8 @@ import {
   Space,
   Table,
   Tag,
-  message,
 } from "antd";
+import { notify } from "../utils/notify";
 import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 import { activityLogService } from "../features/activityLogs/activityLogService";
@@ -104,7 +104,7 @@ export default function ActivityLogPage() {
           total: response.pagination.total,
         });
       } catch (error) {
-        message.error(error.message || "Failed to load activity logs");
+        notify.error(error.message || "Failed to load activity logs");
       } finally {
         setLoading(false);
       }
