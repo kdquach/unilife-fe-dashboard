@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Descriptions, Drawer, Skeleton, Tag, Typography } from "antd";
-import { notify } from "../utils/notify";
+import { notify } from "../../utils/notify";
 import { formatDateTime } from "../../utils/format";
 import { activityLogService } from "./activityLogService";
 
