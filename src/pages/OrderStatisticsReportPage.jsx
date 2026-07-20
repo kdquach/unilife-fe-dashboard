@@ -239,7 +239,6 @@ export default function OrderStatisticsReportPage() {
           loading={loading}
           data={statistics}
           onRowClick={(record) => {
-            console.log("recordff:", record);
             setSelectedStatus(record);
             setDrawerOpen(true);
           }}

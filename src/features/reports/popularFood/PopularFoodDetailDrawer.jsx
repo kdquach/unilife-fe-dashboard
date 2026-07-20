@@ -52,10 +52,6 @@ export default function PopularFoodDetailDrawer({
         </Descriptions.Item>
 
         <Descriptions.Item label="Contribution">
-          {percentage}%
-        </Descriptions.Item>
-
-        <Descriptions.Item label="Progress">
           <Progress
             percent={percentage}
             status="active"

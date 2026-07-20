@@ -32,24 +32,6 @@ export default function RevenueSummaryCards({ summary }) {
       icon: <RiseOutlined />,
       color: "#d97706",
     },
-    {
-      title: "Today Revenue",
-      value: formatMoney(summary.todayRevenue),
-      icon: <CalendarOutlined />,
-      color: "#9333ea",
-    },
-    {
-      title: "This Month Revenue",
-      value: formatMoney(summary.thisMonthRevenue),
-      icon: <DollarCircleOutlined />,
-      color: "#0891b2",
-    },
-    {
-      title: "This Month Orders",
-      value: summary.thisMonthOrders,
-      icon: <ShoppingCartOutlined />,
-      color: "#dc2626",
-    },
   ];
 
   return (

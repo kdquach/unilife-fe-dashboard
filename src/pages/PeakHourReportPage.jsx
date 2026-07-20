@@ -15,7 +15,7 @@ import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 
 import PeakHourSummaryCards from "../features/reports/peakHour/PeakHourSummaryCards";
-import PeakHourTrendChart from "../features/reports/peakHour/PeakHourTrendChart";
+import PeakHourBarChart from "../features/reports/peakHour/PeakHourBarChart";
 import PeakHourDetailDrawer from "../features/reports/peakHour/PeakHourDetailDrawer";
 
 import { reportService } from "../features/reports/reportService";
@@ -301,7 +301,7 @@ console.log(response.summary);
           </Space>
         }
       >
-        <PeakHourTrendChart
+        <PeakHourBarChart
           data={peakHours}
           onBarClick={(item) => {
             setSelectedHour(item);

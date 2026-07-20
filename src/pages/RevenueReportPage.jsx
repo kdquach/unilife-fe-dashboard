@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Select, DatePicker, Button, Space } from "antd";
-import { notify } from "../utils/notify";
+import {
+  Card,
+  Select,
+  DatePicker,
+  Button,
+  Space,
+} from "antd";
 import dayjs from "dayjs";
+
+import { notify } from "../utils/notify";
 
 import PageHeader from "../components/PageHeader";
 
 import RevenueSummaryCards from "../features/reports/revenue/RevenueSummaryCards";
 import RevenueTrendChart from "../features/reports/revenue/RevenueTrendChart";
-import { reportService } from "../features/reports/reportService";
+import RevenueTable from "../features/reports/revenue/RevenueTable";
+import RevenueDetailDrawer from "../features/reports/revenue/RevenueDetailDrawer";
 
-const formatMoney = (value = 0) =>
-  new Intl.NumberFormat("vi-VN").format(value) + " ₫";
+import { reportService } from "../features/reports/reportService";
 
 export default function RevenueReportPage() {
   const [loading, setLoading] = useState(false);
@@ -18,6 +25,11 @@ export default function RevenueReportPage() {
   const [summary, setSummary] = useState({});
 
   const [revenue, setRevenue] = useState([]);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const [selectedRevenue, setSelectedRevenue] =
+    useState(null);
 
   const [filters, setFilters] = useState({
     type: "daily",
@@ -27,51 +39,79 @@ export default function RevenueReportPage() {
     to: null,
   });
 
-  const usingRangeFilter = filters.from || filters.to;
+  const usingRangeFilter =
+    filters.from || filters.to;
 
-  const fetchRevenueReport = async (currentFilters = filters) => {
+  const fetchRevenueReport = async (
+    currentFilters = filters,
+  ) => {
     try {
       setLoading(true);
 
       const params = {};
 
-      if (currentFilters.type) {
-        params.type = currentFilters.type;
-      }
+      params.type = currentFilters.type;
 
-      if (currentFilters.from && currentFilters.to) {
-        params.from = dayjs(currentFilters.from).format("YYYY-MM-DD");
-        params.to = dayjs(currentFilters.to).format("YYYY-MM-DD");
+      if (
+        currentFilters.from &&
+        currentFilters.to
+      ) {
+        params.from = dayjs(
+          currentFilters.from,
+        ).format("YYYY-MM-DD");
+
+        params.to = dayjs(
+          currentFilters.to,
+        ).format("YYYY-MM-DD");
       } else {
-        if (currentFilters.type === "daily" && currentFilters.month) {
-          params.from = dayjs(currentFilters.month)
+        if (
+          currentFilters.type === "daily"
+        ) {
+          params.from = dayjs(
+            currentFilters.month,
+          )
             .startOf("month")
             .format("YYYY-MM-DD");
 
-          params.to = dayjs(currentFilters.month)
+          params.to = dayjs(
+            currentFilters.month,
+          )
             .endOf("month")
             .format("YYYY-MM-DD");
         }
 
-        if (currentFilters.type === "monthly" && currentFilters.year) {
-          params.from = dayjs(currentFilters.year)
+        if (
+          currentFilters.type ===
+          "monthly"
+        ) {
+          params.from = dayjs(
+            currentFilters.year,
+          )
             .startOf("year")
             .format("YYYY-MM-DD");
 
-          params.to = dayjs(currentFilters.year)
+          params.to = dayjs(
+            currentFilters.year,
+          )
             .endOf("year")
             .format("YYYY-MM-DD");
         }
       }
 
-      const response = await reportService.getRevenueReport(params);
+      const response =
+        await reportService.getRevenueReport(
+          params,
+        );
 
       setSummary(response.summary);
 
       setRevenue(response.revenue);
     } catch (err) {
       console.log(err);
-      notify.error("Cannot load revenue report");
+
+      notify.error(
+        "Cannot load revenue report.",
+      );
     } finally {
       setLoading(false);
     }
@@ -87,7 +127,9 @@ export default function RevenueReportPage() {
       !filters.month &&
       !(filters.from && filters.to)
     ) {
-      return notify.warning("Please select a month to view daily report.");
+      return notify.warning(
+        "Please select a month.",
+      );
     }
 
     if (
@@ -95,7 +137,9 @@ export default function RevenueReportPage() {
       !filters.year &&
       !(filters.from && filters.to)
     ) {
-      return notify.warning("Please select a year to view monthly report.");
+      return notify.warning(
+        "Please select a year.",
+      );
     }
 
     fetchRevenueReport(filters);
@@ -115,28 +159,16 @@ export default function RevenueReportPage() {
     fetchRevenueReport(reset);
   };
 
-  const columns = [
-    {
-      title: "Period",
-      dataIndex: "_id",
-    },
-    {
-      title: "Revenue",
-      dataIndex: "revenue",
-      render: (value) => formatMoney(value),
-    },
-    {
-      title: "Orders",
-      dataIndex: "orders",
-    },
-  ];
-
   return (
     <div>
       <PageHeader
         title="Revenue Report"
         description="Business revenue analytics"
-        breadcrumbs={["Dashboard", "Reports", "Revenue Report"]}
+        breadcrumbs={[
+          "Dashboard",
+          "Reports",
+          "Revenue Report",
+        ]}
       />
 
       <RevenueSummaryCards summary={summary} />
@@ -148,7 +180,9 @@ export default function RevenueReportPage() {
           <Space wrap>
             <Select
               disabled={usingRangeFilter}
-              style={{ width: 150 }}
+              style={{
+                width: 150,
+              }}
               value={filters.type}
               options={[
                 {
@@ -169,16 +203,21 @@ export default function RevenueReportPage() {
                   setFilters({
                     ...filters,
                     type: "daily",
-                    month: filters.month ?? dayjs(),
-                    year: dayjs(),
+                    month:
+                      filters.month ??
+                      dayjs(),
                     from: null,
                     to: null,
                   });
-                } else if (value === "monthly") {
+                } else if (
+                  value === "monthly"
+                ) {
                   setFilters({
                     ...filters,
                     type: "monthly",
-                    year: filters.year ?? dayjs(),
+                    year:
+                      filters.year ??
+                      dayjs(),
                     from: null,
                     to: null,
                   });
@@ -186,7 +225,6 @@ export default function RevenueReportPage() {
                   setFilters({
                     ...filters,
                     type: "yearly",
-                    year: null,
                     from: null,
                     to: null,
                   });
@@ -195,26 +233,35 @@ export default function RevenueReportPage() {
             />
 
             <DatePicker
-              picker={filters.type === "daily" ? "month" : "year"}
-              allowClear={false}
-              placeholder={
+              picker={
                 filters.type === "daily"
-                  ? "Select month"
-                  : filters.type === "monthly"
-                    ? "Select year"
-                    : "Select year"
+                  ? "month"
+                  : "year"
               }
-              disabled={usingRangeFilter || filters.type === "yearly"}
-              value={filters.type === "daily" ? filters.month : filters.year}
+              allowClear={false}
+              disabled={
+                usingRangeFilter ||
+                filters.type === "yearly"
+              }
+              value={
+                filters.type === "daily"
+                  ? filters.month
+                  : filters.year
+              }
               onChange={(value) => {
-                if (filters.type === "daily") {
+                if (
+                  filters.type === "daily"
+                ) {
                   setFilters({
                     ...filters,
                     month: value,
                     from: null,
                     to: null,
                   });
-                } else if (filters.type === "monthly") {
+                } else if (
+                  filters.type ===
+                  "monthly"
+                ) {
                   setFilters({
                     ...filters,
                     year: value,
@@ -225,53 +272,61 @@ export default function RevenueReportPage() {
               }}
             />
 
-            <Space>
-              <DatePicker
-                placeholder="From"
-                value={filters.from}
-                onChange={(value) =>
-                  setFilters({
-                    ...filters,
-                    from: value,
+            <DatePicker
+              placeholder="From"
+              value={filters.from}
+              onChange={(value) =>
+                setFilters({
+                  ...filters,
+                  from: value,
+                })
+              }
+            />
 
-                    month: null,
-                    year: null,
-                  })
-                }
-              />
+            <DatePicker
+              placeholder="To"
+              value={filters.to}
+              onChange={(value) =>
+                setFilters({
+                  ...filters,
+                  to: value,
+                })
+              }
+            />
 
-              <DatePicker
-                placeholder="To"
-                value={filters.to}
-                onChange={(value) =>
-                  setFilters({
-                    ...filters,
-                    to: value,
-
-                    month: null,
-                    year: null,
-                  })
-                }
-              />
-            </Space>
-
-            <Button type="primary" onClick={handleSearch}>
+            <Button
+              type="primary"
+              onClick={handleSearch}
+            >
               Search
             </Button>
 
-            <Button onClick={handleReset}>Reset</Button>
+            <Button onClick={handleReset}>
+              Reset
+            </Button>
           </Space>
         }
       >
-        <RevenueTrendChart data={revenue} />
+        <RevenueTrendChart
+          data={revenue}
+        />
 
-        <Table
-          style={{ marginTop: 24 }}
-          rowKey="_id"
+        <RevenueTable
           loading={loading}
-          columns={columns}
-          dataSource={revenue}
-          pagination={false}
+          data={revenue}
+          onRowClick={(record) => {
+            setSelectedRevenue(record);
+            setDrawerOpen(true);
+          }}
+        />
+
+        <RevenueDetailDrawer
+          open={drawerOpen}
+          data={selectedRevenue}
+          onClose={() => {
+            setDrawerOpen(false);
+            setSelectedRevenue(null);
+          }}
         />
       </Card>
     </div>

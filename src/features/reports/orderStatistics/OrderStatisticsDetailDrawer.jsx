@@ -40,10 +40,10 @@ export default function OrderStatisticsDetailDrawer({
         <Descriptions.Item label="Status">
           <Tag
             color={
-              statusColor[data._id] || "default"
+              statusColor[data.status] || "default"
             }
           >
-            {data._id}
+            {data.status}
           </Tag>
         </Descriptions.Item>
 
