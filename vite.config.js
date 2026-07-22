@@ -12,6 +12,14 @@ export default defineConfig({
       '~features': '/src/features'
     }
   },
+  server: {
+    proxy: {
+      '/uploads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',

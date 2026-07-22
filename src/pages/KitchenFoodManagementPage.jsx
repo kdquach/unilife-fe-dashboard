@@ -24,22 +24,12 @@ import PageHeader from "../components/PageHeader";
 import { foodService } from "../features/foods/foodService";
 import { formatDateTime } from "../utils/format";
 import { notify } from "../utils/notify";
+import { getImageUrl } from "../utils/image";
 
 const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString("vi-VN")} VND`;
 
 const { Search } = Input;
-
-const apiOrigin = (
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1"
-).replace(/\/api\/v\d+\/?$/, "");
-
-const getFoodImageUrl = (food) => {
-  const imageUrl = food?.imageUrl || food?.image;
-  if (!imageUrl) return imageNotFound;
-  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
-  return `${apiOrigin}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
-};
 
 const hasActiveFilters = (filters) =>
   Object.values(filters).some(
@@ -175,12 +165,12 @@ export default function KitchenFoodManagementPage() {
       render: (name, record) => (
         <div className="flex items-center gap-3">
           <Image
-            src={getFoodImageUrl(record)}
+            src={getImageUrl(record.imageUrl)}
             fallback={imageNotFound}
             width={64}
             height={64}
             className="rounded-md object-cover"
-            preview={false}
+            preview={Boolean(record.imageUrl)}
           />
           <div>
             <div className="font-semibold text-slate-900">{name}</div>
@@ -367,11 +357,12 @@ export default function KitchenFoodManagementPage() {
           {selectedFood && (
             <>
               <Image
-                src={getFoodImageUrl(selectedFood)}
+                src={getImageUrl(selectedFood.imageUrl)}
                 fallback={imageNotFound}
                 width="100%"
                 height={260}
                 className="mb-4 rounded-lg object-cover"
+                preview={Boolean(selectedFood.imageUrl)}
               />
               <Descriptions bordered column={1}>
                 <Descriptions.Item label="Name">

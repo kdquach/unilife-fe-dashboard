@@ -13,9 +13,11 @@ export const getImageUrl = (imageUrl) => {
     return imageUrl;
   }
 
-  return `${assetBaseUrl}${
-    imageUrl.startsWith("/") ? "" : "/"
-  }${imageUrl}`;
+  // Use proxied URL (relative path) to leverage Vite proxy
+  const proxiedUrl = imageUrl.startsWith("/") ? imageUrl : `/${imageUrl}`;
+  console.log('Using proxied URL:', proxiedUrl);
+
+  return proxiedUrl;
 };
 
 export { imageNotFound };

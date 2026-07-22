@@ -15,6 +15,7 @@ import {
   Upload,
 } from "antd";
 import imageNotFound from "../../assets/image-not-found.png";
+import { getImageUrl } from "../../utils/image";
 
 const normalizeText = (value) =>
   String(value || "")
@@ -94,7 +95,6 @@ export default function FoodFormModal({
   categoryLoading = false,
   ingredientLoading = false,
   loading,
-  getImageUrl,
   onCancel,
   onSubmit,
 }) {
@@ -228,10 +228,7 @@ export default function FoodFormModal({
     return event?.fileList || [];
   };
 
-  const currentImageUrl =
-    initialValues?.imageUrl && getImageUrl
-      ? getImageUrl(initialValues.imageUrl)
-      : null;
+  const currentImageUrl = getImageUrl(initialValues?.imageUrl);
 
   return (
     <Modal
