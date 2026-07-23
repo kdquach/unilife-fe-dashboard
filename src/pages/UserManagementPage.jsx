@@ -34,6 +34,8 @@ const statusOptions = [
   { label: "Inactive", value: "false" },
 ];
 
+const getUserId = (user) => user?._id || user?.id || user?.userId;
+
 export default function UserManagementPage() {
   const [form] = Form.useForm();
   const [users, setUsers] = useState([]);
@@ -119,7 +121,11 @@ const [filters, setFilters] = useState({
     try {
       const payload = { ...values, phone: normalizePhone(values.phone) };
       if (modalMode === "create") await userService.createUser(payload);
-      else await userService.updateUser(selectedUser.id, payload);
+      else {
+        const id = getUserId(selectedUser);
+        if (!id) throw new Error("User ID is missing");
+        await userService.updateUser(id, payload);
+      }
       message.success(modalMode === "create" ? "User created" : "User updated");
       setModalOpen(false);
       await fetchUsers(
@@ -137,7 +143,10 @@ const [filters, setFilters] = useState({
 
   const handleStatusChange = async (user, checked) => {
     try {
-      await userService.updateUserStatus(user.id, checked);
+      const id = getUserId(user);
+      if (!id) throw new Error("User ID is missing");
+
+      await userService.updateUserStatus(id, checked);
       message.success(
         `${checked ? "Activated" : "Deactivated"} ${user.fullName}`,
       );
@@ -154,7 +163,10 @@ const [filters, setFilters] = useState({
 
   const handleRoleChange = async (user, role) => {
     try {
-      await userService.updateUserRole(user.id, role);
+      const id = getUserId(user);
+      if (!id) throw new Error("User ID is missing");
+
+      await userService.updateUserRole(id, role);
       message.success(`Updated role for ${user.fullName}`);
       await fetchUsers(
   pagination.current,
@@ -367,7 +379,7 @@ const [filters, setFilters] = useState({
   }
 >
   <Table
-    rowKey="id"
+    rowKey={(record) => getUserId(record)}
     loading={loading}
     dataSource={users}
     columns={columns}
