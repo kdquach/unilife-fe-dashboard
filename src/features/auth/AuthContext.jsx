@@ -55,12 +55,21 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const updateUser = (partialUserData) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...partialUserData };
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const value = useMemo(
     () => ({
       user,
       isAuthenticated: Boolean(user) && hasDashboardAccess(user),
       login,
       logout,
+      updateUser,
     }),
     [user],
   );

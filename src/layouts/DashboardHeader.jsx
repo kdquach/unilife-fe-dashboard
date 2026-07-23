@@ -17,6 +17,7 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
+import { getImageUrl } from "../utils/image";
 
 const { Header } = Layout;
 
@@ -77,8 +78,8 @@ export default function DashboardHeader({
               {
                 key: "profile",
                 icon: <UserOutlined />,
-                label:
-                  user?.fullName || "Admin",
+                label: "Profile",
+                onClick: () => navigate("/profile"),
               },
               {
                 type: "divider",
@@ -93,9 +94,12 @@ export default function DashboardHeader({
             ],
           }}
         >
-          <button className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
-            <Avatar className="bg-unilife">
-              {user?.fullName?.[0] || "A"}
+          <button className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2 hover:bg-slate-100 transition-colors cursor-pointer">
+            <Avatar
+              src={user?.avatar || user?.avatarUrl ? getImageUrl(user.avatar || user.avatarUrl) : undefined}
+              className="bg-unilife font-bold"
+            >
+              {!(user?.avatar || user?.avatarUrl) && (user?.fullName?.[0]?.toUpperCase() || "A")}
             </Avatar>
 
             <div className="hidden text-left md:block">
