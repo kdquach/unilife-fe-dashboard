@@ -77,9 +77,16 @@ export default function UserFormModal({
         <Form.Item
           name="phone"
           label="Phone"
-          rules={[{ required: true, message: "Please enter phone" }]}
+          normalize={(value) => (value ? value.replace(/\D/g, "") : "")}
+          rules={[
+            { required: true, message: "Please enter phone number" },
+            {
+              pattern: /^[0-9]{9,15}$/,
+              message: "Phone number must contain 9-15 digits",
+            },
+          ]}
         >
-          <Input placeholder="0900000000" />
+          <Input placeholder="0900000000" maxLength={15} />
         </Form.Item>
         <Form.Item
           name="role"

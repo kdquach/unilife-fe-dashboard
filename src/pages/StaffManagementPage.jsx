@@ -557,6 +557,7 @@ export default function StaffManagementPage() {
           <Form.Item
             name="phone"
             label="Phone"
+            normalize={(value) => (value ? value.replace(/\D/g, "") : "")}
             rules={[
               {
                 pattern: /^[0-9]{9,15}$/,
@@ -564,7 +565,7 @@ export default function StaffManagementPage() {
               },
             ]}
           >
-            <Input placeholder="0900000000" />
+            <Input placeholder="0900000000" maxLength={15} />
           </Form.Item>
           <Form.Item
             name="role"
