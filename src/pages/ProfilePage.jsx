@@ -478,6 +478,7 @@ export default function ProfilePage() {
                           <Form.Item
                             label={<span className="font-medium text-slate-700">Phone Number</span>}
                             name="phone"
+                            normalize={(value) => (value ? value.replace(/\D/g, "") : "")}
                             rules={[
                               {
                                 pattern: /^[0-9]{9,15}$/,
@@ -490,6 +491,7 @@ export default function ProfilePage() {
                               placeholder="Enter phone number"
                               size="large"
                               className="rounded-xl"
+                              maxLength={15}
                             />
                           </Form.Item>
                         </Col>

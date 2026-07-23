@@ -72,14 +72,15 @@ export default function SupplierFormModal({
         <Form.Item
           name="phone"
           label="Phone Number"
+          normalize={(value) => (value ? value.replace(/\D/g, "") : "")}
           rules={[
             {
-              pattern: /^[0-9+\s\-()]{7,20}$/,
-              message: "Please enter a valid phone number",
+              pattern: /^[0-9]{9,15}$/,
+              message: "Phone number must contain 9-15 digits",
             },
           ]}
         >
-          <Input placeholder="e.g. 0901234567" maxLength={20} />
+          <Input placeholder="e.g. 0901234567" maxLength={15} />
         </Form.Item>
 
         <Form.Item name="address" label="Address">
