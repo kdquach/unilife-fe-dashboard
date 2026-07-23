@@ -3,6 +3,8 @@ import { Avatar, Descriptions, Drawer, Tag, Timeline, Typography } from "antd";
 import { roleColors, roleLabels } from "../../constants/roles";
 import { formatDateTime } from "../../utils/format";
 
+const getUserId = (user) => user?._id || user?.id || user?.userId || "-";
+
 export default function UserDetailDrawer({ open, user, onClose }) {
   return (
     <Drawer title="User Detail" width={520} open={open} onClose={onClose}>
@@ -29,7 +31,7 @@ export default function UserDetailDrawer({ open, user, onClose }) {
           </div>
 
           <Descriptions bordered column={1} size="middle">
-            <Descriptions.Item label="User ID">{user.id}</Descriptions.Item>
+            <Descriptions.Item label="User ID">{getUserId(user)}</Descriptions.Item>
             <Descriptions.Item label="Full name">
               {user.fullName}
             </Descriptions.Item>
