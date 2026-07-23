@@ -25,6 +25,7 @@ import PopularFoodReportPage from "../pages/PopularFoodReportPage";
 import { useAuth } from "../features/auth/AuthContext";
 
 import RatingsPage from "../features/ratings/pages/RatingsPage";
+import ProfilePage from "../pages/ProfilePage";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -107,6 +108,7 @@ export default function AppRouter() {
           />
           <Route path="activity-logs" element={<ActivityLogPage />} />
           <Route path="ratings" element={<RatingsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
