@@ -19,7 +19,8 @@ import {
   FireOutlined,
   FolderOpenOutlined,
   ApartmentOutlined,
-  ShoppingOutlined 
+  ShoppingOutlined,
+  StarOutlined
 } from "@ant-design/icons";
 
 import { Link } from "react-router-dom";
@@ -171,6 +172,11 @@ const menuItems = [
     key: "/activity-logs",
     icon: <AuditOutlined />,
     label: <Link to="/activity-logs">Activity Logs</Link>,
+  },
+  {
+    key: "/ratings",
+    icon: <StarOutlined />,
+    label: <Link to="/ratings">Ratings</Link>,
   },
 ];
 
