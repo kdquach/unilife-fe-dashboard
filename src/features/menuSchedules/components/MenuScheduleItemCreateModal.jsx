@@ -72,7 +72,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
               (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }
             options={foods
-              .filter(food => !existingFoodIds.includes(food._id))
+              .filter(food => food.isMenuItem && !existingFoodIds.includes(food._id))
               .map(food => ({
               value: food._id,
               label: food.name,
