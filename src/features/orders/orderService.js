@@ -18,7 +18,7 @@ export const orderService = {
       payload
     );
 
-    return response.data.data;
+    return response.data;
   },
 
   async scanPickupQr(payload) {
