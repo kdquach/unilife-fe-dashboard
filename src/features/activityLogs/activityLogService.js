@@ -13,4 +13,9 @@ export const activityLogService = {
     const response = await apiClient.get(`/activity-logs/${id}`);
     return response.data;
   },
+
+  async getActivityLogStats(params = {}) {
+    const response = await apiClient.get("/activity-logs/stats", { params });
+    return response.data;
+  },
 };
