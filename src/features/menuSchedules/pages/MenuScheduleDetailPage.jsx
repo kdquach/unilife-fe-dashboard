@@ -19,7 +19,7 @@ const MenuScheduleDetailPage = () => {
   const navigate = useNavigate();
   const { detail, loading, error, fetchDetail, resetDetail } = useMenuScheduleDetail();
   const { updateSchedule, isSubmitting } = useUpdateMenuSchedule();
-  const { createItem, isSubmitting: isAddingItem } = useCreateScheduleItem();
+  const { createItem, createBulkItems, isSubmitting: isAddingItem } = useCreateScheduleItem();
   const { updateItem } = useUpdateScheduleItem();
   
   const [isUpdateModalOpen, setIsUpdateModalOpen] = React.useState(false);
@@ -59,10 +59,17 @@ const MenuScheduleDetailPage = () => {
   };
 
   const handleAddItem = (values) => {
-    createItem(
-      { menuScheduleId: id, ...values },
-      { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
-    );
+    if (values.items && Array.isArray(values.items)) {
+      createBulkItems(
+        { menuScheduleId: id, items: values.items },
+        { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
+      );
+    } else {
+      createItem(
+        { menuScheduleId: id, ...values },
+        { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
+      );
+    }
   };
 
   const handleUpdateItem = async (itemId, payload) => {
