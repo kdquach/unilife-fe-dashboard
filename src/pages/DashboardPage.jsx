@@ -155,8 +155,14 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    loadOverview();
-  }, []);
+    if (user?.role === "KITCHEN_STAFF") {
+      navigate("/kitchen-queue", { replace: true });
+    } else if (user?.role === "COUNTER_STAFF") {
+      navigate("/orders", { replace: true });
+    } else {
+      loadOverview();
+    }
+  }, [user, navigate]);
 
   const recentUsers = overview.users.recentUsers || [];
   const queueSummary = overview.queue.summary || {};

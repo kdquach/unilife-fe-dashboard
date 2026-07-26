@@ -10,8 +10,14 @@ const updateScheduleItem = async (id, data) => {
   return response;
 };
 
+const createBulkScheduleItems = async (data) => {
+  const response = await apiClient.post('/menu-schedule-items/bulk', data);
+  return response;
+};
+
 const menuScheduleItemApi = {
   createScheduleItem,
+  createBulkScheduleItems,
   updateScheduleItem,
 };
 

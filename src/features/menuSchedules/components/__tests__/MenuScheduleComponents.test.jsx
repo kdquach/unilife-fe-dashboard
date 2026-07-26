@@ -34,7 +34,7 @@ describe('MenuSchedule Components', () => {
       ];
       render(<MenuScheduleTable data={mockData} loading={false} pagination={{ total: 1 }} onChange={vi.fn()} onViewDetail={vi.fn()} />);
       
-      expect(screen.getByText('Date')).toBeInTheDocument();
+      expect(screen.getByText('Serving Date')).toBeInTheDocument();
       expect(screen.getByText('Status')).toBeInTheDocument();
       expect(screen.getByText('Created At')).toBeInTheDocument();
       expect(screen.getByText('Action')).toBeInTheDocument();

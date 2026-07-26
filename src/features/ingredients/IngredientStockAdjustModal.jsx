@@ -154,7 +154,7 @@ export default function IngredientStockAdjustModal({
       <div className="mb-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
         <Typography.Text strong>{getIngredientName(ingredient)}</Typography.Text>
         <div className="mt-1 text-sm text-slate-500">
-          Current stock: {currentStock} {unit}
+          Current stock: {currentStock.toFixed(1)} {unit}
         </div>
       </div>
 

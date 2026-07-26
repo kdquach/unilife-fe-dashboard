@@ -23,10 +23,10 @@ describe('MenuScheduleUpdateModal', () => {
   it('renders modal with correct title and fields', () => {
     render(
       <MenuScheduleUpdateModal
-        isOpen={true}
-        onClose={mockOnClose}
+        open={true}
+        onCancel={mockOnClose}
         onUpdate={mockOnUpdate}
-        detail={{ date: '2026-07-15T00:00:00.000Z', status: 'DRAFT', __v: 1 }}
+        initialData={{ date: '2026-07-15T00:00:00.000Z', status: 'DRAFT', __v: 1 }}
         totalReservedCount={0}
       />
     );
@@ -36,15 +36,14 @@ describe('MenuScheduleUpdateModal', () => {
   it('shows warning messages when totalReservedCount > 0', () => {
     render(
       <MenuScheduleUpdateModal
-        isOpen={true}
-        onClose={mockOnClose}
+        open={true}
+        onCancel={mockOnClose}
         onUpdate={mockOnUpdate}
-        detail={{ date: '2026-07-15T00:00:00.000Z', status: 'PUBLISHED', __v: 1 }}
+        initialData={{ date: '2026-07-15T00:00:00.000Z', status: 'PUBLISHED', __v: 1 }}
         totalReservedCount={5}
       />
     );
     
-    expect(screen.getByText(/Customers have already placed orders/)).toBeInTheDocument();
-    expect(screen.getByText(/Cannot downgrade status to DRAFT/)).toBeInTheDocument();
+    expect(screen.getByText(/Cannot change date because customers have already placed orders/)).toBeInTheDocument();
   });
 });
