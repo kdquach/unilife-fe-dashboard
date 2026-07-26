@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { orderService } from "../features/orders/orderService";
-import { foodService } from "../features/foods/foodService";
+import menuScheduleApi from "../features/menuSchedules/api/menuScheduleApi";
 import {
   Card,
   Table,
@@ -25,6 +25,48 @@ import {
   QrcodeOutlined,
 } from "@ant-design/icons";
 
+/**
+ * Chuẩn hoá dữ liệu trả về từ GET /menu-schedules/today thành danh sách món
+ * ăn có thể chọn khi tạo walk-in order.
+ *
+ * Response thực tế: { success, message, data: { items: [ {
+ *   _id, menuScheduleItemId, foodId: { _id, name, price, isMenuItem, isActive, ... },
+ *   maxServing, reservedCount, servedCount, remainingCount, isActive
+ * } ] } }
+ *
+ * `remainingCount` = maxServing - reservedCount - servedCount, là số suất
+ * còn có thể bán trong ngày hôm nay -> dùng để hiển thị tồn kho và chặn
+ * chọn quá số lượng cho phép.
+ */
+function normalizeTodayMenuItems(todayMenu) {
+  if (!todayMenu) return [];
+
+  const rawItems = todayMenu.items || [];
+
+  return rawItems
+    .filter((item) => item.isActive !== false && item.foodId)
+    .map((item) => {
+      const food = item.foodId || {};
+
+      const menuScheduleItemId = item.menuScheduleItemId || item._id;
+
+      return {
+        // key dùng làm value cho Select, dùng menuScheduleItemId vì đơn
+        // walk-in tạo từ thực đơn trong ngày cần tham chiếu tới
+        // menuScheduleItemId (khớp với cách chi tiết đơn hàng hiển thị
+        // item?.menuScheduleItemId?.foodId?.name).
+        key: menuScheduleItemId,
+        foodId: food._id,
+        menuScheduleItemId,
+        name: food.name || "Unknown",
+        price: food.price ?? 0,
+        stockQuantity: item.remainingCount,
+        isMenuItem: !!food.isMenuItem,
+      };
+    })
+    .filter((f) => f.key && f.stockQuantity > 0);
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,6 +86,7 @@ export default function OrdersPage() {
   const streamRef = useRef(null);
 
   const [foods, setFoods] = useState([]);
+  const [foodsLoading, setFoodsLoading] = useState(false);
 
   const [keyword, setKeyword] = useState("");
 
@@ -71,7 +114,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders(1, 10);
-    fetchFoods();
+    fetchTodayMenuFoods();
   }, []);
 
   useEffect(
@@ -111,15 +154,32 @@ export default function OrdersPage() {
     }
   };
 
-  const fetchFoods = async () => {
+  // Lấy danh sách món ăn trong thực đơn hôm nay (GET /menu-schedules/today)
+  // để hiển thị trong Select khi tạo walk-in order.
+  const fetchTodayMenuFoods = async () => {
     try {
-      const data = await foodService.getFoods();
+      setFoodsLoading(true);
 
-      console.log("FOODS =", data);
+      const response = await menuScheduleApi.getTodayMenuSchedule();
 
-      setFoods(data);
+      console.log("TODAY MENU RESPONSE =", response);
+
+      const todayMenu = response?.data ?? response;
+      const normalized = normalizeTodayMenuItems(todayMenu);
+
+      setFoods(normalized);
     } catch (error) {
       console.error(error);
+
+      notify.error(
+        "Load Today's Menu Failed",
+        error?.response?.data?.message ||
+          "Cannot load today's menu for walk-in order.",
+      );
+
+      setFoods([]);
+    } finally {
+      setFoodsLoading(false);
     }
   };
 
@@ -158,11 +218,26 @@ export default function OrdersPage() {
 
       const payload = {
         paymentMethod: values.paymentMethod,
-        items: values.items.map((item) => ({
-          foodId: item.foodId,
-          itemType: "REGULAR_FOOD",
-          quantity: item.quantity,
-        })),
+        items: values.items.map((item) => {
+          // item.foodId thực chất đang chứa `key` của food đã chuẩn hoá
+          // (ưu tiên menuScheduleItemId). Tìm lại thông tin gốc để build
+          // đúng itemType cho payload.
+          const selected = foods.find((f) => f.key === item.foodId);
+
+          if (selected?.menuScheduleItemId) {
+            return {
+              menuScheduleItemId: selected.menuScheduleItemId,
+              itemType: "MENU_ITEM",
+              quantity: item.quantity,
+            };
+          }
+
+          return {
+            foodId: selected?.foodId || item.foodId,
+            itemType: "REGULAR_FOOD",
+            quantity: item.quantity,
+          };
+        }),
       };
 
       await orderService.createWalkInOrder(payload);
@@ -175,7 +250,7 @@ export default function OrdersPage() {
       setCreateOpen(false);
       form.resetFields();
 
-      await Promise.all([fetchOrders(), fetchFoods()]);
+      await Promise.all([fetchOrders(), fetchTodayMenuFoods()]);
     } catch (error) {
       console.error(error);
 
@@ -397,6 +472,7 @@ export default function OrdersPage() {
                 });
 
                 setCreateOpen(true);
+                fetchTodayMenuFoods();
               }}
             >
               Create Walk-in Order
@@ -804,16 +880,16 @@ export default function OrdersPage() {
                       <Select
                         placeholder="Select food"
                         showSearch
+                        loading={foodsLoading}
+                        notFoundContent={
+                          foodsLoading ? "Loading..." : "No food available today"
+                        }
                         optionFilterProp="label"
                         options={foods.map((food) => ({
-                          value: food._id,
+                          value: food.key,
                           label: `${food.name} - ${food.price.toLocaleString(
                             "vi-VN",
-                          )} đ ${
-                            food.isMenuItem
-                              ? "(Menu Item)"
-                              : `(Stock: ${food.stockQuantity})`
-                          }`,
+                          )} đ (Còn: ${food.stockQuantity})`,
                         }))}
                       />
                     </Form.Item>

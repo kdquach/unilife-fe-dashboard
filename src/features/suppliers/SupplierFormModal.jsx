@@ -33,7 +33,7 @@ export default function SupplierFormModal({
 
   return (
     <Modal
-      title={mode === "create" ? "Add New Supplier" : "Update Supplier"}
+      title={mode === "create" ? "Create Supplier" : "Update Supplier"}
       open={open}
       onCancel={onCancel}
       onOk={handleOk}
@@ -53,7 +53,7 @@ export default function SupplierFormModal({
             { max: 120, message: "Supplier name must not exceed 120 characters" },
           ]}
         >
-          <Input placeholder="e.g. Fresh Farm Co." maxLength={120} showCount />
+          <Input placeholder="e.g. Fresh Farm Co." maxLength={120} />
         </Form.Item>
 
         <Form.Item
@@ -72,14 +72,15 @@ export default function SupplierFormModal({
         <Form.Item
           name="phone"
           label="Phone Number"
+          normalize={(value) => (value ? value.replace(/\D/g, "") : "")}
           rules={[
             {
-              pattern: /^[0-9+\s\-()]{7,20}$/,
-              message: "Please enter a valid phone number",
+              pattern: /^[0-9]{9,15}$/,
+              message: "Phone number must contain 9-15 digits",
             },
           ]}
         >
-          <Input placeholder="e.g. 0901234567" maxLength={20} />
+          <Input placeholder="e.g. 0901234567" maxLength={15} />
         </Form.Item>
 
         <Form.Item name="address" label="Address">
@@ -100,13 +101,16 @@ export default function SupplierFormModal({
           />
         </Form.Item>
 
-        <Form.Item
-          name="isActive"
-          label="Active Supplier"
-          valuePropName="checked"
-        >
-          <Switch />
-        </Form.Item>
+        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+          <Form.Item
+            name="isActive"
+            label="Active Supplier"
+            valuePropName="checked"
+            className="mb-0"
+          >
+            <Switch />
+          </Form.Item>
+        </div>
       </Form>
     </Modal>
   );

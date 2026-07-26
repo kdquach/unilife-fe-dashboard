@@ -3,9 +3,11 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import DashboardLayout from "../layouts/DashboardLayout";
 import DashboardPage from "../pages/DashboardPage";
 import FoodCategoryManagementPage from "../pages/FoodCategoryManagementPage";
+import FoodManagementPage from "../pages/FoodManagementPage";
 import KitchenQueuePage from "../pages/KitchenQueuePage";
 import LoginPage from "../pages/LoginPage";
 import OrdersPage from "../pages/OrdersPage";
+import StaffManagementPage from "../pages/StaffManagementPage";
 import SupplierDetailPage from "../pages/SupplierDetailPage";
 import SupplierManagementPage from "../pages/SupplierManagementPage";
 import UserManagementPage from "../pages/UserManagementPage";
@@ -14,8 +16,16 @@ import MenuScheduleDetailPage from "../features/menuSchedules/pages/MenuSchedule
 import IngredientCategoryManagementPage from "../pages/IngredientCategoryManagementPage";
 import IngredientManagementPage from "../pages/IngredientManagementPage";
 import InventoryTransactionHistoryPage from "../pages/InventoryTransactionHistoryPage";
+import KitchenFoodManagementPage from "../pages/KitchenFoodManagementPage";
 import ActivityLogPage from "../pages/ActivityLogPage";
+import RevenueReportPage from "../pages/RevenueReportPage";
+import PeakHourReportPage from "../pages/PeakHourReportPage";
+import OrderStatisticsReportPage from "../pages/OrderStatisticsReportPage";
+import PopularFoodReportPage from "../pages/PopularFoodReportPage";
 import { useAuth } from "../features/auth/AuthContext";
+
+import RatingsPage from "../features/ratings/pages/RatingsPage";
+import ProfilePage from "../pages/ProfilePage";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -64,11 +74,17 @@ export default function AppRouter() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="staffs" element={<StaffManagementPage />} />
+          <Route path="foods" element={<FoodManagementPage />} />
           <Route path="food-categories" element={<FoodCategoryManagementPage />} />
           <Route path="orders" element={<OrdersPage />} />
+          <Route path="kitchen-foods" element={<KitchenFoodManagementPage />} />
           <Route path="kitchen-queue" element={<KitchenQueuePage />} />
           <Route path="menu-schedules" element={<MenuSchedulePage />} />
-          <Route path="menu-schedules/:id" element={<MenuScheduleDetailPage />} />
+          <Route
+            path="menu-schedules/:id"
+            element={<MenuScheduleDetailPage />}
+          />
           <Route path="suppliers" element={<SupplierManagementPage />} />
           <Route path="suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="ingredients" element={<IngredientManagementPage />} />
@@ -80,7 +96,19 @@ export default function AppRouter() {
             path="ingredient-categories"
             element={<IngredientCategoryManagementPage />}
           />
+          <Route path="reports/revenue" element={<RevenueReportPage />} />
+          <Route path="reports/peak-hour" element={<PeakHourReportPage />} />
+          <Route
+            path="reports/order-statistics"
+            element={<OrderStatisticsReportPage />}
+          />
+          <Route
+            path="/reports/popular-food"
+            element={<PopularFoodReportPage />}
+          />
           <Route path="activity-logs" element={<ActivityLogPage />} />
+          <Route path="ratings" element={<RatingsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

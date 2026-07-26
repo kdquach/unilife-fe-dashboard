@@ -41,9 +41,32 @@ const getMenuScheduleDetail = async (id, params = {}) => {
   return response;
 };
 
+
+const getTodayMenuSchedule = async () => {
+  const response = await apiClient.get(
+    '/menu-schedules/today'
+  );
+
+  return response;
+};
+
+
+const createMenuSchedule = async (data) => {
+  const response = await apiClient.post('/menu-schedules', data);
+  return response;
+};
+
+const updateMenuSchedule = async (id, data) => {
+  const response = await apiClient.patch(`/menu-schedules/${id}`, data);
+  return response;
+};
+
 const menuScheduleApi = {
   getMenuSchedules,
   getMenuScheduleDetail,
+  getTodayMenuSchedule,
+  createMenuSchedule,
+  updateMenuSchedule,
 };
 
 export default menuScheduleApi;

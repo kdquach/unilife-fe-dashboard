@@ -12,6 +12,7 @@ import {
   Card,
   Form,
   Input,
+  Modal,
   Popconfirm,
   Select,
   Space,
@@ -23,6 +24,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import { USER_ROLES, roleColors, roleLabels } from "../constants/roles";
+import { useAuth } from "../features/auth/AuthContext";
 import UserDetailDrawer from "../features/users/UserDetailDrawer";
 import UserFormModal from "../features/users/UserFormModal";
 import { userService } from "../features/users/userService";
@@ -34,7 +36,10 @@ const statusOptions = [
   { label: "Inactive", value: "false" },
 ];
 
+const getUserId = (user) => user?._id || user?.id || user?.userId;
+
 export default function UserManagementPage() {
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const [users, setUsers] = useState([]);
   const [pagination, setPagination] = useState({
@@ -47,46 +52,64 @@ export default function UserManagementPage() {
   const [modalMode, setModalMode] = useState("create");
   const [selectedUser, setSelectedUser] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [changingRoleId, setChangingRoleId] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const { Search } = Input;
 
   const [keyword, setKeyword] = useState("");
 
-const [filters, setFilters] = useState({
-  role: undefined,
-  isActive: undefined,
-});
+  const [filters, setFilters] = useState({
+    role: undefined,
+    isActive: undefined,
+  });
+
+  const roleChangeOptions = useMemo(() => {
+    if (user?.role === "ADMIN") return USER_ROLES;
+
+    return USER_ROLES.filter((option) =>
+      ["COUNTER_STAFF", "KITCHEN_STAFF", "CUSTOMER"].includes(option.value),
+    );
+  }, [user?.role]);
+
+  const canChangeRole = (targetUser) => {
+    if (getUserId(targetUser) === getUserId(user)) return false;
+    if (user?.role === "ADMIN") return true;
+
+    return ["COUNTER_STAFF", "KITCHEN_STAFF", "CUSTOMER"].includes(
+      targetUser?.role,
+    );
+  };
 
   const fetchUsers = async (
-  page = pagination.current,
-  pageSize = pagination.pageSize,
-  searchKeyword = keyword,
-  currentFilters = filters,
-) => {
-  setLoading(true);
+    page = pagination.current,
+    pageSize = pagination.pageSize,
+    searchKeyword = keyword,
+    currentFilters = filters,
+  ) => {
+    setLoading(true);
 
-  try {
-    const response = await userService.getUsers({
-      page,
-      limit: pageSize,
-      keyword: searchKeyword,
-      ...currentFilters,
-    });
+    try {
+      const response = await userService.getUsers({
+        page,
+        limit: pageSize,
+        keyword: searchKeyword,
+        ...currentFilters,
+      });
 
-    setUsers(response.data);
+      setUsers(response.data);
 
-    setPagination({
-      current: response.pagination.page,
-      pageSize: response.pagination.limit,
-      total: response.pagination.total,
-    });
-  } catch (error) {
-    message.error(error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+      setPagination({
+        current: response.pagination.page,
+        pageSize: response.pagination.limit,
+        total: response.pagination.total,
+      });
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsers(1, pagination.pageSize);
@@ -119,15 +142,19 @@ const [filters, setFilters] = useState({
     try {
       const payload = { ...values, phone: normalizePhone(values.phone) };
       if (modalMode === "create") await userService.createUser(payload);
-      else await userService.updateUser(selectedUser.id, payload);
+      else {
+        const id = getUserId(selectedUser);
+        if (!id) throw new Error("User ID is missing");
+        await userService.updateUser(id, payload);
+      }
       message.success(modalMode === "create" ? "User created" : "User updated");
       setModalOpen(false);
       await fetchUsers(
-  pagination.current,
-  pagination.pageSize,
-  keyword,
-  filters
-);
+        pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
     } catch (error) {
       message.error(error.message);
     } finally {
@@ -137,34 +164,58 @@ const [filters, setFilters] = useState({
 
   const handleStatusChange = async (user, checked) => {
     try {
-      await userService.updateUserStatus(user.id, checked);
+      const id = getUserId(user);
+      if (!id) throw new Error("User ID is missing");
+
+      await userService.updateUserStatus(id, checked);
       message.success(
         `${checked ? "Activated" : "Deactivated"} ${user.fullName}`,
       );
       await fetchUsers(
-  pagination.current,
-  pagination.pageSize,
-  keyword,
-  filters
-);
+        pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
     } catch (error) {
       message.error(error.message);
     }
   };
 
-  const handleRoleChange = async (user, role) => {
+  const handleRoleChange = async (targetUser, role) => {
+    const userId = getUserId(targetUser);
+    setChangingRoleId(userId);
+
     try {
-      await userService.updateUserRole(user.id, role);
-      message.success(`Updated role for ${user.fullName}`);
+      if (!userId) throw new Error("User ID is missing");
+
+      await userService.updateUserRole(userId, role);
+      message.success(`Updated role for ${targetUser.fullName}`);
+
+      if (getUserId(selectedUser) === userId) {
+        setSelectedUser((prev) => (prev ? { ...prev, role } : prev));
+      }
+
       await fetchUsers(
-  pagination.current,
-  pagination.pageSize,
-  keyword,
-  filters
-);
+        pagination.current,
+        pagination.pageSize,
+        keyword,
+        filters,
+      );
     } catch (error) {
       message.error(error.message);
+    } finally {
+      setChangingRoleId(null);
     }
+  };
+
+  const confirmRoleChange = (targetUser, role) => {
+    Modal.confirm({
+      title: "Change user role?",
+      content: `${targetUser.fullName} will be changed from ${roleLabels[targetUser.role]} to ${roleLabels[role]}.`,
+      okText: "Change Role",
+      onOk: () => handleRoleChange(targetUser, role),
+    });
   };
 
   const columns = [
@@ -187,8 +238,16 @@ const [filters, setFilters] = useState({
         <Select
           value={role}
           className="w-44"
-          options={USER_ROLES}
-          onChange={(value) => handleRoleChange(record, value)}
+          loading={changingRoleId === getUserId(record)}
+          disabled={
+            changingRoleId === getUserId(record) || !canChangeRole(record)
+          }
+          options={
+            canChangeRole(record)
+              ? roleChangeOptions
+              : USER_ROLES.filter((option) => option.value === role)
+          }
+          onChange={(value) => confirmRoleChange(record, value)}
         />
       ),
     },
@@ -367,7 +426,7 @@ const [filters, setFilters] = useState({
   }
 >
   <Table
-    rowKey="id"
+    rowKey={(record) => getUserId(record)}
     loading={loading}
     dataSource={users}
     columns={columns}

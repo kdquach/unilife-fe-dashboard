@@ -99,4 +99,24 @@ describe('MenuScheduleItemsTable', () => {
       expect(screen.queryByText('Unknown Item')).not.toBeInTheDocument();
     });
   });
+
+  it('shows action buttons when isReadOnly is false', () => {
+    render(<MenuScheduleItemsTable items={mockItems} loading={false} isReadOnly={false} />);
+    
+    // Ant Design's Table might not render headers if empty, but we have items
+    expect(screen.getAllByText('Action').length).toBeGreaterThan(0);
+    
+    // There should be edit buttons for items
+    const editButtons = screen.getAllByRole('button', { name: /edit/i });
+    expect(editButtons.length).toBeGreaterThan(0);
+  });
+
+  it('hides action column or disables buttons when isReadOnly is true', () => {
+    render(<MenuScheduleItemsTable items={mockItems} loading={false} isReadOnly={true} />);
+    
+    // Action column header shouldn't be there or buttons should be disabled
+    expect(screen.queryByText('Action')).not.toBeInTheDocument();
+    const editButtons = screen.queryAllByRole('button', { name: /edit/i });
+    expect(editButtons.length).toBe(0);
+  });
 });

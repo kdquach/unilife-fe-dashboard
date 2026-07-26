@@ -462,7 +462,7 @@ export default function IngredientManagementPage() {
       sorter: true,
       render: (value, record) => (
         <Space size={6} wrap>
-          <Typography.Text>{asNumber(value)}</Typography.Text>
+          <Typography.Text>{asNumber(value).toFixed(1)}</Typography.Text>
           {isLowStock(record) && (
             <Tag color="warning" icon={<WarningOutlined />}>
               Low

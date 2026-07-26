@@ -96,7 +96,7 @@ export default function IngredientStockImportModal({
           {ingredient?.name || "Unnamed Ingredient"}
         </Typography.Text>
         <div className="mt-1 text-sm text-slate-500">
-          Current stock: {currentStock} {unit}
+          Current stock: {currentStock.toFixed(1)} {unit}
         </div>
       </div>
 

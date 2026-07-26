@@ -24,8 +24,8 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
+import { notify } from "../utils/notify";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
 import { dashboardService } from "../features/dashboard/dashboardService";
@@ -148,15 +148,21 @@ export default function DashboardPage() {
         modules,
       });
     } catch (error) {
-      message.error(error.message);
+      notify.error(error.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadOverview();
-  }, []);
+    if (user?.role === "KITCHEN_STAFF") {
+      navigate("/kitchen-queue", { replace: true });
+    } else if (user?.role === "COUNTER_STAFF") {
+      navigate("/orders", { replace: true });
+    } else {
+      loadOverview();
+    }
+  }, [user, navigate]);
 
   const recentUsers = overview.users.recentUsers || [];
   const queueSummary = overview.queue.summary || {};

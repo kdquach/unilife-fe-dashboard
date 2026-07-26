@@ -337,7 +337,7 @@ export default function SupplierManagementPage() {
               icon={<PlusOutlined />}
               onClick={openCreateModal}
             >
-              Add Supplier
+              Create Supplier
             </Button>
           </Space>
         }

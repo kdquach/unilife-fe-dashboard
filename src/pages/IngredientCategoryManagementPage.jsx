@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Card, Table, Tag, Input, Button, message, Space } from "antd";
+import { Card, Table, Tag, Input, Button, Space } from "antd";
+import { notify } from "../utils/notify";
 import {
   PlusOutlined,
   AppstoreOutlined,
@@ -58,7 +59,7 @@ export default function IngredientCategoryManagementPage() {
         total: response.pagination.total,
       });
     } catch (err) {
-      message.error(err.message || "Fetch failed");
+      notify.error(err.message || "Fetch failed");
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export default function IngredientCategoryManagementPage() {
     try {
       if (modalMode === "create") {
         await ingredientCategoryService.createIngredientCategory(values);
-        message.success("Category created successfully");
+        notify.success("Category created successfully");
       }
 
       if (modalMode === "edit") {
@@ -120,7 +121,7 @@ export default function IngredientCategoryManagementPage() {
           selectedCategory._id,
           values
         );
-        message.success("Category updated successfully");
+        notify.success("Category updated successfully");
       }
 
       handleCloseModal();
@@ -131,7 +132,7 @@ export default function IngredientCategoryManagementPage() {
         keyword
       );
     } catch (err) {
-      message.error(err.message || "Something went wrong");
+      notify.error(err.message || "Something went wrong");
     } finally {
       setSaving(false);
     }

@@ -73,15 +73,15 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
   }, [open, ingredientId]);
 
   const stockStatus = useMemo(() => {
-    const currentStock = asNumber(ingredient?.currentStock);
+    const rawStock = asNumber(ingredient?.currentStock);
     const threshold = asNumber(ingredient?.minStockThreshold);
-    const isLowStock = threshold > 0 && currentStock <= threshold;
+    const isLowStock = threshold > 0 && rawStock <= threshold;
     const percent = threshold > 0
-      ? Math.min(Math.round((currentStock / threshold) * 100), 100)
+      ? Math.min(Math.round((rawStock / threshold) * 100), 100)
       : 100;
 
     return {
-      currentStock,
+      currentStock: rawStock.toFixed(1),
       threshold,
       isLowStock,
       percent,
