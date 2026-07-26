@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useDeferredValue } from 'react';
-import { Table, Input, Tag, Switch, Space, Empty, Typography, Button, Modal, Form, InputNumber } from 'antd';
-import { SearchOutlined, PictureOutlined, EditOutlined, PlusOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Input, Tag, Switch, Space, Empty, Typography, Button, Modal, Form, InputNumber, Image } from 'antd';
+import { SearchOutlined, EditOutlined, PlusOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { getImageUrl, imageNotFound } from '../../../utils/image';
 
 const { Search } = Input;
 const { Text } = Typography;
@@ -12,28 +13,6 @@ const MenuScheduleItemsTable = ({ items, loading, isReadOnly, onUpdateItem, onTo
   // Edit Modal State
   const [editingItem, setEditingItem] = useState(null);
   const [form] = Form.useForm();
-  
-  // Ingredients map for recipe snapshot
-  const [ingredientsMap, setIngredientsMap] = useState({});
-
-  React.useEffect(() => {
-    const fetchIngredients = async () => {
-      try {
-        const { ingredientService } = await import('../../ingredients/ingredientService');
-        const response = await ingredientService.getIngredients({ limit: 1000 });
-        if (response?.data) {
-          const map = {};
-          response.data.forEach(ing => {
-            map[ing.id || ing._id] = ing;
-          });
-          setIngredientsMap(map);
-        }
-      } catch (error) {
-        console.error("Failed to load ingredients", error);
-      }
-    };
-    fetchIngredients();
-  }, []);
 
   const deferredSearchText = useDeferredValue(searchText);
 
@@ -77,33 +56,32 @@ const MenuScheduleItemsTable = ({ items, loading, isReadOnly, onUpdateItem, onTo
         const nameB = b?.foodId?.name || '';
         return nameA.localeCompare(nameB);
       },
-      render: (_, record) => (
-        <Space size="middle">
-          {record?.foodId?.image ? (
-            <img 
-              src={record.foodId.image} 
-              alt={record.foodId?.name || 'Food'} 
-              className="h-12 w-12 rounded-xl object-cover shadow-sm border border-slate-100"
-              onError={(e) => {
-                e.target.onerror = null; 
-                e.target.src = 'https://via.placeholder.com/150?text=No+Image';
-              }}
+      render: (_, record) => {
+        const imageUrl = getImageUrl(record?.foodId?.imageUrl);
+
+        return (
+          <div className="flex min-w-[260px] items-center gap-3">
+            <Image
+              src={imageUrl}
+              fallback={imageNotFound}
+              width={64}
+              height={64}
+              className="rounded-md object-cover"
+              preview={Boolean(imageUrl)}
             />
-          ) : (
-            <div className="h-12 w-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-              <PictureOutlined className="text-xl" />
+
+            <div className="min-w-0">
+              <Text strong className="block">
+                {record?.foodId?.name || <Text type="secondary" italic>Unknown Item</Text>}
+              </Text>
+
+              <Text className="text-xs text-slate-500 line-clamp-1 max-w-[200px] block">
+                {record?.foodId?.description || 'No description available'}
+              </Text>
             </div>
-          )}
-          <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 text-sm">
-              {record?.foodId?.name || <Text type="secondary" italic>Unknown Item</Text>}
-            </span>
-            <span className="text-xs text-slate-500 line-clamp-1 max-w-[200px]">
-              {record?.foodId?.description || 'No description available'}
-            </span>
           </div>
-        </Space>
-      ),
+        );
+      },
     },
     {
       title: 'Category',
@@ -271,51 +249,6 @@ const MenuScheduleItemsTable = ({ items, loading, isReadOnly, onUpdateItem, onTo
         }}
         scroll={{ x: 900 }}
         rowClassName="hover:bg-slate-50/50 transition-colors"
-        expandable={{
-          expandedRowRender: (record) => {
-            if (!record.recipeSnapshot || record.recipeSnapshot.length === 0) {
-              return (
-                <Empty 
-                  description={<span className="text-slate-400 text-sm">No recipe snapshot available</span>} 
-                  image={Empty.PRESENTED_IMAGE_SIMPLE} 
-                  className="my-2"
-                />
-              );
-            }
-            return (
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <Text strong className="block mb-3 text-slate-700">
-                  Recipe Snapshot (Per Serving)
-                </Text>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {record.recipeSnapshot.map((item, index) => {
-                    const ingId = typeof item.ingredientId === 'object' ? (item.ingredientId._id || item.ingredientId.id) : item.ingredientId;
-                    const ing = ingredientsMap[ingId] || item.ingredientId;
-                    const ingName = ing?.name || ingId;
-                    const ingUnit = ing?.unit || '';
-
-                    return (
-                      <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold">
-                          {index + 1}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-800 text-sm">
-                            {ingName}
-                          </span>
-                          <span className="text-xs text-slate-500 mt-0.5">
-                            Quantity: <strong className="text-slate-700">{item.quantityPerServing}</strong> {ingUnit}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          },
-          rowExpandable: () => true,
-        }}
       />
 
       {/* Edit Max Serving Modal */}

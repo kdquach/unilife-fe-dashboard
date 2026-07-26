@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { orderService } from "../features/orders/orderService";
 import menuScheduleApi from "../features/menuSchedules/api/menuScheduleApi";
 import {
@@ -14,23 +14,33 @@ import {
   Select,
   Drawer,
   Space,
+  Empty,
+  Badge,
+  Image,
 } from "antd";
 import { notify } from "../utils/notify";
+import { getImageUrl, imageNotFound } from "../utils/image";
 import PageHeader from "../components/PageHeader";
 import {
   PlusOutlined,
+  MinusOutlined,
+  DeleteOutlined,
   ReloadOutlined,
   SearchOutlined,
   EyeOutlined,
   QrcodeOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
+
+const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
 /**
  * Chuẩn hoá dữ liệu trả về từ GET /menu-schedules/today thành danh sách món
  * ăn có thể chọn khi tạo walk-in order.
  *
  * Response thực tế: { success, message, data: { items: [ {
- *   _id, menuScheduleItemId, foodId: { _id, name, price, isMenuItem, isActive, ... },
+ *   _id, menuScheduleItemId, foodId: { _id, name, price, imageUrl,
+ *   isMenuItem, isActive, categoryId, ... },
  *   maxServing, reservedCount, servedCount, remainingCount, isActive
  * } ] } }
  *
@@ -51,15 +61,18 @@ function normalizeTodayMenuItems(todayMenu) {
       const menuScheduleItemId = item.menuScheduleItemId || item._id;
 
       return {
-        // key dùng làm value cho Select, dùng menuScheduleItemId vì đơn
-        // walk-in tạo từ thực đơn trong ngày cần tham chiếu tới
-        // menuScheduleItemId (khớp với cách chi tiết đơn hàng hiển thị
-        // item?.menuScheduleItemId?.foodId?.name).
+        // key dùng làm định danh duy nhất trong giỏ hàng / danh sách chọn,
+        // dùng menuScheduleItemId vì đơn walk-in tạo từ thực đơn trong
+        // ngày cần tham chiếu tới menuScheduleItemId khi gửi lên backend.
         key: menuScheduleItemId,
         foodId: food._id,
         menuScheduleItemId,
         name: food.name || "Unknown",
         price: food.price ?? 0,
+        imageUrl: getImageUrl(food.imageUrl),
+        categoryName:
+          (typeof food.categoryId === "object" && food.categoryId?.name) ||
+          null,
         stockQuantity: item.remainingCount,
         isMenuItem: !!food.isMenuItem,
       };
@@ -79,7 +92,6 @@ export default function OrdersPage() {
   const [scanning, setScanning] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
-  const [form] = Form.useForm();
   const [scanForm] = Form.useForm();
   const videoRef = useRef(null);
   const scanTimerRef = useRef(null);
@@ -87,17 +99,16 @@ export default function OrdersPage() {
 
   const [foods, setFoods] = useState([]);
   const [foodsLoading, setFoodsLoading] = useState(false);
+  const [foodSearch, setFoodSearch] = useState("");
+
+  // Giỏ hàng cho walk-in order: [{ ...food, quantity }]
+  const [cart, setCart] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [note, setNote] = useState("");
 
   const [keyword, setKeyword] = useState("");
 
   const { Search } = Input;
-
-  const [orderItems, setOrderItems] = useState([
-    {
-      foodId: null,
-      quantity: 1,
-    },
-  ]);
 
   const [filters, setFilters] = useState({
     status: undefined,
@@ -155,14 +166,12 @@ export default function OrdersPage() {
   };
 
   // Lấy danh sách món ăn trong thực đơn hôm nay (GET /menu-schedules/today)
-  // để hiển thị trong Select khi tạo walk-in order.
+  // để hiển thị trong lưới chọn món khi tạo walk-in order.
   const fetchTodayMenuFoods = async () => {
     try {
       setFoodsLoading(true);
 
       const response = await menuScheduleApi.getTodayMenuSchedule();
-
-      console.log("TODAY MENU RESPONSE =", response);
 
       const todayMenu = response?.data ?? response;
       const normalized = normalizeTodayMenuItems(todayMenu);
@@ -212,33 +221,111 @@ export default function OrdersPage() {
     return <Tag color={colors[status] || "default"}>{status}</Tag>;
   };
 
-  const handleCreateWalkIn = async (values) => {
+  // ---------- Cart helpers ----------
+
+  const cartQuantityOf = (key) =>
+    cart.find((item) => item.key === key)?.quantity || 0;
+
+  const addToCart = (food) => {
+    const alreadyInCart = cartQuantityOf(food.key);
+
+    if (alreadyInCart >= food.stockQuantity) {
+      notify.warning(
+        "Reached Limit",
+        `Chỉ còn ${food.stockQuantity} suất "${food.name}" hôm nay.`,
+      );
+      return;
+    }
+
+    setCart((prev) => {
+      const existing = prev.find((item) => item.key === food.key);
+
+      if (existing) {
+        return prev.map((item) =>
+          item.key === food.key
+            ? { ...item, quantity: item.quantity + 1 }
+            : item,
+        );
+      }
+
+      return [...prev, { ...food, quantity: 1 }];
+    });
+  };
+
+  const updateCartQuantity = (key, quantity) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.key !== key) return item;
+
+        const clamped = Math.max(
+          1,
+          Math.min(Number(quantity) || 1, item.stockQuantity),
+        );
+
+        return { ...item, quantity: clamped };
+      }),
+    );
+  };
+
+  const removeFromCart = (key) => {
+    setCart((prev) => prev.filter((item) => item.key !== key));
+  };
+
+  const cartTotal = useMemo(
+    () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [cart],
+  );
+
+  const cartCount = useMemo(
+    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    [cart],
+  );
+
+  const filteredFoods = useMemo(() => {
+    const q = foodSearch.trim().toLowerCase();
+    if (!q) return foods;
+    return foods.filter((food) => food.name.toLowerCase().includes(q));
+  }, [foods, foodSearch]);
+
+  // ---------- Create walk-in modal open/close ----------
+
+  const openCreateModal = () => {
+    setCart([]);
+    setPaymentMethod("CASH");
+    setNote("");
+    setFoodSearch("");
+    setCreateOpen(true);
+    fetchTodayMenuFoods();
+  };
+
+  const closeCreateModal = () => {
+    setCreateOpen(false);
+  };
+
+  const handleCreateWalkIn = async () => {
+    if (cart.length === 0) {
+      notify.warning(
+        "Empty Cart",
+        "Vui lòng chọn ít nhất một món trước khi tạo đơn.",
+      );
+      return;
+    }
+
     try {
       setCreating(true);
 
       const payload = {
-        paymentMethod: values.paymentMethod,
-        items: values.items.map((item) => {
-          // item.foodId thực chất đang chứa `key` của food đã chuẩn hoá
-          // (ưu tiên menuScheduleItemId). Tìm lại thông tin gốc để build
-          // đúng itemType cho payload.
-          const selected = foods.find((f) => f.key === item.foodId);
-
-          if (selected?.menuScheduleItemId) {
-            return {
-              menuScheduleItemId: selected.menuScheduleItemId,
-              itemType: "MENU_ITEM",
-              quantity: item.quantity,
-            };
-          }
-
-          return {
-            foodId: selected?.foodId || item.foodId,
-            itemType: "REGULAR_FOOD",
-            quantity: item.quantity,
-          };
-        }),
+        paymentMethod,
+        items: cart.map((item) => ({
+          menuScheduleItemId: item.menuScheduleItemId,
+          itemType: "MENU_ITEM",
+          quantity: item.quantity,
+        })),
       };
+
+      if (note.trim()) {
+        payload.note = note.trim();
+      }
 
       await orderService.createWalkInOrder(payload);
 
@@ -247,8 +334,7 @@ export default function OrdersPage() {
         "Order has been created successfully.",
       );
 
-      setCreateOpen(false);
-      form.resetFields();
+      closeCreateModal();
 
       await Promise.all([fetchOrders(), fetchTodayMenuFoods()]);
     } catch (error) {
@@ -399,7 +485,7 @@ export default function OrdersPage() {
     {
       title: "Total",
       dataIndex: "totalPrice",
-      render: (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`,
+      render: (value) => formatVnd(value),
     },
     {
       title: "Order Status",
@@ -465,15 +551,7 @@ export default function OrdersPage() {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={() => {
-                form.setFieldsValue({
-                  paymentMethod: "CASH",
-                  items: [{ quantity: 1 }],
-                });
-
-                setCreateOpen(true);
-                fetchTodayMenuFoods();
-              }}
+              onClick={openCreateModal}
             >
               Create Walk-in Order
             </Button>
@@ -702,7 +780,7 @@ export default function OrdersPage() {
               </Descriptions.Item>
 
               <Descriptions.Item label="Total Price">
-                {selectedOrder.totalPrice?.toLocaleString("vi-VN")} đ
+                {formatVnd(selectedOrder.totalPrice)}
               </Descriptions.Item>
 
               <Descriptions.Item label="Transaction Ref">
@@ -742,14 +820,12 @@ export default function OrdersPage() {
                 {
                   title: "Unit Price",
                   dataIndex: "unitPrice",
-                  render: (value) =>
-                    Number(value).toLocaleString("vi-VN") + " đ",
+                  render: (value) => formatVnd(value),
                 },
                 {
                   title: "Subtotal",
                   dataIndex: "subtotal",
-                  render: (value) =>
-                    Number(value).toLocaleString("vi-VN") + " đ",
+                  render: (value) => formatVnd(value),
                 },
               ]}
             />
@@ -844,100 +920,267 @@ export default function OrdersPage() {
         </Form>
       </Modal>
 
+      {/* ---------- Create Walk-in Order (POS style) ---------- */}
       <Modal
         title="Create Walk-in Order"
         open={createOpen}
-        confirmLoading={creating}
-        onCancel={() => {
-          setCreateOpen(false);
-          form.resetFields();
-        }}
-        onOk={() => form.submit()}
+        width={960}
+        onCancel={closeCreateModal}
+        footer={null}
+        destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateWalkIn}>
-          <Form.List name="items" initialValue={[{ quantity: 1 }]}>
-            {(fields, { add, remove }) => (
-              <>
-                {fields.map(({ key, name }) => (
-                  <div
-                    key={key}
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <Form.Item
-                      name={[name, "foodId"]}
-                      style={{ flex: 1 }}
-                      rules={[
-                        {
-                          required: true,
-                          message: "Select food",
-                        },
-                      ]}
-                    >
-                      <Select
-                        placeholder="Select food"
-                        showSearch
-                        loading={foodsLoading}
-                        notFoundContent={
-                          foodsLoading ? "Loading..." : "No food available today"
-                        }
-                        optionFilterProp="label"
-                        options={foods.map((food) => ({
-                          value: food.key,
-                          label: `${food.name} - ${food.price.toLocaleString(
-                            "vi-VN",
-                          )} đ (Còn: ${food.stockQuantity})`,
-                        }))}
-                      />
-                    </Form.Item>
-
-                    <Form.Item name={[name, "quantity"]} initialValue={1}>
-                      <InputNumber min={1} />
-                    </Form.Item>
-
-                    <Button danger onClick={() => remove(name)}>
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-
-                <Button
-                  type="dashed"
-                  block
-                  onClick={() =>
-                    add({
-                      quantity: 1,
-                    })
-                  }
-                >
-                  + Add Food
-                </Button>
-              </>
-            )}
-          </Form.List>
-
-          <Form.Item
-            label="Payment Method"
-            name="paymentMethod"
-            initialValue="CASH"
-          >
-            <Select
-              options={[
-                {
-                  label: "Cash",
-                  value: "CASH",
-                },
-                {
-                  label: "SePay",
-                  value: "SEPAY",
-                },
-              ]}
+        <div className="flex flex-col gap-4 md:flex-row">
+          {/* Food picker */}
+          <div className="md:w-3/5">
+            <Input
+              allowClear
+              prefix={<SearchOutlined className="text-slate-400" />}
+              placeholder="Tìm món ăn hôm nay..."
+              value={foodSearch}
+              onChange={(e) => setFoodSearch(e.target.value)}
+              className="mb-3"
             />
-          </Form.Item>
-        </Form>
+
+            <div
+              className="grid grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3"
+              style={{ maxHeight: "58vh" }}
+            >
+              {foodsLoading && (
+                <div className="col-span-full py-10 text-center text-slate-400">
+                  Đang tải thực đơn hôm nay...
+                </div>
+              )}
+
+              {!foodsLoading && filteredFoods.length === 0 && (
+                <div className="col-span-full py-10">
+                  <Empty description="Không có món nào trong thực đơn hôm nay" />
+                </div>
+              )}
+
+              {!foodsLoading &&
+                filteredFoods.map((food) => {
+                  const inCartQty = cartQuantityOf(food.key);
+                  const remaining = food.stockQuantity - inCartQty;
+                  const soldOut = remaining <= 0;
+
+                  return (
+                    <div
+                      key={food.key}
+                      onClick={() => !soldOut && addToCart(food)}
+                      className={`group relative flex flex-col overflow-hidden rounded-lg border transition ${
+                        soldOut
+                          ? "cursor-not-allowed border-slate-100 opacity-60"
+                          : "cursor-pointer border-slate-200 hover:border-blue-400 hover:shadow-md"
+                      }`}
+                    >
+                      <div className="relative h-24 w-full bg-slate-100">
+                        <Image
+                          src={food.imageUrl}
+                          fallback={imageNotFound}
+                          alt={food.name}
+                          width="100%"
+                          height={96}
+                          className="object-cover"
+                          style={{ objectFit: "cover" }}
+                          preview={false}
+                        />
+
+                        {inCartQty > 0 && (
+                          <Badge
+                            count={inCartQty}
+                            style={{
+                              position: "absolute",
+                              top: 6,
+                              right: 6,
+                              backgroundColor: "#1677ff",
+                            }}
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex flex-1 flex-col p-2">
+                        <div
+                          className="text-sm font-medium text-slate-800"
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                          title={food.name}
+                        >
+                          {food.name}
+                        </div>
+
+                        <div className="text-xs font-semibold text-blue-600">
+                          {formatVnd(food.price)}
+                        </div>
+
+                        <div className="mt-auto flex items-center justify-between pt-2">
+                          <Tag
+                            color={soldOut ? "red" : "green"}
+                            style={{ margin: 0 }}
+                          >
+                            {soldOut ? "Hết suất" : `Còn ${remaining}`}
+                          </Tag>
+
+                          <Button
+                            size="small"
+                            type="primary"
+                            shape="circle"
+                            icon={<PlusOutlined />}
+                            disabled={soldOut}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(food);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Cart */}
+          <div className="flex flex-col md:w-2/5 md:border-l md:pl-4">
+            <div className="mb-2 flex items-center gap-2 font-semibold text-slate-700">
+              <ShoppingCartOutlined />
+              Giỏ hàng ({cartCount})
+            </div>
+
+            <div
+              className="flex flex-col gap-2 overflow-y-auto pr-1"
+              style={{ maxHeight: "34vh", minHeight: 80 }}
+            >
+              {cart.length === 0 && (
+                <div className="py-6 text-center text-sm text-slate-400">
+                  Chưa chọn món nào. Bấm vào món bên trái để thêm.
+                </div>
+              )}
+
+              {cart.map((item) => (
+                <div
+                  key={item.key}
+                  className="flex items-center gap-2 rounded-md border border-slate-100 p-2"
+                >
+                  <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-slate-100">
+                    <Image
+                      src={item.imageUrl}
+                      fallback={imageNotFound}
+                      alt={item.name}
+                      width={40}
+                      height={40}
+                      style={{ objectFit: "cover" }}
+                      preview={false}
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="truncate text-sm font-medium"
+                      title={item.name}
+                    >
+                      {item.name}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {formatVnd(item.price)}
+                    </div>
+                  </div>
+
+                  <Space.Compact size="small">
+                    <Button
+                      icon={<MinusOutlined />}
+                      onClick={() =>
+                        updateCartQuantity(item.key, item.quantity - 1)
+                      }
+                    />
+                    <InputNumber
+                      size="small"
+                      min={1}
+                      max={item.stockQuantity}
+                      value={item.quantity}
+                      onChange={(v) => updateCartQuantity(item.key, v || 1)}
+                      style={{ width: 48, textAlign: "center" }}
+                      controls={false}
+                    />
+                    <Button
+                      icon={<PlusOutlined />}
+                      disabled={item.quantity >= item.stockQuantity}
+                      onClick={() =>
+                        updateCartQuantity(item.key, item.quantity + 1)
+                      }
+                    />
+                  </Space.Compact>
+
+                  <div
+                    className="text-right text-sm font-semibold"
+                    style={{ width: 84 }}
+                  >
+                    {formatVnd(item.price * item.quantity)}
+                  </div>
+
+                  <Button
+                    type="text"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+                    onClick={() => removeFromCart(item.key)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 border-t border-slate-100 pt-3">
+              <div className="mb-3 flex items-center justify-between text-base">
+                <span className="font-medium text-slate-600">
+                  Tổng cộng
+                </span>
+                <span className="text-lg font-bold text-blue-600">
+                  {formatVnd(cartTotal)}
+                </span>
+              </div>
+
+              <div className="mb-2">
+                <div className="mb-1 text-xs text-slate-500">
+                  Phương thức thanh toán
+                </div>
+                <Select
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  style={{ width: "100%" }}
+                  options={[
+                    { label: "Cash", value: "CASH" },
+                    { label: "SePay", value: "SEPAY" },
+                  ]}
+                />
+              </div>
+
+              <div className="mb-3">
+                <div className="mb-1 text-xs text-slate-500">
+                  Ghi chú (tuỳ chọn)
+                </div>
+                <Input.TextArea
+                  rows={2}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Ví dụ: khách yêu cầu ít cay..."
+                />
+              </div>
+
+              <Button
+                type="primary"
+                block
+                size="large"
+                loading={creating}
+                disabled={cart.length === 0}
+                onClick={handleCreateWalkIn}
+              >
+                Tạo đơn ({cartCount} món · {formatVnd(cartTotal)})
+              </Button>
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );

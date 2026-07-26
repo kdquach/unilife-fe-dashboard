@@ -1,6 +1,7 @@
 import React from 'react';
-import { Drawer, Spin, Empty, Tag, Card, Divider } from 'antd';
+import { Drawer, Spin, Empty, Tag, Card, Divider, Image } from 'antd';
 import { formatDate } from '../../../utils/format';
+import { getImageUrl, imageNotFound } from '../../../utils/image';
 
 const MenuScheduleDetailDrawer = ({ open, onClose, detail, loading }) => {
   const getStatusColor = (status) => {
@@ -54,17 +55,15 @@ const MenuScheduleDetailDrawer = ({ open, onClose, detail, loading }) => {
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
-                      {item.foodId?.image ? (
-                        <img 
-                          src={item.foodId.image} 
-                          alt={item.foodId.name} 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                          No Image
-                        </div>
-                      )}
+                      <Image
+                        src={getImageUrl(item.foodId?.imageUrl)}
+                        fallback={imageNotFound}
+                        alt={item.foodId?.name}
+                        width={80}
+                        height={80}
+                        style={{ objectFit: 'cover' }}
+                        preview={false}
+                      />
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg text-gray-800 line-clamp-1" title={item.foodId?.name}>
