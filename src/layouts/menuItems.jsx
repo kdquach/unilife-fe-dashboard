@@ -30,52 +30,61 @@ const menuItems = [
     key: "/",
     icon: <AppstoreOutlined />,
     label: <Link to="/">Overview</Link>,
+    allowedRoles: ["ADMIN", "MANAGER"],
   },
 
-  // ================= USERS =================
+  // ================= FOOD & MENUS =================
   {
-    key: "users",
-    icon: <ApartmentOutlined />,
-    label: "Users",
+    key: "food-menu",
+    icon: <CoffeeOutlined />,
+    label: "Foods & Menus",
+    allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
     children: [
       {
-        key: "/users",
-        icon: <TeamOutlined />,
-        label: <Link to="/users">User Management</Link>,
-      },
-      {
-        key: "/staffs",
-        icon: <UserSwitchOutlined />,
-        label: <Link to="/staffs">Staff Management</Link>,
-      },
-    ],
-  },
-
-  // ================= ORDERS =================
-  {
-    key: "orders",
-    icon: <ShoppingOutlined  />,
-    label: "Orders",
-    children: [
-      {
-        key: "/orders",
-        icon: <ShoppingCartOutlined />,
-        label: <Link to="/orders">Order Management</Link>,
+        key: "/food-categories",
+        icon: <FolderOpenOutlined />,
+        label: <Link to="/food-categories">Food Categories</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
       {
         key: "/foods",
         icon: <CoffeeOutlined />,
         label: <Link to="/foods">Foods</Link>,
-      },
-      {
-        key: "/kitchen-queue",
-        icon: <OrderedListOutlined />,
-        label: <Link to="/kitchen-queue">Kitchen Queue</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
       {
         key: "/menu-schedules",
         icon: <CalendarOutlined />,
         label: <Link to="/menu-schedules">Menu Schedules</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
+      },
+    ],
+  },
+
+  // ================= OPERATIONS =================
+  {
+    key: "operations",
+    icon: <ShoppingOutlined />,
+    label: "Operations",
+    allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF", "COUNTER_STAFF"],
+    children: [
+      {
+        key: "/orders",
+        icon: <ShoppingCartOutlined />,
+        label: <Link to="/orders">Order Management</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "COUNTER_STAFF"],
+      },
+      {
+        key: "/kitchen-queue",
+        icon: <OrderedListOutlined />,
+        label: <Link to="/kitchen-queue">Kitchen Queue</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
+      },
+      {
+        key: "/ratings",
+        icon: <StarOutlined />,
+        label: <Link to="/ratings">Ratings & Feedbacks</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "COUNTER_STAFF"],
       },
     ],
   },
@@ -85,12 +94,8 @@ const menuItems = [
     key: "inventory",
     icon: <DatabaseOutlined />,
     label: "Inventory",
+    allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
     children: [
-      {
-        key: "/food-categories",
-        icon: <FolderOpenOutlined />,
-        label: <Link to="/food-categories">Food Categories</Link>,
-      },
       {
         key: "/ingredient-categories",
         icon: <TagsOutlined />,
@@ -99,11 +104,19 @@ const menuItems = [
             Ingredient Categories
           </Link>
         ),
+        allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
       {
         key: "/ingredients",
         icon: <InboxOutlined />,
         label: <Link to="/ingredients">Ingredients</Link>,
+        allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
+      },
+      {
+        key: "/suppliers",
+        icon: <ShopOutlined />,
+        label: <Link to="/suppliers">Suppliers</Link>,
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
       {
         key: "/inventory-transactions",
@@ -113,11 +126,29 @@ const menuItems = [
             Inventory Transactions
           </Link>
         ),
+        allowedRoles: ["ADMIN", "MANAGER"],
+      },
+    ],
+  },
+
+  // ================= ACCOUNTS / HR =================
+  {
+    key: "accounts",
+    icon: <ApartmentOutlined />,
+    label: "Accounts & HR",
+    allowedRoles: ["ADMIN", "MANAGER"],
+    children: [
+      {
+        key: "/users",
+        icon: <TeamOutlined />,
+        label: <Link to="/users">User Management</Link>,
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
       {
-        key: "/suppliers",
-        icon: <ShopOutlined />,
-        label: <Link to="/suppliers">Suppliers</Link>,
+        key: "/staffs",
+        icon: <UserSwitchOutlined />,
+        label: <Link to="/staffs">Staff Management</Link>,
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
     ],
   },
@@ -126,7 +157,8 @@ const menuItems = [
   {
     key: "reports",
     icon: <BarChartOutlined />,
-    label: "Reports",
+    label: "Reports & Analytics",
+    allowedRoles: ["ADMIN", "MANAGER"],
     children: [
       {
         key: "/reports/revenue",
@@ -136,6 +168,7 @@ const menuItems = [
             Revenue Report
           </Link>
         ),
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
       {
         key: "/reports/peak-hour",
@@ -145,6 +178,7 @@ const menuItems = [
             Peak Hour Report
           </Link>
         ),
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
       {
         key: "/reports/order-statistics",
@@ -154,6 +188,7 @@ const menuItems = [
             Order Statistics
           </Link>
         ),
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
       {
         key: "/reports/popular-food",
@@ -163,6 +198,7 @@ const menuItems = [
             Popular Food Report
           </Link>
         ),
+        allowedRoles: ["ADMIN", "MANAGER"],
       },
     ],
   },
@@ -172,11 +208,7 @@ const menuItems = [
     key: "/activity-logs",
     icon: <AuditOutlined />,
     label: <Link to="/activity-logs">Activity Logs</Link>,
-  },
-  {
-    key: "/ratings",
-    icon: <StarOutlined />,
-    label: <Link to="/ratings">Ratings</Link>,
+    allowedRoles: ["ADMIN", "MANAGER"],
   },
 ];
 
