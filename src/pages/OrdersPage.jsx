@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import { orderService } from "../features/orders/orderService";
 import menuScheduleApi from "../features/menuSchedules/api/menuScheduleApi";
 import {
@@ -93,9 +94,17 @@ export default function OrdersPage() {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [scanForm] = Form.useForm();
-  const videoRef = useRef(null);
-  const scanTimerRef = useRef(null);
-  const streamRef = useRef(null);
+  const isProcessingRef = useRef(false);
+  const [scanDisabled, setScanDisabled] = useState(false);
+  const scanDisabledRef = useRef(false);
+  const cameraActiveRef = useRef(false);
+  const scanOpenRef = useRef(false);
+  const lastScannedQrRef = useRef(null);
+  const [scannerKey, setScannerKey] = useState(0);
+  const scanCooldownRef = useRef(0);
+  const scanLockRef = useRef(false);
+  const html5QrCodeRef = useRef(null);
+  const isStoppingRef = useRef(false);
 
   const [foods, setFoods] = useState([]);
   const [foodsLoading, setFoodsLoading] = useState(false);
@@ -128,9 +137,134 @@ export default function OrdersPage() {
     fetchTodayMenuFoods();
   }, []);
 
+  // Sync refs with state values
+  useEffect(() => {
+    scanDisabledRef.current = scanDisabled;
+  }, [scanDisabled]);
+
+  useEffect(() => {
+    cameraActiveRef.current = cameraActive;
+  }, [cameraActive]);
+
+  useEffect(() => {
+    scanOpenRef.current = scanOpen;
+  }, [scanOpen]);
+
+  // Handle camera start/stop with Html5Qrcode
+  useEffect(() => {
+    if (cameraActive && !scanDisabled) {
+      const startScanner = async () => {
+        try {
+          setCameraLoading(true);
+          
+          console.log("Starting scanner initialization...");
+          
+          // Wait for DOM to be ready and element to be rendered
+          let retries = 0;
+          const maxRetries = 10;
+          let element = null;
+          
+          while (retries < maxRetries && !element) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            element = document.getElementById("qr-reader");
+            retries++;
+            console.log(`Attempt ${retries}: Element exists?`, !!element);
+          }
+          
+          if (!element) {
+            throw new Error("QR reader element not found in DOM after multiple attempts");
+          }
+          
+          console.log("Element found, clearing existing scanner...");
+          
+          // Clear any existing scanner instance
+          if (html5QrCodeRef.current) {
+            try {
+              await html5QrCodeRef.current.stop();
+              await html5QrCodeRef.current.clear();
+              console.log("Existing scanner cleared");
+            } catch (e) {
+              console.log("Clear error (expected):", e);
+            }
+          }
+          
+          console.log("Creating new Html5Qrcode...");
+          
+          const html5QrCode = new Html5Qrcode("qr-reader");
+          html5QrCodeRef.current = html5QrCode;
+          
+          console.log("Starting camera...");
+          
+          const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+          };
+          
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+              console.log("QR code scanned:", decodedText);
+              if (handleScanResultRef.current) {
+                handleScanResultRef.current(decodedText);
+              }
+            },
+            (errorMessage) => {
+              // Ignore common scanning errors
+              if (!errorMessage?.includes('NotFoundException') && 
+                  !errorMessage?.includes('IndexSizeError') &&
+                  !errorMessage?.includes('getImageData') &&
+                  !errorMessage?.includes('No QR code')) {
+                console.error("Scanning error:", errorMessage);
+              }
+            }
+          );
+          
+          console.log("Camera started successfully");
+        } catch (error) {
+          console.error("Failed to start scanner:", error);
+          notify.error("Camera Error", `Failed to start camera scanner: ${error.message}`);
+          setCameraActive(false);
+        } finally {
+          setCameraLoading(false);
+        }
+      };
+
+      startScanner();
+    }
+
+    return () => {
+      // Cleanup: only clear if scanner exists, don't stop to avoid race conditions
+      // onCancel handles the stop, this just ensures cleanup
+      if (html5QrCodeRef.current) {
+        try {
+          html5QrCodeRef.current.clear().then(() => {
+            html5QrCodeRef.current = null;
+            isStoppingRef.current = false;
+          }).catch(err => {
+            console.log("Cleanup clear error (expected):", err);
+            html5QrCodeRef.current = null;
+            isStoppingRef.current = false;
+          });
+        } catch (err) {
+          console.log("Cleanup error (expected):", err);
+          html5QrCodeRef.current = null;
+          isStoppingRef.current = false;
+        }
+      }
+    };
+  }, [cameraActive, scanDisabled]);
+
   useEffect(
     () => () => {
-      stopCameraScan();
+      // Cleanup when component unmounts
+      setCameraActive(false);
+      setScanDisabled(false);
+      isProcessingRef.current = false;
+      scanLockRef.current = false;
+      lastScannedQrRef.current = null;
+      scanCooldownRef.current = 0;
     },
     [],
   );
@@ -350,98 +484,158 @@ export default function OrdersPage() {
   };
 
   const handleScanPickupQr = async (values) => {
+    console.log("handleScanPickupQr called, values:", values);
+    
     try {
       setScanning(true);
+      isProcessingRef.current = true;
 
-      const qrPayload = values.qrPayload?.trim();
-      const payload = values.orderCode
-        ? { orderCode: values.orderCode }
-        : { qrPayload };
+      const qrPayload = typeof values.qrPayload === 'string' ? values.qrPayload.trim() : values.qrPayload;
+      console.log("qrPayload:", qrPayload, "type:", typeof qrPayload);
+      
+      let payload;
+      if (values.orderCode) {
+        // Manual input with orderCode field
+        payload = { orderCode: values.orderCode };
+        console.log("Using manual orderCode:", payload);
+      } else {
+        // Try to parse QR payload to determine if it's orderCode or JSON
+        try {
+          const parsed = JSON.parse(qrPayload);
+          // Only treat as JSON if it's an object (not a number or string)
+          if (typeof parsed === 'object' && parsed !== null) {
+            payload = { qrPayload };
+            console.log("Parsed as JSON object, sending qrPayload:", payload);
+          } else {
+            // It's a number or string after JSON.parse, treat as potential order code
+            console.log("Parsed as primitive type, checking if numeric:", /^\d+$/.test(qrPayload));
+            if (/^\d+$/.test(qrPayload)) {
+              payload = { orderCode: qrPayload };
+              console.log("Sending as orderCode:", payload);
+            } else {
+              payload = { qrPayload };
+              console.log("Sending as qrPayload (not numeric):", payload);
+            }
+          }
+        } catch {
+          // If it's not JSON, check if it's a numeric order code
+          console.log("Not JSON, checking if numeric:", /^\d+$/.test(qrPayload));
+          if (/^\d+$/.test(qrPayload)) {
+            // It's a numeric order code
+            payload = { orderCode: qrPayload };
+            console.log("Sending as orderCode:", payload);
+          } else {
+            // It's a string that's not JSON, send as qrPayload
+            payload = { qrPayload };
+            console.log("Sending as qrPayload (not numeric):", payload);
+          }
+        }
+      }
 
+      console.log("Final payload to send:", payload);
       const result = await orderService.scanPickupQr(payload);
+      console.log("Scan result:", result);
 
       notify.success(
         result.created ? "Pickup QR Scanned" : "Pickup QR Already Scanned",
         `Queue #${result.queue?.queueNumber || "-"} is ready for kitchen.`,
       );
 
-      stopCameraScan();
+      // Reset all states and refs before closing modal
+      setCameraActive(false);
+      setScanDisabled(false);
+      isProcessingRef.current = false;
+      scanLockRef.current = false;
+      lastScannedQrRef.current = null;
+      scanCooldownRef.current = 0;
+      setScannerKey(prev => prev + 1);
+      
       setScanOpen(false);
       scanForm.resetFields();
       await fetchOrders();
     } catch (error) {
+      console.error("Scan error:", error);
       notify.error("Pickup QR Scan Failed", error.message);
+      // Reset all states and refs on error
+      setScanDisabled(false);
+      isProcessingRef.current = false;
+      scanLockRef.current = false;
+      lastScannedQrRef.current = null;
+      scanCooldownRef.current = 0;
     } finally {
       setScanning(false);
     }
   };
 
-  const stopCameraScan = () => {
-    if (scanTimerRef.current) {
-      window.clearInterval(scanTimerRef.current);
-      scanTimerRef.current = null;
-    }
+  const handleScanResultRef = useRef(null);
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-
-    setCameraActive(false);
-    setCameraLoading(false);
-  };
-
-  const startCameraScan = async () => {
-    if (!("BarcodeDetector" in window)) {
-      notify.error(
-        "Camera Scan Not Supported",
-        "This browser does not support camera QR scanning. Paste the QR payload instead.",
-      );
+  const handleScanResult = useCallback((decodedText) => {
+    console.log("QR scanned:", decodedText);
+    
+    if (!decodedText || scanDisabledRef.current || !cameraActiveRef.current || !scanOpenRef.current) {
+      console.log("Scan blocked - disabled:", scanDisabledRef.current, "cameraActive:", cameraActiveRef.current, "scanOpen:", scanOpenRef.current);
       return;
     }
-
-    try {
-      setCameraLoading(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      streamRef.current = stream;
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-      setCameraActive(true);
-
-      scanTimerRef.current = window.setInterval(async () => {
-        if (!videoRef.current || videoRef.current.readyState < 2) return;
-
+    
+    // Prevent duplicate scans with cooldown
+    const now = Date.now();
+    if (lastScannedQrRef.current === decodedText && (now - scanCooldownRef.current) < 3000) {
+      console.log("Duplicate scan detected, cooldown active");
+      return;
+    }
+    
+    console.log("Processing QR code:", decodedText);
+    lastScannedQrRef.current = decodedText;
+    scanCooldownRef.current = Date.now();
+    setScanDisabled(true);
+    setCameraActive(false);
+    
+    // Stop scanner immediately to prevent further scans
+    if (html5QrCodeRef.current && !isStoppingRef.current) {
+      isStoppingRef.current = true;
+      
+      // Stop camera immediately but keep ref until cleanup completes
+      try {
+        html5QrCodeRef.current.stop().catch(() => {}).then(() => {
+          html5QrCodeRef.current.clear().catch(() => {}).then(() => {
+            html5QrCodeRef.current = null;
+            isStoppingRef.current = false;
+          });
+        });
+      } catch (e) {
         try {
-          const codes = await detector.detect(videoRef.current);
-          const value = codes[0]?.rawValue;
-          if (!value) return;
-
-          scanForm.setFieldsValue({ qrPayload: value });
-          stopCameraScan();
-          scanForm.submit();
-        } catch (error) {
-          // Keep scanning; transient frame decode errors are expected.
+          html5QrCodeRef.current.clear().catch(() => {}).then(() => {
+            html5QrCodeRef.current = null;
+            isStoppingRef.current = false;
+          });
+        } catch (e2) {
+          html5QrCodeRef.current = null;
+          isStoppingRef.current = false;
         }
-      }, 600);
-    } catch (error) {
-      notify.error(
-        "Camera Open Failed",
-        error.message || "Unable to access camera.",
-      );
-      stopCameraScan();
-    } finally {
-      setCameraLoading(false);
+      }
+    }
+    
+    // Close modal after successful scan
+    setTimeout(() => {
+      setScanOpen(false);
+    }, 500);
+    
+    // Set form value and submit
+    scanForm.setFieldsValue({ qrPayload: decodedText });
+    handleScanPickupQr({ qrPayload: decodedText });
+  }, [scanForm, handleScanPickupQr]);
+
+  // Update ref whenever handleScanResult changes
+  useEffect(() => {
+    handleScanResultRef.current = handleScanResult;
+  }, [handleScanResult]);
+
+  const handleScanError = (errorMessage) => {
+    // Only log serious errors, ignore "no code found" and camera initialization errors
+    if (!errorMessage?.includes('NotFoundException') && 
+        !errorMessage?.includes('IndexSizeError') &&
+        !errorMessage?.includes('getImageData')) {
+      console.error("Scanning error:", errorMessage);
     }
   };
 
@@ -871,8 +1065,35 @@ export default function OrdersPage() {
         title="Scan Pickup QR"
         open={scanOpen}
         confirmLoading={scanning}
-        onCancel={() => {
-          stopCameraScan();
+        onCancel={async () => {
+          // Force stop scanner immediately with proper error handling
+          try {
+            if (html5QrCodeRef.current) {
+              try {
+                await html5QrCodeRef.current.stop();
+              } catch (stopErr) {
+                console.log(" onCancel stop error (expected if already stopped):", stopErr);
+              }
+              try {
+                await html5QrCodeRef.current.clear();
+              } catch (clearErr) {
+                console.log(" onCancel clear error:", clearErr);
+              }
+              html5QrCodeRef.current = null;
+            }
+          } catch (err) {
+            console.log(" onCancel cleanup error:", err);
+          }
+          
+          // Reset all states and refs
+          setCameraActive(false);
+          setScanDisabled(false);
+          isProcessingRef.current = false;
+          scanLockRef.current = false;
+          lastScannedQrRef.current = null;
+          scanCooldownRef.current = 0;
+          isStoppingRef.current = false;
+          setScannerKey(prev => prev + 1);
           setScanOpen(false);
           scanForm.resetFields();
         }}
@@ -882,20 +1103,57 @@ export default function OrdersPage() {
           <Space>
             <Button
               icon={<QrcodeOutlined />}
-              loading={cameraLoading}
-              onClick={cameraActive ? stopCameraScan : startCameraScan}
+              onClick={async () => {
+                if (cameraActive) {
+                  // Force stop scanner when clicking Stop Camera
+                  try {
+                    if (html5QrCodeRef.current) {
+                      try {
+                        await html5QrCodeRef.current.stop();
+                      } catch (stopErr) {
+                        console.log("Stop Camera stop error:", stopErr);
+                      }
+                      try {
+                        await html5QrCodeRef.current.clear();
+                      } catch (clearErr) {
+                        console.log("Stop Camera clear error:", clearErr);
+                      }
+                      html5QrCodeRef.current = null;
+                    }
+                  } catch (err) {
+                    console.log("Stop Camera cleanup error:", err);
+                  }
+                }
+                setCameraActive(!cameraActive);
+              }}
             >
               {cameraActive ? "Stop Camera" : "Scan with Camera"}
             </Button>
           </Space>
+          
+          {cameraActive && !scanDisabled && (
+            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+              <div id="qr-reader" style={{ width: '100%' }}></div>
+            </div>
+          )}
+          
+          {!cameraActive && (
+            <div className="mt-3 text-sm text-slate-500">
+              <p>💡 <strong>Tips:</strong></p>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>Camera access requires HTTPS or localhost</li>
+                <li>Allow camera permission when prompted</li>
+                <li>Make sure no other app is using the camera</li>
+                <li>Hold QR code steady and at proper distance</li>
+                <li>Ensure good lighting and focus</li>
+                <li>Use manual input below if camera doesn't work</li>
+              </ul>
+            </div>
+          )}
+          
           {cameraActive && (
-            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-black">
-              <video
-                ref={videoRef}
-                muted
-                playsInline
-                className="h-64 w-full object-cover"
-              />
+            <div className="mt-3 text-xs text-slate-400">
+              <p>📷 Point camera at QR code. Hold steady at 10-20cm distance.</p>
             </div>
           )}
         </div>
@@ -914,7 +1172,7 @@ export default function OrdersPage() {
             <Input.TextArea
               autoFocus
               rows={4}
-              placeholder='Scan QR here, paste JSON/URL, or enter order code like "478969"'
+              placeholder='Scan QR here, paste JSON like {"type":"UNILIFE_PICKUP","orderId":"...","orderCode":"..."}, or enter order code like "478969"'
             />
           </Form.Item>
         </Form>
