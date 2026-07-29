@@ -43,19 +43,19 @@ const menuItems = [
       {
         key: "/food-categories",
         icon: <FolderOpenOutlined />,
-        label: <Link to="/food-categories">Food Categories</Link>,
+        label: <Link to="/food-categories">Food Category Management</Link>,
         allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
       {
         key: "/foods",
         icon: <CoffeeOutlined />,
-        label: <Link to="/foods">Foods</Link>,
+        label: <Link to="/foods">Food Management</Link>,
         allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
       {
         key: "/menu-schedules",
         icon: <CalendarOutlined />,
-        label: <Link to="/menu-schedules">Menu Schedules</Link>,
+        label: <Link to="/menu-schedules">Menu Schedule Management</Link>,
         allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
     ],
@@ -101,7 +101,7 @@ const menuItems = [
         icon: <TagsOutlined />,
         label: (
           <Link to="/ingredient-categories">
-            Ingredient Categories
+            Ingredient Category Management
           </Link>
         ),
         allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
@@ -109,13 +109,13 @@ const menuItems = [
       {
         key: "/ingredients",
         icon: <InboxOutlined />,
-        label: <Link to="/ingredients">Ingredients</Link>,
+        label: <Link to="/ingredients">Ingredient Management</Link>,
         allowedRoles: ["ADMIN", "MANAGER", "KITCHEN_STAFF"],
       },
       {
         key: "/suppliers",
         icon: <ShopOutlined />,
-        label: <Link to="/suppliers">Suppliers</Link>,
+        label: <Link to="/suppliers">Supplier Management</Link>,
         allowedRoles: ["ADMIN", "MANAGER"],
       },
       {
