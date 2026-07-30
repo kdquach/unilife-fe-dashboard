@@ -1,16 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  EditOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Avatar,
   Button,
   Card,
+  ConfigProvider,
   Descriptions,
   Drawer,
   Form,
@@ -19,17 +12,30 @@ import {
   Select,
   Space,
   Spin,
+  Switch,
   Table,
   Tag,
   Typography,
-  message,
-  Switch,
 } from "antd";
+import {
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import { roleColors, roleLabels } from "../constants/roles";
 import { useAuth } from "../features/auth/AuthContext";
-import { staffService } from "../features/staffs/staffService";
 import { formatDateTime, normalizePhone } from "../utils/format";
+
+// Hooks
+import { useStaffs } from "../features/staffs/hooks/useStaffs";
+
+// Services
+import { staffService } from "../features/staffs/staffService";
 
 const { Search } = Input;
 
@@ -50,67 +56,33 @@ const getStaffId = (staff) => staff?._id || staff?.id || staff?.userId;
 export default function StaffManagementPage() {
   const { user } = useAuth();
   const [form] = Form.useForm();
-  const [staffs, setStaffs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  
+  // Local state for modals and selection
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("edit");
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [changingRoleId, setChangingRoleId] = useState(null);
-  const [saving, setSaving] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     role: undefined,
     isActive: undefined,
   });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  const fetchStaffs = async (
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-    searchKeyword = keyword,
-    currentFilters = filters,
-  ) => {
-    setLoading(true);
+  // Custom hook
+  const { staffs, loading, saving, pagination, fetchStaffs, updateStaff, getStaffById } = useStaffs();
 
-    try {
-      const response = await staffService.getStaffs({
-        page,
-        limit: pageSize,
-        keyword: searchKeyword || undefined,
-        ...currentFilters,
-      });
-
-      setStaffs(response.data);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initial data fetch
   useEffect(() => {
-    fetchStaffs(1, pagination.pageSize);
+    fetchStaffs(1, 10, "", filters);
   }, []);
 
-  const stats = useMemo(() => {
-    const active = staffs.filter((staff) => staff.isActive).length;
-    return {
-      total: staffs.length,
-      active,
-      inactive: staffs.length - active,
-    };
-  }, [staffs]);
+  const stats = {
+    total: staffs.length,
+    active: staffs.filter((staff) => staff.isActive).length,
+    inactive: staffs.length - staffs.filter((staff) => staff.isActive).length,
+  };
 
   const roleChangeOptions = useMemo(() => {
     if (user?.role === "ADMIN") return STAFF_ROLE_OPTIONS;
@@ -152,10 +124,10 @@ export default function StaffManagementPage() {
     setDetailLoading(true);
 
     try {
-      const data = await staffService.getStaffById(getStaffId(staff));
+      const data = await getStaffById(getStaffId(staff));
       setSelectedStaff(data);
     } catch (error) {
-      message.error(error.message);
+      console.error(error.message);
     } finally {
       setDetailLoading(false);
     }
@@ -195,20 +167,15 @@ export default function StaffManagementPage() {
 
     try {
       const updatedStaff = await staffService.changeStaffRole(staffId, role);
-      message.success(`Updated role for ${updatedStaff.fullName}`);
+      console.log(`Updated role for ${updatedStaff.fullName}`);
 
       if (getStaffId(selectedStaff) === staffId) {
         setSelectedStaff(updatedStaff);
       }
 
-      await fetchStaffs(
-        pagination.current,
-        pagination.pageSize,
-        keyword,
-        filters,
-      );
+      await fetchStaffs(pagination.current, pagination.pageSize, keyword, filters);
     } catch (error) {
-      message.error(error.message);
+      console.error(error.message);
     } finally {
       setChangingRoleId(null);
     }
@@ -225,7 +192,6 @@ export default function StaffManagementPage() {
 
   const handleSubmitStaff = async () => {
     const values = await form.validateFields();
-    setSaving(true);
 
     try {
       const payload = {
@@ -236,9 +202,9 @@ export default function StaffManagementPage() {
       const savedStaff =
         formMode === "create"
           ? await staffService.createStaff(payload)
-          : await staffService.updateStaff(getStaffId(selectedStaff), payload);
+          : await updateStaff(getStaffId(selectedStaff), payload);
 
-      message.success(
+      console.log(
         formMode === "create"
           ? `Created ${savedStaff.fullName}`
           : `Updated ${savedStaff.fullName}`,
@@ -259,9 +225,7 @@ export default function StaffManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
-    } finally {
-      setSaving(false);
+      console.error(error.message);
     }
   };
 
@@ -340,180 +304,266 @@ export default function StaffManagementPage() {
   ];
 
   return (
-    <div>
-      <PageHeader
-        title="Staff Management"
-        description="View and manage staff accounts used by the UniLife operation team."
-        breadcrumbs={["Dashboard", "Staff Management"]}
-        extra={
-          <Space wrap>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={loading}
-              onClick={() =>
-                fetchStaffs(pagination.current, pagination.pageSize)
-              }
-            >
-              Refresh
-            </Button>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreateModal}
-            >
-              Create Staff
-            </Button>
-          </Space>
-        }
-      />
-
-      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="dashboard-card">
-          <Space size={16}>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unilife-soft text-xl text-unilife">
-              <TeamOutlined />
-            </div>
-            <div>
-              <div className="text-sm text-slate-500">Current page</div>
-              <div className="text-2xl font-bold text-slate-950">
-                {stats.total}
-              </div>
-            </div>
-          </Space>
-        </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Active on page</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">
-            {stats.active}
-          </div>
-        </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Inactive on page</div>
-          <div className="mt-1 text-2xl font-bold text-red-500">
-            {stats.inactive}
-          </div>
-        </Card>
-      </div>
-
-      <Card
-        className="dashboard-card"
-        title="Staffs"
-        extra={
-          <Space wrap>
-            <Search
-              allowClear
-              enterButton={<SearchOutlined />}
-              placeholder="Search name, email or phone..."
-              style={{ width: 280 }}
-              onSearch={(value) => {
-                setKeyword(value);
-                fetchStaffs(1, pagination.pageSize, value, filters);
-              }}
-            />
-            <Select
-              allowClear
-              placeholder="Role"
-              style={{ width: 170 }}
-              value={filters.role}
-              options={STAFF_ROLE_OPTIONS}
-              onChange={(value) => handleFilterChange("role", value)}
-            />
-            <Select
-              allowClear
-              placeholder="Status"
-              style={{ width: 140 }}
-              value={filters.isActive}
-              options={STATUS_OPTIONS}
-              onChange={(value) => handleFilterChange("isActive", value)}
-            />
-          </Space>
-        }
-      >
-        <Table
-          rowKey={getStaffId}
-          loading={loading}
-          dataSource={staffs}
-          columns={columns}
-          scroll={{ x: 950 }}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} staffs`,
-          }}
-          onChange={(pager) =>
-            fetchStaffs(pager.current, pager.pageSize, keyword, filters)
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: COLORS.orange,
+          colorLink: COLORS.blue,
+          colorSuccess: COLORS.green,
+          borderRadius: 10,
+        },
+      }}
+    >
+      <div>
+        <PageHeader
+          title="Staff Management"
+          description="View and manage staff accounts used by the UniLife operation team."
+          breadcrumbs={["Dashboard", "Staff Management"]}
+          extra={
+            <Space wrap>
+              <Button
+                icon={<ReloadOutlined />}
+                loading={loading}
+                onClick={() =>
+                  fetchStaffs(pagination.current, pagination.pageSize, keyword, filters)
+                }
+              >
+                Refresh
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreateModal}
+              >
+                Create Staff
+              </Button>
+            </Space>
           }
         />
-      </Card>
 
-      <Drawer
-        title="Staff Detail"
-        width={560}
-        open={detailOpen}
-        onClose={() => setDetailOpen(false)}
-      >
-        <Spin spinning={detailLoading}>
-          {selectedStaff && (
-            <>
-              <div className="mb-6 flex items-center gap-4 rounded-3xl bg-unilife-soft p-5">
-                <Avatar size={72} className="bg-unilife text-xl font-bold">
-                  {selectedStaff.fullName?.[0]}
-                </Avatar>
-                <div>
-                  <Typography.Title level={4} className="!mb-1">
-                    {selectedStaff.fullName}
-                  </Typography.Title>
-                  <Typography.Text className="text-slate-500">
-                    {selectedStaff.email}
-                  </Typography.Text>
-                  <div className="mt-2 flex gap-2">
-                    <Tag color={roleColors[selectedStaff.role]}>
-                      {roleLabels[selectedStaff.role]}
-                    </Tag>
-                    <Tag color={selectedStaff.isActive ? "green" : "red"}>
-                      {selectedStaff.isActive ? "Active" : "Inactive"}
-                    </Tag>
-                  </div>
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.orange}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Current page</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                  {stats.total}
                 </div>
               </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.orange}1a`,
+                  color: COLORS.orange,
+                  fontSize: 18,
+                }}
+              >
+                <TeamOutlined />
+              </div>
+            </div>
+          </Card>
 
-              <Descriptions bordered column={1}>
-                <Descriptions.Item label="Staff ID">
-                  {getStaffId(selectedStaff)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Full name">
-                  {selectedStaff.fullName}
-                </Descriptions.Item>
-                <Descriptions.Item label="Email">
-                  {selectedStaff.email}
-                </Descriptions.Item>
-                <Descriptions.Item label="Phone">
-                  {selectedStaff.phone || "-"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Role">
-                  {roleLabels[selectedStaff.role]}
-                </Descriptions.Item>
-                <Descriptions.Item label="Status">
-                  {selectedStaff.isActive ? "Active" : "Inactive"}
-                </Descriptions.Item>
-                <Descriptions.Item label="Created at">
-                  {formatDateTime(selectedStaff.createdAt)}
-                </Descriptions.Item>
-                <Descriptions.Item label="Updated at">
-                  {formatDateTime(selectedStaff.updatedAt)}
-                </Descriptions.Item>
-              </Descriptions>
-            </>
-          )}
-        </Spin>
-      </Drawer>
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.green}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Active on page</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                  {stats.active}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.green}1a`,
+                  color: COLORS.green,
+                  fontSize: 18,
+                }}
+              >
+                ✓
+              </div>
+            </div>
+          </Card>
 
-      <Modal
-        title={
-          formMode === "create" ? "Create Staff" : "Update Staff Information"
-        }
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.red}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Inactive on page</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                  {stats.inactive}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.red}1a`,
+                  color: COLORS.red,
+                  fontSize: 18,
+                }}
+              >
+                ✗
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <Card
+          title="Staffs"
+          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+          extra={
+            <Space wrap>
+              <Search
+                allowClear
+                enterButton={<SearchOutlined />}
+                placeholder="Search name, email or phone..."
+                style={{ width: 280 }}
+                onSearch={(value) => {
+                  setKeyword(value);
+                  fetchStaffs(1, pagination.pageSize, value, filters);
+                }}
+              />
+              <Select
+                allowClear
+                placeholder="Role"
+                style={{ width: 170 }}
+                value={filters.role}
+                options={STAFF_ROLE_OPTIONS}
+                onChange={(value) => handleFilterChange("role", value)}
+              />
+              <Select
+                allowClear
+                placeholder="Status"
+                style={{ width: 140 }}
+                value={filters.isActive}
+                options={STATUS_OPTIONS}
+                onChange={(value) => handleFilterChange("isActive", value)}
+              />
+            </Space>
+          }
+        >
+          <Table
+            rowKey={getStaffId}
+            loading={loading}
+            dataSource={staffs}
+            columns={columns}
+            scroll={{ x: 950 }}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showTotal: (total) => `${total} staffs`,
+            }}
+            onChange={(pager) =>
+              fetchStaffs(pager.current, pager.pageSize, keyword, filters)
+            }
+          />
+        </Card>
+
+        <Drawer
+          title="Staff Detail"
+          width={560}
+          open={detailOpen}
+          onClose={() => setDetailOpen(false)}
+        >
+          <Spin spinning={detailLoading}>
+            {selectedStaff && (
+              <>
+                <div className="mb-6 flex items-center gap-4 rounded-3xl bg-unilife-soft p-5">
+                  <Avatar size={72} className="bg-unilife text-xl font-bold">
+                    {selectedStaff.fullName?.[0]}
+                  </Avatar>
+                  <div>
+                    <Typography.Title level={4} className="!mb-1">
+                      {selectedStaff.fullName}
+                    </Typography.Title>
+                    <Typography.Text className="text-slate-500">
+                      {selectedStaff.email}
+                    </Typography.Text>
+                    <div className="mt-2 flex gap-2">
+                      <Tag color={roleColors[selectedStaff.role]}>
+                        {roleLabels[selectedStaff.role]}
+                      </Tag>
+                      <Tag color={selectedStaff.isActive ? "green" : "red"}>
+                        {selectedStaff.isActive ? "Active" : "Inactive"}
+                      </Tag>
+                    </div>
+                  </div>
+                </div>
+
+                <Descriptions bordered column={1}>
+                  <Descriptions.Item label="Staff ID">
+                    {getStaffId(selectedStaff)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Full name">
+                    {selectedStaff.fullName}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Email">
+                    {selectedStaff.email}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Phone">
+                    {selectedStaff.phone || "-"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Role">
+                    {roleLabels[selectedStaff.role]}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Status">
+                    {selectedStaff.isActive ? "Active" : "Inactive"}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Created at">
+                    {formatDateTime(selectedStaff.createdAt)}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Updated at">
+                    {formatDateTime(selectedStaff.updatedAt)}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
+          </Spin>
+        </Drawer>
+
+        <Modal
+          title={
+            formMode === "create" ? "Create Staff" : "Update Staff Information"
+          }
         open={formOpen}
         onCancel={() => setFormOpen(false)}
         onOk={handleSubmitStaff}
@@ -587,6 +637,7 @@ export default function StaffManagementPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+      </div>
+    </ConfigProvider>
   );
 }

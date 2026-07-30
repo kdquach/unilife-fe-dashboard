@@ -6,6 +6,7 @@ import {
   RiseOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
+import { COLORS } from "../../orders/utils/orderUtils.jsx";
 
 const formatMoney = (value = 0) =>
   new Intl.NumberFormat("vi-VN").format(value) + " ₫";
@@ -18,51 +19,59 @@ export default function RevenueSummaryCards({ summary }) {
       title: "Total Revenue",
       value: formatMoney(summary.totalRevenue),
       icon: <DollarCircleOutlined />,
-      color: "#16a34a",
+      color: COLORS.green,
+      borderColor: COLORS.green,
     },
     {
       title: "Total Orders",
       value: summary.totalOrders,
       icon: <ShoppingCartOutlined />,
-      color: "#2563eb",
+      color: COLORS.blue,
+      borderColor: COLORS.blue,
     },
     {
       title: "Average Order",
       value: formatMoney(summary.averageOrderValue),
       icon: <RiseOutlined />,
-      color: "#d97706",
+      color: COLORS.orange,
+      borderColor: COLORS.orange,
     },
   ];
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 mb-5">
       {cards.map((item) => (
-        <Card key={item.title} className="dashboard-card">
-          <div className="flex items-center gap-4">
+        <Card
+          key={item.title}
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${item.borderColor}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">{item.title}</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: item.color }}>
+                {item.value}
+              </div>
+            </div>
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
-                background: "#f1f5f9",
+                width: 40,
+                height: 40,
+                borderRadius: 10,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                background: `${item.color}1a`,
                 color: item.color,
-                fontSize: 24,
+                fontSize: 18,
               }}
             >
               {item.icon}
-            </div>
-
-            <div>
-              <div className="text-slate-500 text-sm">
-                {item.title}
-              </div>
-
-              <div className="text-2xl font-bold">
-                {item.value}
-              </div>
             </div>
           </div>
         </Card>

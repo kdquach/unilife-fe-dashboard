@@ -146,8 +146,8 @@ export default function PopularFoodReportPage() {
       />
 
       <Card
-        className="dashboard-card mb-5"
         title="Popular Food Report"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Select

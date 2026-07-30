@@ -174,8 +174,8 @@ export default function RevenueReportPage() {
       <RevenueSummaryCards summary={summary} />
 
       <Card
-        className="dashboard-card mb-5"
         title="Revenue Report"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Select
