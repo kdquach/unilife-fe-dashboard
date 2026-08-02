@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, Space, Button } from "antd";
 import { PlusOutlined, QrcodeOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import OrderFilters from "../features/orders/components/OrderFilters";
 import OrderSummaryCards from "../features/orders/components/OrderSummaryCards";
 import OrderTable from "../features/orders/components/OrderTable";
@@ -27,6 +28,7 @@ export default function OrdersPage() {
 
   const { orders, loading, pagination, fetchOrders } = useOrders();
 
+  // Initial data fetch
   useEffect(() => {
     fetchOrders(1, 10);
   }, []);
@@ -69,6 +71,10 @@ export default function OrdersPage() {
     fetchOrders();
   };
 
+  const openScanModal = () => {
+    setScanOpen(true);
+  };
+
   return (
     <div>
       <PageHeader
@@ -79,7 +85,8 @@ export default function OrdersPage() {
           <Space>
             <Button
               icon={<QrcodeOutlined />}
-              onClick={() => setScanOpen(true)}
+              style={{ color: COLORS.blue, borderColor: "#adc6ff" }}
+              onClick={openScanModal}
             >
               Scan Pickup QR
             </Button>
@@ -98,6 +105,7 @@ export default function OrdersPage() {
 
       <Card
         title="Orders"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <OrderFilters
             keyword={keyword}

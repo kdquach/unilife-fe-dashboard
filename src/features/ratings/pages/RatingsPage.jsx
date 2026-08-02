@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { Card } from 'antd';
 import PageHeader from '../../../components/PageHeader';
 import RatingsFilterBar from '../components/RatingsFilterBar';
 import RatingsTable from '../components/RatingsTable';
 import RatingDetailModal from '../components/RatingDetailModal';
+import RatingsSummaryCards from '../components/RatingsSummaryCards';
 import useRatings from '../hooks/useRatings';
 import useRatingDetail from '../hooks/useRatingDetail';
+import { COLORS } from '../../orders/utils/orderUtils.jsx';
 
 const RatingsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,18 +40,25 @@ const RatingsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div>
       <PageHeader 
         title="Customer Ratings" 
-        subtitle="Manage and respond to customer reviews for foods and orders."
+        description="Manage and respond to customer reviews for foods and orders."
+        breadcrumbs={["Dashboard", "Customer Ratings"]}
       />
       
-      <div className="flex flex-col w-full">
-        <RatingsFilterBar 
-          onFilterChange={handleFilterChange} 
-          loading={listLoading}
-        />
-        
+      <RatingsSummaryCards ratings={ratings} />
+
+      <Card
+        title="Ratings"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <RatingsFilterBar 
+            onFilterChange={handleFilterChange} 
+            loading={listLoading}
+          />
+        }
+      >
         <RatingsTable 
           data={ratings}
           loading={listLoading}
@@ -56,7 +66,7 @@ const RatingsPage = () => {
           onChange={handleTableChange}
           onViewDetail={handleViewDetail}
         />
-      </div>
+      </Card>
 
       <RatingDetailModal 
         isOpen={isModalOpen}

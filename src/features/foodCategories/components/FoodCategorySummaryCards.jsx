@@ -1,11 +1,17 @@
 import React from "react";
 import { Card } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
-import { COLORS } from "../orders/utils/orderUtils.jsx";
+import { COLORS } from "../../orders/utils/orderUtils.jsx";
 
-export default function FoodSummaryCards({ stats }) {
+/**
+ * Summary cards showing food category statistics
+ */
+export default function FoodCategorySummaryCards({ categories }) {
+  const active = categories.filter((category) => category.isActive).length;
+  const inactive = categories.length - active;
+
   return (
-    <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+    <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
       <Card
         className="dashboard-card"
         styles={{ body: { padding: "16px 18px" } }}
@@ -17,9 +23,9 @@ export default function FoodSummaryCards({ stats }) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-slate-500">Foods</div>
+            <div className="text-sm text-slate-500">Current page</div>
             <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
-              {stats.total}
+              {categories.length}
             </div>
           </div>
           <div
@@ -51,9 +57,9 @@ export default function FoodSummaryCards({ stats }) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-slate-500">Active on Page</div>
+            <div className="text-sm text-slate-500">Active on page</div>
             <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
-              {stats.active}
+              {active}
             </div>
           </div>
           <div
@@ -85,9 +91,9 @@ export default function FoodSummaryCards({ stats }) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-slate-500">Inactive on Page</div>
+            <div className="text-sm text-slate-500">Inactive on page</div>
             <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
-              {stats.inactive}
+              {inactive}
             </div>
           </div>
           <div
@@ -104,40 +110,6 @@ export default function FoodSummaryCards({ stats }) {
             }}
           >
             ✗
-          </div>
-        </div>
-      </Card>
-
-      <Card
-        className="dashboard-card"
-        styles={{ body: { padding: "16px 18px" } }}
-        style={{
-          borderRadius: 14,
-          borderTop: `3px solid ${COLORS.purple}`,
-          boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-slate-500">Menu Items on Page</div>
-            <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.purple }}>
-              {stats.menuItems}
-            </div>
-          </div>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: `${COLORS.purple}1a`,
-              color: COLORS.purple,
-              fontSize: 18,
-            }}
-          >
-            🍽️
           </div>
         </div>
       </Card>

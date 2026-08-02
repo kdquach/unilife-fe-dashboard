@@ -34,7 +34,16 @@ const TRANSACTION_TYPE_OPTIONS = [
   { label: "Stock In", value: "STOCK_IN" },
   { label: "Stock Out", value: "STOCK_OUT" },
   { label: "Stock Adjustment", value: "STOCK_ADJUSTMENT" },
+  { label: "Menu Usage", value: "MENU_USAGE" },
 ];
+
+const TRANSACTION_TYPE_LABELS = {
+  STOCK_IMPORT: "Stock Import",
+  STOCK_IN: "Stock In",
+  STOCK_OUT: "Stock Out",
+  STOCK_ADJUSTMENT: "Stock Adjustment",
+  MENU_USAGE: "Menu Usage",
+};
 
 const getRecordId = (record) =>
   record?._id || record?.id || record?.ingredientTransactionId;
@@ -60,10 +69,23 @@ const asNumber = (value) => {
 
 const getTypeColor = (type) => {
   if (type === "STOCK_IMPORT" || type === "STOCK_IN") return "green";
-  if (type === "STOCK_OUT") return "red";
+  if (type === "STOCK_OUT" || type === "MENU_USAGE") return "red";
   if (type === "STOCK_ADJUSTMENT") return "blue";
 
   return "default";
+};
+
+const getTypeLabel = (type) => TRANSACTION_TYPE_LABELS[type] || type || "TRANSACTION";
+
+const getMetadata = (record) =>
+  record?.metadata && typeof record.metadata === "object" ? record.metadata : {};
+
+const isMenuTransaction = (record) => {
+  const metadata = getMetadata(record);
+  return (
+    record?.transactionType === "MENU_USAGE" ||
+    metadata.source === "MENU_SCHEDULE_ITEM"
+  );
 };
 
 export default function InventoryTransactionHistoryPage() {
@@ -243,7 +265,7 @@ export default function InventoryTransactionHistoryPage() {
       width: 170,
       sorter: true,
       render: (value) => (
-        <Tag color={getTypeColor(value)}>{value || "TRANSACTION"}</Tag>
+        <Tag color={getTypeColor(value)}>{getTypeLabel(value)}</Tag>
       ),
     },
     {
@@ -309,6 +331,7 @@ export default function InventoryTransactionHistoryPage() {
   ];
 
   const detail = selectedTransaction;
+  const detailMetadata = getMetadata(detail);
 
   return (
     <div>
@@ -414,7 +437,7 @@ export default function InventoryTransactionHistoryPage() {
             </Descriptions.Item>
             <Descriptions.Item label="Type">
               <Tag color={getTypeColor(detail.transactionType)}>
-                {detail.transactionType || "TRANSACTION"}
+                {getTypeLabel(detail.transactionType)}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Ingredient">
@@ -445,6 +468,25 @@ export default function InventoryTransactionHistoryPage() {
             <Descriptions.Item label="Reference Type">
               {detail.referenceType || "-"}
             </Descriptions.Item>
+            {isMenuTransaction(detail) && (
+              <>
+                <Descriptions.Item label="Food">
+                  {detailMetadata.foodName || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Menu Date">
+                  {detailMetadata.menuDate
+                    ? formatDate(detailMetadata.menuDate)
+                    : "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Serving Count">
+                  {detailMetadata.servingCount ?? "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Quantity Per Serving">
+                  {detailMetadata.quantityPerServing ?? "-"}{" "}
+                  {detail.unit || detail.ingredientId?.unit || ""}
+                </Descriptions.Item>
+              </>
+            )}
             <Descriptions.Item label="Created At">
               {formatDateTime(detail.createdAt)}
             </Descriptions.Item>
