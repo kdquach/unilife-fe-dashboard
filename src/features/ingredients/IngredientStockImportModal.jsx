@@ -49,7 +49,6 @@ export default function IngredientStockImportModal({
       expiryDate: undefined,
       supplierId: undefined,
       unitPrice: undefined,
-      importCode: "",
       reason: "Stock import",
     });
   }, [form, ingredient, open]);
@@ -70,7 +69,6 @@ export default function IngredientStockImportModal({
       quantity: asNumber(values.quantity),
       expiryDate: values.expiryDate?.format("YYYY-MM-DD"),
       reason: values.reason.trim(),
-      importCode: values.importCode?.trim() || undefined,
     });
   };
 
@@ -176,16 +174,6 @@ export default function IngredientStockImportModal({
             precision={2}
             placeholder="Optional"
           />
-        </Form.Item>
-
-        <Form.Item
-          name="importCode"
-          label="Import Code"
-          rules={[
-            { max: 80, message: "Import code must be 80 characters or less" },
-          ]}
-        >
-          <Input placeholder="Invoice, receipt, or import reference" />
         </Form.Item>
 
         <Form.Item
