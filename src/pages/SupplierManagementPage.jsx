@@ -1,18 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  EyeOutlined,
-  LinkOutlined,
-  PhoneOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-  ShopOutlined,
-  TeamOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
 import {
   Button,
   Card,
@@ -26,12 +13,28 @@ import {
   Table,
   Tag,
   Tooltip,
-  message,
 } from "antd";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
+  LinkOutlined,
+  PhoneOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  ShopOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
-import SupplierFormModal from "../features/suppliers/SupplierFormModal";
-import { supplierService } from "../features/suppliers/supplierService";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import { formatDateTime } from "../utils/format";
+
+// Components
+import SupplierFormModal from "../features/suppliers/SupplierFormModal";
+
+// Hooks
+import { useSuppliers } from "../features/suppliers/hooks/useSuppliers";
 
 const statusOptions = [
   { label: "Active", value: "true" },
@@ -40,58 +43,34 @@ const statusOptions = [
 
 export default function SupplierManagementPage() {
   const navigate = useNavigate();
+  const { Search } = Input;
 
-  const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Local state for modals and selection
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(null);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({ isActive: undefined });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  const { Search } = Input;
+  // Custom hook
+  const {
+    suppliers,
+    loading,
+    saving,
+    deleting,
+    pagination,
+    fetchSuppliers,
+    createSupplier,
+    updateSupplier,
+    deleteSupplier,
+    getSupplierById,
+  } = useSuppliers();
 
-  const fetchSuppliers = async (
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-    searchKeyword = keyword,
-    currentFilters = filters,
-  ) => {
-    setLoading(true);
-
-    try {
-      const response = await supplierService.getSuppliers({
-        page,
-        limit: pageSize,
-        keyword: searchKeyword,
-        ...currentFilters,
-      });
-
-      setSuppliers(response.data);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initial data fetch
   useEffect(() => {
-    fetchSuppliers(1, pagination.pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchSuppliers(1, 10, "", filters);
   }, []);
 
   const stats = useMemo(() => {
@@ -111,10 +90,10 @@ export default function SupplierManagementPage() {
     setDetailLoading(true);
 
     try {
-      const data = await supplierService.getSupplierById(supplier._id);
+      const data = await getSupplierById(supplier._id);
       setSelectedSupplier(data);
     } catch (error) {
-      message.error(error.message);
+      console.error(error.message);
     } finally {
       setDetailLoading(false);
     }
@@ -133,15 +112,13 @@ export default function SupplierManagementPage() {
   };
 
   const handleSubmitSupplier = async (values) => {
-    setSaving(true);
-
     try {
       const saved =
         formMode === "create"
-          ? await supplierService.createSupplier(values)
-          : await supplierService.updateSupplier(selectedSupplier._id, values);
+          ? await createSupplier(values)
+          : await updateSupplier(selectedSupplier._id, values);
 
-      message.success(
+      console.log(
         formMode === "create" ? "Supplier created" : "Supplier updated",
       );
       setFormOpen(false);
@@ -157,18 +134,14 @@ export default function SupplierManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
-    } finally {
-      setSaving(false);
+      console.error(error.message);
     }
   };
 
   const handleDeleteSupplier = async (id) => {
-    setDeleting(id);
-
     try {
-      await supplierService.deleteSupplier(id);
-      message.success("Supplier deactivated successfully");
+      await deleteSupplier(id);
+      console.log("Supplier deactivated successfully");
 
       if (detailOpen && selectedSupplier?._id === id) {
         setDetailOpen(false);
@@ -184,9 +157,7 @@ export default function SupplierManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
-    } finally {
-      setDeleting(null);
+      console.error(error.message);
     }
   };
 
@@ -343,48 +314,120 @@ export default function SupplierManagementPage() {
         }
       />
 
-      {/* Stats */}
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="dashboard-card">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unilife-soft text-xl text-unilife">
-              <TeamOutlined />
-            </div>
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-slate-500">On this page</div>
-              <div className="text-2xl font-bold text-slate-950">
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
                 {suppliers.length}
               </div>
             </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
+            >
+              <ShopOutlined />
+            </div>
           </div>
         </Card>
 
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Active</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">
-            {stats.active}
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.green}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Active</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                {stats.active}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.green}1a`,
+                color: COLORS.green,
+                fontSize: 18,
+              }}
+            >
+              ✓
+            </div>
           </div>
         </Card>
 
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Inactive</div>
-          <div className="mt-1 text-2xl font-bold text-red-500">
-            {stats.inactive}
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.red}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Inactive</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                {stats.inactive}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.red}1a`,
+                color: COLORS.red,
+                fontSize: 18,
+              }}
+            >
+              ✗
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Table */}
       <Card
-        className="dashboard-card"
         title="Supplier List"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Search
               allowClear
               enterButton={<SearchOutlined />}
               placeholder="Search supplier..."
-              style={{ width: 260 }}
+              style={{ width: 280 }}
               onSearch={(value) => {
                 setKeyword(value);
                 fetchSuppliers(1, pagination.pageSize, value, filters);
@@ -418,7 +461,6 @@ export default function SupplierManagementPage() {
         />
       </Card>
 
-      {/* Detail Drawer */}
       <Drawer
         title="Supplier Details"
         placement="right"

@@ -1,28 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  AppstoreOutlined,
-  EditOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
-import {
-  Button,
-  Card,
-  Descriptions,
-  Drawer,
-  Input,
-  Select,
-  Space,
-  Spin,
-  Table,
-  Tag,
-} from "antd";
-import { notify } from "../utils/notify";
+import React, { useState, useEffect } from "react";
+import { Button, Card, Input, Select, Space } from "antd";
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
+
+// Components
+import FoodCategorySummaryCards from "../features/foodCategories/components/FoodCategorySummaryCards";
+import FoodCategoryTable from "../features/foodCategories/components/FoodCategoryTable";
+import FoodCategoryDetailDrawer from "../features/foodCategories/components/FoodCategoryDetailDrawer";
 import FoodCategoryFormModal from "../features/foodCategories/FoodCategoryFormModal";
-import { foodCategoryService } from "../features/foodCategories/foodCategoryService";
-import { formatDateTime } from "../utils/format";
+
+// Hooks
+import { useFoodCategories } from "../features/foodCategories/hooks/useFoodCategories";
+
+const { Search } = Input;
 
 const statusOptions = [
   { label: "Active", value: "true" },
@@ -30,117 +21,85 @@ const statusOptions = [
 ];
 
 export default function FoodCategoryManagementPage() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
+  // Local state for modals and selection
   const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
-  const [saving, setSaving] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({ isActive: undefined });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  const { Search } = Input;
+  // Custom hook
+  const {
+    categories,
+    loading,
+    saving,
+    pagination,
+    fetchCategories,
+    createCategory,
+    updateCategory,
+    getCategoryById,
+  } = useFoodCategories();
 
-  const fetchCategories = async (
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-    searchKeyword = keyword,
-    currentFilters = filters,
-  ) => {
-    setLoading(true);
-
-    try {
-      const response = await foodCategoryService.getFoodCategories({
-        page,
-        limit: pageSize,
-        keyword: searchKeyword,
-        ...currentFilters,
-      });
-
-      setCategories(response.data);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      notify.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initial data fetch
   useEffect(() => {
-    fetchCategories(1, pagination.pageSize);
+    fetchCategories(1, 10);
   }, []);
 
-  const stats = useMemo(() => {
-    const active = categories.filter((category) => category.isActive).length;
-    return { active, inactive: categories.length - active };
-  }, [categories]);
+  // Handlers
+  const handleSearch = (value) => {
+    setKeyword(value);
+    fetchCategories(1, pagination.pageSize, value, filters);
+  };
 
-  const handleStatusFilter = (value) => {
-    const newFilters = { ...filters, isActive: value };
+  const handleFilterChange = (key, value) => {
+    const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     fetchCategories(1, pagination.pageSize, keyword, newFilters);
   };
 
-  const openDetailDrawer = async (category) => {
+  const handlePaginationChange = (pager) => {
+    fetchCategories(pager.current, pager.pageSize, keyword, filters);
+  };
+
+  const handleViewDetail = async (category) => {
     setSelectedCategory(category);
     setDetailOpen(true);
     setDetailLoading(true);
 
     try {
-      const data = await foodCategoryService.getFoodCategoryById(category._id);
+      const data = await getCategoryById(category._id);
       setSelectedCategory(data);
     } catch (error) {
-      notify.error(error.message);
+      console.error(error);
     } finally {
       setDetailLoading(false);
     }
   };
 
-  const openCreateModal = () => {
-    setSelectedCategory(null);
-    setFormMode("create");
-    setFormOpen(true);
-  };
-
-  const openEditModal = (category) => {
+  const handleEdit = (category) => {
     setSelectedCategory(category);
     setFormMode("edit");
     setFormOpen(true);
   };
 
-  const handleSubmitCategory = async (values) => {
-    setSaving(true);
+  const handleCreate = () => {
+    setSelectedCategory(null);
+    setFormMode("create");
+    setFormOpen(true);
+  };
 
+  const handleSubmit = async (values) => {
     try {
-      const savedCategory =
-        formMode === "create"
-          ? await foodCategoryService.createFoodCategory(values)
-          : await foodCategoryService.updateFoodCategory(
-              selectedCategory._id,
-              values,
-            );
-
-      notify.success(
-        formMode === "create"
-          ? "Food category created"
-          : "Food category updated",
-      );
-      setFormOpen(false);
-
-      if (detailOpen && selectedCategory?._id === savedCategory._id) {
-        setSelectedCategory(savedCategory);
+      if (formMode === "create") {
+        await createCategory(values);
+      } else {
+        await updateCategory(selectedCategory._id, values);
       }
+
+      setFormOpen(false);
+      setSelectedCategory(null);
 
       await fetchCategories(
         formMode === "create" ? 1 : pagination.current,
@@ -149,62 +108,9 @@ export default function FoodCategoryManagementPage() {
         filters,
       );
     } catch (error) {
-      notify.error(error.message);
-    } finally {
-      setSaving(false);
+      console.error(error);
     }
   };
-
-  const columns = [
-    {
-      title: "Category",
-      dataIndex: "name",
-      render: (name, record) => (
-        <div>
-          <div className="font-semibold text-slate-900">{name}</div>
-          <div className="text-sm text-slate-500">
-            {record.description || "No description"}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: "Status",
-      dataIndex: "isActive",
-      width: 140,
-      render: (isActive) => (
-        <Tag color={isActive ? "green" : "red"}>
-          {isActive ? "Active" : "Inactive"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Created at",
-      dataIndex: "createdAt",
-      width: 180,
-      render: formatDateTime,
-    },
-    {
-      title: "Updated at",
-      dataIndex: "updatedAt",
-      width: 180,
-      render: formatDateTime,
-    },
-    {
-      title: "Actions",
-      fixed: "right",
-      width: 130,
-      render: (_, record) => (
-        <Space size={6}>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => openDetailDrawer(record)}
-          />
-          <Button icon={<EditOutlined />} onClick={() => openEditModal(record)} />
-        </Space>
-      ),
-    },
-  ];
 
   return (
     <div>
@@ -230,7 +136,7 @@ export default function FoodCategoryManagementPage() {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              onClick={openCreateModal}
+              onClick={handleCreate}
             >
               Create Category
             </Button>
@@ -238,109 +144,46 @@ export default function FoodCategoryManagementPage() {
         }
       />
 
-      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="dashboard-card">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unilife-soft text-xl text-unilife">
-              <AppstoreOutlined />
-            </div>
-            <div>
-              <div className="text-sm text-slate-500">Current page</div>
-              <div className="text-2xl font-bold text-slate-950">
-                {categories.length}
-              </div>
-            </div>
-          </div>
-        </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Active on page</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">
-            {stats.active}
-          </div>
-        </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Inactive on page</div>
-          <div className="mt-1 text-2xl font-bold text-red-500">
-            {stats.inactive}
-          </div>
-        </Card>
-      </div>
+      <FoodCategorySummaryCards categories={categories} />
 
       <Card
-        className="dashboard-card"
         title="Categories"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Search
               allowClear
+              enterButton={<SearchOutlined />}
               placeholder="Search category..."
               style={{ width: 260 }}
-              onSearch={(value) => {
-                setKeyword(value);
-                fetchCategories(1, pagination.pageSize, value, filters);
-              }}
+              onSearch={handleSearch}
             />
             <Select
               allowClear
               placeholder="Status"
               style={{ width: 150 }}
               options={statusOptions}
-              onChange={handleStatusFilter}
+              onChange={(value) => handleFilterChange("isActive", value)}
             />
           </Space>
         }
       >
-        <Table
-          rowKey="_id"
+        <FoodCategoryTable
+          categories={categories}
           loading={loading}
-          dataSource={categories}
-          columns={columns}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} categories`,
-            onChange: (page, pageSize) =>
-              fetchCategories(page, pageSize, keyword, filters),
-          }}
+          pagination={pagination}
+          onViewDetail={handleViewDetail}
+          onEdit={handleEdit}
+          onPaginationChange={handlePaginationChange}
         />
       </Card>
 
-      <Drawer
-        title="Food Category Details"
-        placement="right"
-        width={520}
+      <FoodCategoryDetailDrawer
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-      >
-        <Spin spinning={detailLoading}>
-          {selectedCategory && (
-            <Descriptions bordered column={1}>
-              <Descriptions.Item label="Name">
-                {selectedCategory.name}
-              </Descriptions.Item>
-              <Descriptions.Item label="Description">
-                {selectedCategory.description || "No description"}
-              </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={selectedCategory.isActive ? "green" : "red"}>
-                  {selectedCategory.isActive ? "Active" : "Inactive"}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Category ID">
-                {selectedCategory.foodCategoryId || selectedCategory._id}
-              </Descriptions.Item>
-              <Descriptions.Item label="Created at">
-                {formatDateTime(selectedCategory.createdAt)}
-              </Descriptions.Item>
-              <Descriptions.Item label="Updated at">
-                {formatDateTime(selectedCategory.updatedAt)}
-              </Descriptions.Item>
-            </Descriptions>
-          )}
-        </Spin>
-      </Drawer>
+        selectedCategory={selectedCategory}
+        loading={detailLoading}
+      />
 
       <FoodCategoryFormModal
         open={formOpen}
@@ -348,7 +191,7 @@ export default function FoodCategoryManagementPage() {
         initialValues={formMode === "edit" ? selectedCategory : null}
         loading={saving}
         onCancel={() => setFormOpen(false)}
-        onSubmit={handleSubmitCategory}
+        onSubmit={handleSubmit}
       />
     </div>
   );

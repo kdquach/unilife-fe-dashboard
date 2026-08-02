@@ -1,15 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Alert,
   Button,
   Card,
   Input,
+  message,
   Select,
   Space,
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
 import {
   DatabaseOutlined,
@@ -18,14 +17,23 @@ import {
   ImportOutlined,
   InboxOutlined,
   PlusOutlined,
+  SearchOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
+
+// Components
 import IngredientDetailDrawer from "../features/ingredients/IngredientDetailDrawer";
 import IngredientFormModal from "../features/ingredients/IngredientFormModal";
 import IngredientStockAdjustModal from "../features/ingredients/IngredientStockAdjustModal";
 import IngredientStockImportModal from "../features/ingredients/IngredientStockImportModal";
+
+// Hooks
+import { useIngredients } from "../features/ingredients/hooks/useIngredients";
+
+// Services
 import { ingredientService } from "../features/ingredients/ingredientService";
 import { ingredientCategoryService } from "../features/ingredientCategories/ingredientCategoryService";
 import { supplierService } from "../features/suppliers/supplierService";
@@ -52,10 +60,9 @@ const isLowStock = (record) => {
 };
 
 export default function IngredientManagementPage() {
-  const [ingredients, setIngredients] = useState([]);
+  // Local state for modals and selection
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [supplierLoading, setSupplierLoading] = useState(false);
   const [error, setError] = useState("");
@@ -69,17 +76,11 @@ export default function IngredientManagementPage() {
     sortBy: "createdAt",
     sortOrder: "desc",
   });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [editingIngredient, setEditingIngredient] = useState(null);
-  const [savingIngredient, setSavingIngredient] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importingStock, setImportingStock] = useState(false);
   const [importBatches, setImportBatches] = useState([]);
@@ -89,43 +90,8 @@ export default function IngredientManagementPage() {
   const [adjustBatches, setAdjustBatches] = useState([]);
   const [selectedIngredient, setSelectedIngredient] = useState(null);
 
-  const fetchIngredients = async ({
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-    searchKeyword = keyword,
-    nextFilters = filters,
-    nextSorter = sorter,
-  } = {}) => {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await ingredientService.getIngredients({
-        page,
-        limit: pageSize,
-        keyword: searchKeyword || undefined,
-        categoryId: nextFilters.categoryId,
-        isActive: nextFilters.isActive,
-        storageType: nextFilters.storageType,
-        sortBy: nextSorter.sortBy,
-        sortOrder: nextSorter.sortOrder,
-      });
-
-      setIngredients(Array.isArray(response.data) ? response.data : []);
-      setPagination({
-        current: response.pagination.page || page,
-        pageSize: response.pagination.limit || pageSize,
-        total: response.pagination.total || 0,
-      });
-    } catch (err) {
-      setIngredients([]);
-      setPagination((prev) => ({ ...prev, current: 1, total: 0 }));
-      setError(err.message || "Unable to load ingredients");
-      message.error(err.message || "Unable to load ingredients");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Custom hook
+  const { ingredients, loading, saving, pagination, fetchIngredients, createIngredient, updateIngredient, getIngredientById } = useIngredients();
 
   const fetchCategories = async () => {
     try {
@@ -166,33 +132,24 @@ export default function IngredientManagementPage() {
   };
 
   useEffect(() => {
-    fetchIngredients({ page: 1, pageSize: 10 });
+    fetchIngredients(1, 10, "", filters, sorter);
     fetchCategories();
     fetchSuppliers();
   }, []);
 
-  const stats = useMemo(() => {
-    const active = ingredients.filter((item) => item?.isActive).length;
-    const lowStock = ingredients.filter(isLowStock).length;
+  const stats = {
+    total: pagination.total || ingredients.length,
+    active: ingredients.filter((item) => item?.isActive).length,
+    inactive: ingredients.length - ingredients.filter((item) => item?.isActive).length,
+    lowStock: ingredients.filter(isLowStock).length,
+  };
 
-    return {
-      total: pagination.total || ingredients.length,
-      active,
-      inactive: ingredients.length - active,
-      lowStock,
-    };
-  }, [ingredients, pagination.total]);
+  const categoryOptions = categories.map((category) => ({
+    label: category.name || "Unnamed Category",
+    value: category._id || category.id,
+  })).filter((option) => option.value);
 
-  const categoryOptions = useMemo(
-    () =>
-      categories.map((category) => ({
-        label: category.name || "Unnamed Category",
-        value: category._id || category.id,
-      })).filter((option) => option.value),
-    [categories],
-  );
-
-  const storageTypeOptions = useMemo(() => {
+  const storageTypeOptions = (() => {
     const values = new Set(
       ingredients
         .map((item) => item?.storageType)
@@ -203,20 +160,12 @@ export default function IngredientManagementPage() {
       label: value,
       value,
     }));
-  }, [ingredients]);
+  })();
 
   const handleFilterChange = (key, value) => {
-    const nextFilters = {
-      ...filters,
-      [key]: value,
-    };
-
+    const nextFilters = { ...filters, [key]: value };
     setFilters(nextFilters);
-    fetchIngredients({
-      page: 1,
-      pageSize: pagination.pageSize,
-      nextFilters,
-    });
+    fetchIngredients(1, pagination.pageSize, keyword, nextFilters, sorter);
   };
 
   const handleTableChange = (nextPagination, _tableFilters, tableSorter) => {
@@ -226,11 +175,7 @@ export default function IngredientManagementPage() {
     };
 
     setSorter(nextSorter);
-    fetchIngredients({
-      page: nextPagination.current,
-      pageSize: nextPagination.pageSize,
-      nextSorter,
-    });
+    fetchIngredients(nextPagination.current, nextPagination.pageSize, keyword, filters, nextSorter);
   };
 
   const openDrawer = (record) => {
@@ -264,29 +209,19 @@ export default function IngredientManagementPage() {
   };
 
   const handleSubmitIngredient = async (values) => {
-    setSavingIngredient(true);
-
     try {
       if (formMode === "create") {
-        await ingredientService.createIngredient(values);
-        message.success("Ingredient created successfully");
+        await createIngredient(values);
       } else {
         const id = getRecordId(editingIngredient);
         if (!id) throw new Error("Ingredient ID is missing");
-
-        await ingredientService.updateIngredient(id, values);
-        message.success("Ingredient updated successfully");
+        await updateIngredient(id, values);
       }
 
       closeFormModal();
-      await fetchIngredients({
-        page: formMode === "create" ? 1 : pagination.current,
-        pageSize: pagination.pageSize,
-      });
+      await fetchIngredients(formMode === "create" ? 1 : pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
-      message.error(err.message || "Unable to save ingredient");
-    } finally {
-      setSavingIngredient(false);
+      console.error(err.message || "Unable to save ingredient");
     }
   };
 
@@ -348,7 +283,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(selectedIngredient);
 
     if (!id) {
-      message.warning("Ingredient ID is missing");
+      console.error("Ingredient ID is missing");
       return;
     }
 
@@ -364,14 +299,10 @@ export default function IngredientManagementPage() {
         referenceType: "STOCK_IMPORT",
       });
 
-      message.success("Stock import recorded and transaction history saved");
       closeImportModal();
-      await fetchIngredients({
-        page: pagination.current,
-        pageSize: pagination.pageSize,
-      });
+      await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
-      message.error(err.message || "Unable to record stock import");
+      console.error(err.message || "Unable to record stock import");
     } finally {
       setImportingStock(false);
     }
@@ -387,7 +318,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(selectedIngredient);
 
     if (!id) {
-      message.warning("Ingredient ID is missing");
+      console.error("Ingredient ID is missing");
       return;
     }
 
@@ -409,17 +340,10 @@ export default function IngredientManagementPage() {
         referenceType: "MANUAL_STOCK_ADJUSTMENT",
       });
 
-      message.success("Stock adjusted and transaction history saved");
       closeAdjustModal();
-      await fetchIngredients({
-        page: pagination.current,
-        pageSize: pagination.pageSize,
-      });
+      await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
-      message.error(
-        err.message ||
-          "Stock was not changed because transaction history could not be saved",
-      );
+      console.error(err.message || "Stock was not changed because transaction history could not be saved");
     } finally {
       setAdjusting(false);
     }
@@ -534,154 +458,249 @@ export default function IngredientManagementPage() {
         }
       />
 
-      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-        <Card className="dashboard-card">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unilife-soft text-xl text-unilife">
-              <DatabaseOutlined />
-            </div>
-            <div>
-              <div className="text-sm text-slate-500">Ingredients</div>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="text-sm text-slate-500">Active on Page</div>
-          <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-        </Card>
-
-        <Card>
-          <div className="text-sm text-slate-500">Inactive on Page</div>
-          <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
-        </Card>
-
-        <Card>
-          <div className="text-sm text-slate-500">Low Stock on Page</div>
-          <div className="text-2xl font-bold text-orange-600">
-            {stats.lowStock}
-          </div>
-        </Card>
-      </div>
-
-      <Card
-        title="Ingredients"
-        extra={
-          <Space wrap>
-            <Search
-              placeholder="Search ingredient..."
-              allowClear
-              style={{ width: 240 }}
-              onSearch={(value) => {
-                setKeyword(value);
-                fetchIngredients({
-                  page: 1,
-                  pageSize: pagination.pageSize,
-                  searchKeyword: value,
-                });
-              }}
-            />
-            <Select
-              allowClear
-              loading={categoryLoading}
-              placeholder="Category"
-              options={categoryOptions}
-              style={{ width: 180 }}
-              onChange={(value) => handleFilterChange("categoryId", value)}
-            />
-            <Select
-              allowClear
-              placeholder="Storage"
-              options={storageTypeOptions}
-              style={{ width: 150 }}
-              onChange={(value) => handleFilterChange("storageType", value)}
-            />
-            <Select
-              allowClear
-              placeholder="Status"
-              options={[
-                { label: "Active", value: true },
-                { label: "Inactive", value: false },
-              ]}
-              style={{ width: 130 }}
-              onChange={(value) => handleFilterChange("isActive", value)}
-            />
-          </Space>
-        }
-      >
-        {error && (
-          <Alert
-            className="mb-4"
-            type="error"
-            showIcon
-            message="Ingredients could not be loaded"
-            description={error}
-          />
-        )}
-
-        <Table
-          rowKey={(record) => getRecordId(record) || record.name}
-          loading={loading}
-          dataSource={ingredients}
-          columns={columns}
-          scroll={{ x: 1100 }}
-          locale={{
-            emptyText: (
-              <div className="py-8">
-                <InboxOutlined className="mb-3 text-4xl text-slate-300" />
-                <div>No ingredients found</div>
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.orange}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Ingredients</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                  {stats.total}
+                </div>
               </div>
-            ),
-          }}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} ingredients`,
-          }}
-          onChange={handleTableChange}
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.orange}1a`,
+                  color: COLORS.orange,
+                  fontSize: 18,
+                }}
+              >
+                <DatabaseOutlined />
+              </div>
+            </div>
+          </Card>
+
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.green}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Active on Page</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                  {stats.active}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.green}1a`,
+                  color: COLORS.green,
+                  fontSize: 18,
+                }}
+              >
+                ✓
+              </div>
+            </div>
+          </Card>
+
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.red}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Inactive on Page</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                  {stats.inactive}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.red}1a`,
+                  color: COLORS.red,
+                  fontSize: 18,
+                }}
+              >
+                ✗
+              </div>
+            </div>
+          </Card>
+
+          <Card
+            className="dashboard-card"
+            styles={{ body: { padding: "16px 18px" } }}
+            style={{
+              borderRadius: 14,
+              borderTop: `3px solid ${COLORS.orange}`,
+              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-500">Low Stock on Page</div>
+                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                  {stats.lowStock}
+                </div>
+              </div>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: `${COLORS.orange}1a`,
+                  color: COLORS.orange,
+                  fontSize: 18,
+                }}
+              >
+                <WarningOutlined />
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <Card
+          title="Ingredients"
+          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+          extra={
+            <Space wrap>
+              <Search
+                placeholder="Search ingredient..."
+                allowClear
+                enterButton={<SearchOutlined />}
+                style={{ width: 280 }}
+                onSearch={(value) => {
+                  setKeyword(value);
+                  fetchIngredients(1, pagination.pageSize, value, filters, sorter);
+                }}
+              />
+              <Select
+                allowClear
+                loading={categoryLoading}
+                placeholder="Category"
+                options={categoryOptions}
+                style={{ width: 180 }}
+                onChange={(value) => handleFilterChange("categoryId", value)}
+              />
+              <Select
+                allowClear
+                placeholder="Storage"
+                options={storageTypeOptions}
+                style={{ width: 150 }}
+                onChange={(value) => handleFilterChange("storageType", value)}
+              />
+              <Select
+                allowClear
+                placeholder="Status"
+                options={[
+                  { label: "Active", value: true },
+                  { label: "Inactive", value: false },
+                ]}
+                style={{ width: 130 }}
+                onChange={(value) => handleFilterChange("isActive", value)}
+              />
+            </Space>
+          }
+        >
+          <Table
+            rowKey={(record) => getRecordId(record) || record.name}
+            loading={loading}
+            dataSource={ingredients}
+            columns={columns}
+            scroll={{ x: 1100 }}
+            locale={{
+              emptyText: (
+                <div className="py-8">
+                  <InboxOutlined className="mb-3 text-4xl text-slate-300" />
+                  <div>No ingredients found</div>
+                </div>
+              ),
+            }}
+            pagination={{
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
+              showSizeChanger: true,
+              showTotal: (total) => `${total} ingredients`,
+            }}
+            onChange={handleTableChange}
+          />
+        </Card>
+
+        <IngredientDetailDrawer
+          open={drawerOpen}
+          ingredientId={selectedId}
+          onClose={() => setDrawerOpen(false)}
         />
-      </Card>
 
-      <IngredientDetailDrawer
-        open={drawerOpen}
-        ingredientId={selectedId}
-        onClose={() => setDrawerOpen(false)}
-      />
+        <IngredientFormModal
+          open={formModalOpen}
+          mode={formMode}
+          initialValues={editingIngredient}
+          categories={categories}
+          categoryLoading={categoryLoading}
+          loading={saving}
+          onCancel={closeFormModal}
+          onSubmit={handleSubmitIngredient}
+        />
 
-      <IngredientFormModal
-        open={formModalOpen}
-        mode={formMode}
-        initialValues={editingIngredient}
-        categories={categories}
-        categoryLoading={categoryLoading}
-        loading={savingIngredient}
-        onCancel={closeFormModal}
-        onSubmit={handleSubmitIngredient}
-      />
+        <IngredientStockImportModal
+          open={importModalOpen}
+          ingredient={selectedIngredient}
+          batches={importBatches}
+          suppliers={suppliers}
+          supplierLoading={supplierLoading || batchLoading}
+          loading={importingStock}
+          onCancel={closeImportModal}
+          onSubmit={handleRecordStockImport}
+        />
 
-      <IngredientStockImportModal
-        open={importModalOpen}
-        ingredient={selectedIngredient}
-        batches={importBatches}
-        suppliers={suppliers}
-        supplierLoading={supplierLoading || batchLoading}
-        loading={importingStock}
-        onCancel={closeImportModal}
-        onSubmit={handleRecordStockImport}
-      />
-
-      <IngredientStockAdjustModal
-        open={adjustModalOpen}
-        ingredient={selectedIngredient}
-        batches={adjustBatches}
-        batchLoading={batchLoading}
-        loading={adjusting}
-        onCancel={closeAdjustModal}
-        onSubmit={handleAdjustStock}
-      />
-    </div>
+        <IngredientStockAdjustModal
+          open={adjustModalOpen}
+          ingredient={selectedIngredient}
+          batches={adjustBatches}
+          batchLoading={batchLoading}
+          loading={adjusting}
+          onCancel={closeAdjustModal}
+          onSubmit={handleAdjustStock}
+        />
+      </div>
   );
 }
