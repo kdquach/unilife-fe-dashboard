@@ -261,13 +261,15 @@ export default function UserManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 140,
+      width: 80,
       render: (_, record) => (
         <Space>
-          <Button icon={<EyeOutlined />} onClick={() => openDrawer(record)} />
           <Button
             icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditModal(record);
+            }}
           />
         </Space>
       ),
@@ -281,13 +283,24 @@ export default function UserManagementPage() {
         description="Sprint 1 Admin function: view, search, filter, update role and activate/deactivate user accounts."
         breadcrumbs={["Dashboard", "User Management"]}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openCreateModal}
-          >
-            Create User
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchUsers(pagination.current, pagination.pageSize, keyword, filters)
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create User
+            </Button>
+          </Space>
         }
       />
 
@@ -445,6 +458,9 @@ export default function UserManagementPage() {
           loading={loading}
           dataSource={users}
           columns={columns}
+          onRow={(record) => ({
+            onClick: () => openDrawer(record),
+          })}
           scroll={{ x: 1050 }}
           pagination={{
             current: pagination.current,

@@ -17,6 +17,7 @@ import {
   ImportOutlined,
   InboxOutlined,
   PlusOutlined,
+  ReloadOutlined,
   SearchOutlined,
   WarningOutlined,
   CheckCircleOutlined,
@@ -450,13 +451,24 @@ export default function IngredientManagementPage() {
         description="Manage ingredients, details, filters, and stock adjustments"
         breadcrumbs={["Dashboard", "Ingredients"]}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openCreateModal}
-          >
-            Create Ingredient
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter)
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create Ingredient
+            </Button>
+          </Space>
         }
       />
 

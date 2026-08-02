@@ -72,12 +72,10 @@ export default function PopularFoodReportPage() {
 
       setFoods(response.foods);
     } catch (err) {
-      console.log(err);
-
-      notify.error(
-        "Cannot load popular food report."
-      );
-    } finally {
+  notify.error(
+    err.response?.data?.message || "Cannot load popular food report."
+  );
+} finally {
       setLoading(false);
     }
   };

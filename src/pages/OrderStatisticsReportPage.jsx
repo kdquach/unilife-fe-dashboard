@@ -63,10 +63,10 @@ export default function OrderStatisticsReportPage() {
 
       setStatistics(response.statistics);
     } catch (err) {
-      console.log(err);
-
-      notify.error("Cannot load order statistics report.");
-    } finally {
+  notify.error(
+    err.message || "Cannot load order statistics report."
+  );
+} finally {
       setLoading(false);
     }
   };

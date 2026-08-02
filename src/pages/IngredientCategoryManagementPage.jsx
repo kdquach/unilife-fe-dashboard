@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Table, Tag, Input, Button, Space } from "antd";
-import { PlusOutlined, AppstoreOutlined, SearchOutlined, CheckCircleOutlined, StopOutlined  } from "@ant-design/icons";
+import { PlusOutlined, AppstoreOutlined, SearchOutlined, CheckCircleOutlined, StopOutlined, ReloadOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
@@ -116,13 +116,24 @@ export default function IngredientCategoryManagementPage() {
         description="Manage ingredient categories"
         breadcrumbs={["Dashboard", "Ingredient Categories"]}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openCreateModal}
-          >
-            Create Category
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchCategories(pagination.current, pagination.pageSize, keyword)
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create Category
+            </Button>
+          </Space>
         }
       />
 

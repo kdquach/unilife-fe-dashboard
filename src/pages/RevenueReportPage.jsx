@@ -107,12 +107,10 @@ export default function RevenueReportPage() {
 
       setRevenue(response.revenue);
     } catch (err) {
-      console.log(err);
-
-      notify.error(
-        "Cannot load revenue report.",
-      );
-    } finally {
+  notify.error(
+    err.message || "Cannot load revenue report."
+  );
+} finally {
       setLoading(false);
     }
   };

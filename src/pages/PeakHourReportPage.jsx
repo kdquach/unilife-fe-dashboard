@@ -89,10 +89,10 @@ console.log(response.summary);
 
       setPeakHours(response.peakHours);
     } catch (err) {
-      console.log(err);
-
-      notify.error("Cannot load peak hour report");
-    } finally {
+  notify.error(
+    err.message || "Cannot load peak hour report."
+  );
+} finally {
       setLoading(false);
     }
   };

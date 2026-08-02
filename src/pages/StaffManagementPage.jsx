@@ -287,17 +287,16 @@ export default function StaffManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 130,
+      width: 80,
       render: (_, record) => (
         <Space size={6}>
           <Button
-            icon={<EyeOutlined />}
-            onClick={() => openDetailDrawer(record)}
-          />
-          <Button
             icon={<EditOutlined />}
             disabled={!canManageStaff(record)}
-            onClick={() => openUpdateModal(record)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openUpdateModal(record);
+            }}
           />
         </Space>
       ),
@@ -475,6 +474,9 @@ export default function StaffManagementPage() {
             loading={loading}
             dataSource={staffs}
             columns={columns}
+            onRow={(record) => ({
+              onClick: () => openDetailDrawer(record),
+            })}
             scroll={{ x: 950 }}
             pagination={{
               current: pagination.current,
