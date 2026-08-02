@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Card,
-  ConfigProvider,
   Col,
   Empty,
   Input,
@@ -122,25 +121,29 @@ export default function KitchenQueuePage() {
       {
         title: "Today's Queue",
         value: summary.total || 0,
-        color: "text-slate-900",
+        color: COLORS.orange,
+        borderColor: COLORS.orange,
         icon: <ShopOutlined />,
       },
       {
         title: "Serving",
         value: summary.serving || 0,
-        color: "text-blue-600",
+        color: COLORS.blue,
+        borderColor: COLORS.blue,
         icon: <FieldTimeOutlined />,
       },
       {
         title: "Waiting",
         value: summary.waiting || 0,
-        color: "text-orange-500",
+        color: COLORS.orange,
+        borderColor: COLORS.orange,
         icon: <ClockCircleOutlined />,
       },
       {
         title: "Done",
         value: summary.done || 0,
-        color: "text-green-600",
+        color: COLORS.green,
+        borderColor: COLORS.green,
         icon: <CheckCircleOutlined />,
       },
     ],
@@ -200,42 +203,32 @@ export default function KitchenQueuePage() {
   const servingOrder = getOrder(currentServing);
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Kitchen Queue"
-          description="Serve scanned orders in kitchen order. Paid orders only appear here after Counter Staff scans the QR."
-          breadcrumbs={["Dashboard", "Kitchen Queue"]}
-          extra={
-            <>
-              <Button
-                type="primary"
-                icon={<PhoneOutlined />}
-                onClick={handleCallNextNumber}
-                loading={callingNext}
-                disabled={!currentServing}
-              >
-                Call Next
-              </Button>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => fetchMonitorQueue(pagination.current, pagination.pageSize, keyword, filters)}
-                loading={loading}
-              >
-                Refresh
-              </Button>
-            </>
-          }
-        />
+    <div>
+      <PageHeader
+        title="Kitchen Queue"
+        description="Serve scanned orders in kitchen order. Paid orders only appear here after Counter Staff scans the QR."
+        breadcrumbs={["Dashboard", "Kitchen Queue"]}
+        extra={
+          <>
+            <Button
+              type="primary"
+              icon={<PhoneOutlined />}
+              onClick={handleCallNextNumber}
+              loading={callingNext}
+              disabled={!currentServing}
+            >
+              Call Next
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => fetchMonitorQueue(pagination.current, pagination.pageSize, keyword, filters)}
+              loading={loading}
+            >
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
         <Row gutter={[16, 16]} className="mb-6">
           {statusCards.map((item) => (
@@ -245,18 +238,32 @@ export default function KitchenQueuePage() {
                 styles={{ body: { padding: "16px 18px" } }}
                 style={{
                   borderRadius: 14,
-                  borderTop: `3px solid ${COLORS.orange}`,
+                  borderTop: `3px solid ${item.borderColor}`,
                   boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
                 }}
               >
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm text-slate-500">{item.title}</div>
-                    <div className={`mt-1 text-2xl font-bold ${item.color}`}>
+                    <div className="mt-1 text-2xl font-bold" style={{ color: item.color }}>
                       {item.value}
                     </div>
                   </div>
-                  <div className="text-2xl text-slate-300">{item.icon}</div>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: `${item.color}1a`,
+                      color: item.color,
+                      fontSize: 18,
+                    }}
+                  >
+                    {item.icon}
+                  </div>
                 </div>
               </Card>
             </Col>
@@ -335,12 +342,12 @@ export default function KitchenQueuePage() {
           title="Waiting Queue"
           style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
           extra={
-            <div className="flex flex-wrap items-center gap-3">
+            <Space wrap>
               <Search
                 placeholder="Search order code..."
                 allowClear
                 enterButton={<SearchOutlined />}
-                style={{ width: 260 }}
+                style={{ width: 280 }}
                 onSearch={handleSearch}
               />
 
@@ -354,7 +361,7 @@ export default function KitchenQueuePage() {
                   { label: "Online", value: false },
                 ]}
               />
-            </div>
+            </Space>
           }
         >
           <Table
@@ -374,6 +381,5 @@ export default function KitchenQueuePage() {
           />
         </Card>
       </div>
-    </ConfigProvider>
   );
 }

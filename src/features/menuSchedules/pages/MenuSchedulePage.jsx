@@ -6,7 +6,7 @@ import MenuScheduleCreateModal from '../components/MenuScheduleCreateModal';
 import PageHeader from '../../../components/PageHeader';
 import { COLORS } from '../../orders/utils/orderUtils.jsx';
 import { Button, Card, Select, DatePicker, Switch, Space } from 'antd';
-import { PlusOutlined, ReloadOutlined, CalendarOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, CalendarOutlined, CheckCircleOutlined, EditOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import useCreateMenuSchedule from '../hooks/useCreateMenuSchedule';
 
 const { RangePicker } = DatePicker;
@@ -153,7 +153,7 @@ const MenuSchedulePage = () => {
                 fontSize: 18,
               }}
             >
-              ✓
+              <CheckCircleOutlined />
             </div>
           </div>
         </Card>
@@ -187,7 +187,7 @@ const MenuSchedulePage = () => {
                 fontSize: 18,
               }}
             >
-              📝
+              <EditOutlined />
             </div>
           </div>
         </Card>
@@ -221,7 +221,7 @@ const MenuSchedulePage = () => {
                 fontSize: 18,
               }}
             >
-              ✗
+              <CloseCircleOutlined />
             </div>
           </div>
         </Card>
@@ -231,14 +231,13 @@ const MenuSchedulePage = () => {
         title="Menu Schedules"
         style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Space wrap>
             <Select
-              mode="multiple"
               allowClear
               placeholder="Status"
-              style={{ minWidth: 150 }}
-              value={filters.status}
-              onChange={(value) => applyFilters({ status: value })}
+              style={{ width: 140 }}
+              value={filters.status.length > 0 ? filters.status[0] : undefined}
+              onChange={(value) => applyFilters({ status: value ? [value] : [] })}
               options={[
                 { label: 'Draft', value: 'DRAFT' },
                 { label: 'Published', value: 'PUBLISHED' },
@@ -252,14 +251,6 @@ const MenuSchedulePage = () => {
               format="DD/MM/YYYY"
             />
 
-            <Space>
-              <Switch 
-                checked={filters.includeInactive} 
-                onChange={(checked) => applyFilters({ includeInactive: checked })} 
-              />
-              <span className="text-sm text-slate-500">Show Inactive</span>
-            </Space>
-
             <Button 
               icon={<ReloadOutlined />} 
               onClick={() => {
@@ -271,8 +262,10 @@ const MenuSchedulePage = () => {
                   includeInactive: undefined
                 });
               }}
-            />
-          </div>
+            >
+              Reset
+            </Button>
+          </Space>
         }
       >
         <MenuScheduleTable 

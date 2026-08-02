@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
-import { Layout, Menu } from "antd";
+import { Layout, Menu, ConfigProvider } from "antd";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../features/auth/AuthContext";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
 import logoLg from "../assets/logo-lg.png";
 import logoMd from "../assets/logo-md.png";
@@ -87,28 +88,62 @@ export default function DashboardSidebar({
       collapsedWidth={86}
       collapsed={collapsed}
       theme="light"
-      className="!fixed !left-0 !top-0 !z-40 h-screen overflow-auto border-r border-slate-100 !bg-white"
+      className="!fixed !left-0 !top-0 !z-40 h-screen overflow-auto !bg-white"
+      style={{
+        boxShadow: "2px 0 8px rgba(0, 0, 0, 0.04)",
+        borderRight: "1px solid #f0f0f0",
+      }}
     >
-      <div className="flex h-20 items-center justify-center border-b border-slate-100 px-4">
+      <div
+        className="flex items-center justify-center px-4"
+        style={{
+          height: 72,
+          borderBottom: "1px solid #f0f0f0",
+          background: "linear-gradient(135deg, #fff5f2 0%, #ffffff 100%)",
+        }}
+      >
         <img
           src={collapsed ? logoMd : logoLg}
           alt="UniLife"
-          className={
-            collapsed
-              ? "h-11 w-11 object-contain"
-              : "h-12 object-contain"
-          }
+          style={{
+            height: collapsed ? 40 : 48,
+            width: collapsed ? 40 : "auto",
+            objectFit: "contain",
+            transition: "all 0.3s ease",
+          }}
         />
       </div>
 
-      <div className="px-3 py-5">
-        <Menu
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          defaultOpenKeys={openKeys}
-          items={filteredMenuItems}
-          className="border-none"
-        />
+      <div className="px-3 py-4">
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: COLORS.orange,
+              borderRadius: 8,
+              controlHeight: 40,
+              fontSize: 14,
+            },
+            components: {
+              Menu: {
+                itemSelectedBg: `${COLORS.orange}1a`,
+                itemSelectedColor: COLORS.orange,
+                itemHoverBg: "#f5f5f5",
+                itemBorderRadius: 8,
+              },
+            },
+          }}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            defaultOpenKeys={openKeys}
+            items={filteredMenuItems}
+            className="border-none"
+            itemStyle={{
+              marginBottom: 4,
+            }}
+          />
+        </ConfigProvider>
       </div>
     </Sider>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, ConfigProvider, Input, Select, Space } from "antd";
-import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button, Card, Input, Select, Space } from "antd";
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
@@ -113,96 +113,86 @@ export default function FoodCategoryManagementPage() {
   };
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Food Categories"
-          description="Manage the category groups used to organize foods in UniLife."
-          breadcrumbs={["Dashboard", "Food Categories"]}
-          extra={
-            <Space wrap>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() =>
-                  fetchCategories(
-                    pagination.current,
-                    pagination.pageSize,
-                    keyword,
-                    filters,
-                  )
-                }
-              >
-                Refresh
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleCreate}
-              >
-                Create Category
-              </Button>
-            </Space>
-          }
+    <div>
+      <PageHeader
+        title="Food Categories"
+        description="Manage the category groups used to organize foods in UniLife."
+        breadcrumbs={["Dashboard", "Food Categories"]}
+        extra={
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() =>
+                fetchCategories(
+                  pagination.current,
+                  pagination.pageSize,
+                  keyword,
+                  filters,
+                )
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+            >
+              Create Category
+            </Button>
+          </Space>
+        }
+      />
+
+      <FoodCategorySummaryCards categories={categories} />
+
+      <Card
+        title="Categories"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <Space wrap>
+            <Search
+              allowClear
+              enterButton={<SearchOutlined />}
+              placeholder="Search category..."
+              style={{ width: 260 }}
+              onSearch={handleSearch}
+            />
+            <Select
+              allowClear
+              placeholder="Status"
+              style={{ width: 150 }}
+              options={statusOptions}
+              onChange={(value) => handleFilterChange("isActive", value)}
+            />
+          </Space>
+        }
+      >
+        <FoodCategoryTable
+          categories={categories}
+          loading={loading}
+          pagination={pagination}
+          onViewDetail={handleViewDetail}
+          onEdit={handleEdit}
+          onPaginationChange={handlePaginationChange}
         />
+      </Card>
 
-        <FoodCategorySummaryCards categories={categories} />
+      <FoodCategoryDetailDrawer
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        selectedCategory={selectedCategory}
+        loading={detailLoading}
+      />
 
-        <Card
-          title="Categories"
-          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
-          extra={
-            <Space wrap>
-              <Search
-                allowClear
-                placeholder="Search category..."
-                style={{ width: 260 }}
-                onSearch={handleSearch}
-              />
-              <Select
-                allowClear
-                placeholder="Status"
-                style={{ width: 150 }}
-                options={statusOptions}
-                onChange={(value) => handleFilterChange("isActive", value)}
-              />
-            </Space>
-          }
-        >
-          <FoodCategoryTable
-            categories={categories}
-            loading={loading}
-            pagination={pagination}
-            onViewDetail={handleViewDetail}
-            onEdit={handleEdit}
-            onPaginationChange={handlePaginationChange}
-          />
-        </Card>
-
-        <FoodCategoryDetailDrawer
-          open={detailOpen}
-          onClose={() => setDetailOpen(false)}
-          selectedCategory={selectedCategory}
-          loading={detailLoading}
-        />
-
-        <FoodCategoryFormModal
-          open={formOpen}
-          mode={formMode}
-          initialValues={formMode === "edit" ? selectedCategory : null}
-          loading={saving}
-          onCancel={() => setFormOpen(false)}
-          onSubmit={handleSubmit}
-        />
-      </div>
-    </ConfigProvider>
+      <FoodCategoryFormModal
+        open={formOpen}
+        mode={formMode}
+        initialValues={formMode === "edit" ? selectedCategory : null}
+        loading={saving}
+        onCancel={() => setFormOpen(false)}
+        onSubmit={handleSubmit}
+      />
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import React from "react";
-import { Input, Select } from "antd";
+import { Input, Select, Space } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 
 const { Search } = Input;
 
@@ -13,17 +14,12 @@ export default function OrderFilters({
   onFilterChange 
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        flexWrap: "wrap",
-      }}
-    >
+    <Space wrap>
       <Search
         placeholder="Search order code..."
         allowClear
-        style={{ width: 250 }}
+        enterButton={<SearchOutlined />}
+        style={{ width: 280 }}
         value={keyword}
         onSearch={onSearch}
         onChange={(e) => onSearch?.(e.target.value)}
@@ -83,6 +79,6 @@ export default function OrderFilters({
           { label: "Online", value: false },
         ]}
       />
-    </div>
+    </Space>
   );
 }

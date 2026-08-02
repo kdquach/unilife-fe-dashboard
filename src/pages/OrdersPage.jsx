@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, ConfigProvider, Button } from "antd";
+import { Card, Button } from "antd";
 import { PlusOutlined, QrcodeOutlined } from "@ant-design/icons";
 import { orderService } from "../features/orders/orderService";
 import PageHeader from "../components/PageHeader";
@@ -99,52 +99,42 @@ export default function OrdersPage() {
   };
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Order Management"
-          description="Manage customer orders, payment status and walk-in orders."
-          breadcrumbs={["Dashboard", "Order Management"]}
-          extra={
-            <>
-              <Button
-                icon={<QrcodeOutlined />}
-                style={{ color: COLORS.blue, borderColor: "#adc6ff" }}
-                onClick={openScanModal}
-              >
-                Scan Pickup QR
-              </Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
-                Create Walk-in Order
-              </Button>
-            </>
-          }
-        />
+    <div>
+      <PageHeader
+        title="Order Management"
+        description="Manage customer orders, payment status and walk-in orders."
+        breadcrumbs={["Dashboard", "Order Management"]}
+        extra={
+          <>
+            <Button
+              icon={<QrcodeOutlined />}
+              style={{ color: COLORS.blue, borderColor: "#adc6ff" }}
+              onClick={openScanModal}
+            >
+              Scan Pickup QR
+            </Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+              Create Walk-in Order
+            </Button>
+          </>
+        }
+      />
 
-        <OrderSummaryCards orders={orders} />
+      <OrderSummaryCards orders={orders} />
 
-        <Card
-          title="Orders"
-          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
-          extra={
-            <OrderFilters
-              keyword={keyword}
-              filters={filters}
-              onSearch={handleSearch}
-              onFilterChange={handleFilterChange}
-            />
-          }
-        >
-          <OrderTable
+      <Card
+        title="Orders"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <OrderFilters
+            keyword={keyword}
+            filters={filters}
+            onSearch={handleSearch}
+            onFilterChange={handleFilterChange}
+          />
+        }
+      >
+        <OrderTable
   orders={orders}
   loading={loading}
   pagination={pagination}
@@ -161,36 +151,35 @@ export default function OrdersPage() {
     )
   }
 />
-        </Card>
+      </Card>
 
-        <OrderDetailDrawer
-          open={detailOpen}
-          onClose={() => setDetailOpen(false)}
-          selectedOrder={selectedOrder}
-        />
+      <OrderDetailDrawer
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        selectedOrder={selectedOrder}
+      />
 
-        <WalkInOrderModal
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          foods={foods}
-          foodsLoading={foodsLoading}
-          onCreateOrder={handleCreateWalkIn}
-        />
+      <WalkInOrderModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        foods={foods}
+        foodsLoading={foodsLoading}
+        onCreateOrder={handleCreateWalkIn}
+      />
 
-        <ScanPickupQrModal
-          open={scanOpen}
-          onClose={() => {
-            closeScanModal();
-            setScanOpen(false);
-          }}
-          scanning={scanning}
-          cameraActive={cameraActive}
-          cameraLoading={cameraLoading}
-          scanDisabled={scanDisabled}
-          onToggleCamera={toggleCamera}
-          onScanSubmit={handleScanPickupQr}
-        />
-      </div>
-    </ConfigProvider>
+      <ScanPickupQrModal
+        open={scanOpen}
+        onClose={() => {
+          closeScanModal();
+          setScanOpen(false);
+        }}
+        scanning={scanning}
+        cameraActive={cameraActive}
+        cameraLoading={cameraLoading}
+        scanDisabled={scanDisabled}
+        onToggleCamera={toggleCamera}
+        onScanSubmit={handleScanPickupQr}
+      />
+    </div>
   );
 }

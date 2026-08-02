@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Card, ConfigProvider, Table, Tag, Input, Button, Space } from "antd";
-import { PlusOutlined, AppstoreOutlined } from "@ant-design/icons";
+import { Card, Table, Tag, Input, Button, Space } from "antd";
+import { PlusOutlined, AppstoreOutlined, SearchOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
@@ -110,179 +110,171 @@ export default function IngredientCategoryManagementPage() {
   ];
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Ingredient Categories"
-          description="Manage ingredient categories"
-          breadcrumbs={["Dashboard", "Ingredient Categories"]}
-          extra={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreateModal}
+    <div>
+      <PageHeader
+        title="Ingredient Categories"
+        description="Manage ingredient categories"
+        breadcrumbs={["Dashboard", "Ingredient Categories"]}
+        extra={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={openCreateModal}
+          >
+            Create Category
+          </Button>
+        }
+      />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Categories</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                {categories.length}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
             >
-              Create Category
-            </Button>
-          }
-        />
-
-        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.orange}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Categories</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
-                  {categories.length}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.orange}1a`,
-                  color: COLORS.orange,
-                  fontSize: 18,
-                }}
-              >
-                <AppstoreOutlined />
-              </div>
+              <AppstoreOutlined />
             </div>
-          </Card>
-
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.green}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Active</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
-                  {stats.active}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.green}1a`,
-                  color: COLORS.green,
-                  fontSize: 18,
-                }}
-              >
-                ✓
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.red}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Inactive</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
-                  {stats.inactive}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.red}1a`,
-                  color: COLORS.red,
-                  fontSize: 18,
-                }}
-              >
-                ✗
-              </div>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
         <Card
-          title="Ingredient Categories"
-          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
-          extra={
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.green}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Active</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                {stats.active}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.green}1a`,
+                color: COLORS.green,
+                fontSize: 18,
+              }}
+            >
+              ✓
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.red}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Inactive</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                {stats.inactive}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.red}1a`,
+                color: COLORS.red,
+                fontSize: 18,
+              }}
+            >
+              ✗
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card
+        title="Ingredient Categories"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <Space wrap>
             <Search
               placeholder="Search category..."
               allowClear
-              style={{ width: 250 }}
+              enterButton={<SearchOutlined />}
+              style={{ width: 260 }}
               onSearch={handleSearch}
             />
-          }
-        >
-          <Table
-            rowKey="_id"
-            loading={loading}
-            dataSource={categories}
-            columns={columns}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showTotal: (total) => `${total} categories`,
-              onChange: handlePaginationChange,
-            }}
-          />
-        </Card>
-
-        <IngredientCategoryDetailDrawer
-          open={drawerOpen}
-          categoryId={selectedId}
-          onClose={() => setDrawerOpen(false)}
+          </Space>
+        }
+      >
+        <Table
+          rowKey="_id"
+          loading={loading}
+          dataSource={categories}
+          columns={columns}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} categories`,
+            onChange: handlePaginationChange,
+          }}
         />
+      </Card>
 
-        <IngredientCategoryFormModal
-          open={modalOpen}
-          mode={modalMode}
-          initialValues={selectedCategory}
-          loading={saving}
-          onCancel={handleCloseModal}
-          onSubmit={handleSubmitCategory}
-        />
-      </div>
-    </ConfigProvider>
+      <IngredientCategoryDetailDrawer
+        open={drawerOpen}
+        categoryId={selectedId}
+        onClose={() => setDrawerOpen(false)}
+      />
+
+      <IngredientCategoryFormModal
+        open={modalOpen}
+        mode={modalMode}
+        initialValues={selectedCategory}
+        loading={saving}
+        onCancel={handleCloseModal}
+        onSubmit={handleSubmitCategory}
+      />
+    </div>
   );
 }

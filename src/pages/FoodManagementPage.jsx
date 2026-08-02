@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, ConfigProvider, Input, Select, Space } from "antd";
-import { PlusOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button, Card, Input, Select, Space } from "antd";
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
@@ -229,7 +229,8 @@ export default function FoodManagementPage() {
               <Search
                 placeholder="Search food..."
                 allowClear
-                style={{ width: 240 }}
+                enterButton={<SearchOutlined />}
+                style={{ width: 280 }}
                 onSearch={handleSearch}
               />
 

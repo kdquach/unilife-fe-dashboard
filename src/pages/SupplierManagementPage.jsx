@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Button,
   Card,
-  ConfigProvider,
   Descriptions,
   Drawer,
   Input,
@@ -284,220 +283,210 @@ export default function SupplierManagementPage() {
   ];
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Suppliers"
-          description="Manage ingredient and product suppliers for the UniLife cafeteria."
-          breadcrumbs={["Dashboard", "Suppliers"]}
-          extra={
-            <Space wrap>
+    <div>
+      <PageHeader
+        title="Suppliers"
+        description="Manage ingredient and product suppliers for the UniLife cafeteria."
+        breadcrumbs={["Dashboard", "Suppliers"]}
+        extra={
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() =>
+                fetchSuppliers(
+                  pagination.current,
+                  pagination.pageSize,
+                  keyword,
+                  filters,
+                )
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create Supplier
+            </Button>
+          </Space>
+        }
+      />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">On this page</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                {suppliers.length}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
+            >
+              <ShopOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.green}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Active</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                {stats.active}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.green}1a`,
+                color: COLORS.green,
+                fontSize: 18,
+              }}
+            >
+              ✓
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.red}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Inactive</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                {stats.inactive}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.red}1a`,
+                color: COLORS.red,
+                fontSize: 18,
+              }}
+            >
+              ✗
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card
+        title="Supplier List"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <Space wrap>
+            <Search
+              allowClear
+              enterButton={<SearchOutlined />}
+              placeholder="Search supplier..."
+              style={{ width: 280 }}
+              onSearch={(value) => {
+                setKeyword(value);
+                fetchSuppliers(1, pagination.pageSize, value, filters);
+              }}
+            />
+            <Select
+              allowClear
+              placeholder="Status"
+              style={{ width: 150 }}
+              options={statusOptions}
+              onChange={handleStatusFilter}
+            />
+          </Space>
+        }
+      >
+        <Table
+          rowKey="_id"
+          loading={loading}
+          dataSource={suppliers}
+          columns={columns}
+          scroll={{ x: 1100 }}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} suppliers`,
+            onChange: (page, pageSize) =>
+              fetchSuppliers(page, pageSize, keyword, filters),
+          }}
+        />
+      </Card>
+
+      <Drawer
+        title="Supplier Details"
+        placement="right"
+        width={520}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        extra={
+          selectedSupplier && (
+            <Space>
               <Button
-                icon={<ReloadOutlined />}
-                onClick={() =>
-                  fetchSuppliers(
-                    pagination.current,
-                    pagination.pageSize,
-                    keyword,
-                    filters,
-                  )
-                }
+                icon={<LinkOutlined />}
+                onClick={() => navigate(`/suppliers/${selectedSupplier._id}`)}
               >
-                Refresh
+                Full Detail
               </Button>
               <Button
                 type="primary"
-                icon={<PlusOutlined />}
-                onClick={openCreateModal}
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setDetailOpen(false);
+                  openEditModal(selectedSupplier);
+                }}
               >
-                Create Supplier
+                Edit
               </Button>
             </Space>
-          }
-        />
-
-        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.orange}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">On this page</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
-                  {suppliers.length}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.orange}1a`,
-                  color: COLORS.orange,
-                  fontSize: 18,
-                }}
-              >
-                <ShopOutlined />
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.green}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Active</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
-                  {stats.active}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.green}1a`,
-                  color: COLORS.green,
-                  fontSize: 18,
-                }}
-              >
-                ✓
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.red}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Inactive</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
-                  {stats.inactive}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.red}1a`,
-                  color: COLORS.red,
-                  fontSize: 18,
-                }}
-              >
-                ✗
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        <Card
-          title="Supplier List"
-          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
-          extra={
-            <Space wrap>
-              <Search
-                allowClear
-                enterButton={<SearchOutlined />}
-                placeholder="Search supplier..."
-                style={{ width: 260 }}
-                onSearch={(value) => {
-                  setKeyword(value);
-                  fetchSuppliers(1, pagination.pageSize, value, filters);
-                }}
-              />
-              <Select
-                allowClear
-                placeholder="Status"
-                style={{ width: 150 }}
-                options={statusOptions}
-                onChange={handleStatusFilter}
-              />
-            </Space>
-          }
-        >
-          <Table
-            rowKey="_id"
-            loading={loading}
-            dataSource={suppliers}
-            columns={columns}
-            scroll={{ x: 1100 }}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-              showSizeChanger: true,
-              showTotal: (total) => `${total} suppliers`,
-              onChange: (page, pageSize) =>
-                fetchSuppliers(page, pageSize, keyword, filters),
-            }}
-          />
-        </Card>
-
-        <Drawer
-          title="Supplier Details"
-          placement="right"
-          width={520}
-          open={detailOpen}
-          onClose={() => setDetailOpen(false)}
-          extra={
-            selectedSupplier && (
-              <Space>
-                <Button
-                  icon={<LinkOutlined />}
-                  onClick={() => navigate(`/suppliers/${selectedSupplier._id}`)}
-                >
-                  Full Detail
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    setDetailOpen(false);
-                    openEditModal(selectedSupplier);
-                  }}
-                >
-                  Edit
-                </Button>
-              </Space>
           )
         }
       >
@@ -572,7 +561,6 @@ export default function SupplierManagementPage() {
         onCancel={() => setFormOpen(false)}
         onSubmit={handleSubmitSupplier}
       />
-      </div>
-    </ConfigProvider>
+    </div>
   );
 }

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Button,
   Card,
-  ConfigProvider,
   Descriptions,
   Drawer,
   Image,
@@ -177,210 +176,200 @@ export default function KitchenFoodManagementPage() {
   ];
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Foods"
-          description="View foods available for kitchen preparation and daily service."
-          breadcrumbs={["Dashboard", "Foods"]}
-          extra={
-            <Button
-              icon={<ReloadOutlined />}
-              loading={loading}
-              onClick={() =>
-                fetchFoods(pagination.current, pagination.pageSize, keyword, filters)
-              }
+    <div>
+      <PageHeader
+        title="Foods"
+        description="View foods available for kitchen preparation and daily service."
+        breadcrumbs={["Dashboard", "Foods"]}
+        extra={
+          <Button
+            icon={<ReloadOutlined />}
+            loading={loading}
+            onClick={() =>
+              fetchFoods(pagination.current, pagination.pageSize, keyword, filters)
+            }
+          >
+            Refresh
+          </Button>
+        }
+      />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Current page</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                {stats.total}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
             >
-              Refresh
-            </Button>
-          }
-        />
-
-        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.orange}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Current page</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
-                  {stats.total}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.orange}1a`,
-                  color: COLORS.orange,
-                  fontSize: 18,
-                }}
-              >
-                <CoffeeOutlined />
-              </div>
+              <CoffeeOutlined />
             </div>
-          </Card>
-
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.blue}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Always available</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.blue }}>
-                  {stats.alwaysAvailable}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.blue}1a`,
-                  color: COLORS.blue,
-                  fontSize: 18,
-                }}
-              >
-                ∞
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            className="dashboard-card"
-            styles={{ body: { padding: "16px 18px" } }}
-            style={{
-              borderRadius: 14,
-              borderTop: `3px solid ${COLORS.purple}`,
-              boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-500">Menu items</div>
-                <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.purple }}>
-                  {stats.menuItems}
-                </div>
-              </div>
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: `${COLORS.purple}1a`,
-                  color: COLORS.purple,
-                  fontSize: 18,
-                }}
-              >
-                ◆
-              </div>
-            </div>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
         <Card
-          title="Foods"
-          style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
-          extra={
-            <Space wrap>
-              <Search
-                allowClear
-                enterButton={<SearchOutlined />}
-                placeholder="Search food..."
-                style={{ width: 280 }}
-                onSearch={(value) => {
-                  setKeyword(value);
-                  fetchFoods(1, pagination.pageSize, value, filters);
-                }}
-              />
-              <Select
-                allowClear
-                placeholder="Category"
-                style={{ width: 180 }}
-                value={filters.categoryId}
-                options={filterOptions.categories.map((category) => ({
-                  value: category.categoryId,
-                  label: category.name || "Uncategorized",
-                }))}
-                onChange={(value) => handleFilterChange("categoryId", value)}
-              />
-              <Select
-                allowClear
-                placeholder="Type"
-                style={{ width: 180 }}
-                value={filters.kind}
-                options={[
-                  { label: "Always Available", value: "alwaysAvailable" },
-                  { label: "Menu Item", value: "menuItem" },
-                ].filter((option) =>
-                  filterOptions.kindOptions.length
-                    ? filterOptions.kindOptions.includes(option.value)
-                    : true,
-                )}
-                onChange={(value) => handleFilterChange("kind", value)}
-              />
-              <InputNumber
-                min={0}
-                placeholder="Min price"
-                style={{ width: 130 }}
-                value={filters.minPrice}
-                onChange={(value) => handleFilterChange("minPrice", value)}
-              />
-              <InputNumber
-                min={0}
-                placeholder="Max price"
-                style={{ width: 130 }}
-                value={filters.maxPrice}
-                onChange={(value) => handleFilterChange("maxPrice", value)}
-              />
-              <Button onClick={resetFilters}>Reset Filters</Button>
-            </Space>
-          }
-        >
-          <Table
-            rowKey="_id"
-            loading={loading}
-            columns={columns}
-            dataSource={foods}
-            scroll={{ x: 950 }}
-            pagination={{
-              current: pagination.current,
-              pageSize: pagination.pageSize,
-              total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} foods`,
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.blue}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
           }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Always available</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.blue }}>
+                {stats.alwaysAvailable}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.blue}1a`,
+                color: COLORS.blue,
+                fontSize: 18,
+              }}
+            >
+              ∞
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.purple}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Menu items</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.purple }}>
+                {stats.menuItems}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.purple}1a`,
+                color: COLORS.purple,
+                fontSize: 18,
+              }}
+            >
+              ◆
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card
+        title="Foods"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <Space wrap>
+            <Search
+              allowClear
+              enterButton={<SearchOutlined />}
+              placeholder="Search food..."
+              style={{ width: 280 }}
+              onSearch={(value) => {
+                setKeyword(value);
+                fetchFoods(1, pagination.pageSize, value, filters);
+              }}
+            />
+            <Select
+              allowClear
+              placeholder="Category"
+              style={{ width: 180 }}
+              value={filters.categoryId}
+              options={filterOptions.categories.map((category) => ({
+                value: category.categoryId,
+                label: category.name || "Uncategorized",
+              }))}
+              onChange={(value) => handleFilterChange("categoryId", value)}
+            />
+            <Select
+              allowClear
+              placeholder="Type"
+              style={{ width: 180 }}
+              value={filters.kind}
+              options={[
+                { label: "Always Available", value: "alwaysAvailable" },
+                { label: "Menu Item", value: "menuItem" },
+              ].filter((option) =>
+                filterOptions.kindOptions.length
+                  ? filterOptions.kindOptions.includes(option.value)
+                  : true,
+              )}
+              onChange={(value) => handleFilterChange("kind", value)}
+            />
+            <InputNumber
+              min={0}
+              placeholder="Min price"
+              style={{ width: 130 }}
+              value={filters.minPrice}
+              onChange={(value) => handleFilterChange("minPrice", value)}
+            />
+            <InputNumber
+              min={0}
+              placeholder="Max price"
+              style={{ width: 130 }}
+              value={filters.maxPrice}
+              onChange={(value) => handleFilterChange("maxPrice", value)}
+            />
+            <Button onClick={resetFilters}>Reset Filters</Button>
+          </Space>
+        }
+      >
+        <Table
+          rowKey="_id"
+          loading={loading}
+          columns={columns}
+          dataSource={foods}
+          scroll={{ x: 950 }}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+          showSizeChanger: true,
+          showTotal: (total) => `${total} foods`,
+        }}
           onChange={(pager) =>
             fetchFoods(pager.current, pager.pageSize, keyword, filters)
           }
@@ -440,7 +429,6 @@ export default function KitchenFoodManagementPage() {
           )}
         </Spin>
       </Drawer>
-      </div>
-    </ConfigProvider>
+    </div>
   );
 }

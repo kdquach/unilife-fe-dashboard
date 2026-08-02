@@ -3,7 +3,6 @@ import {
   Avatar,
   Button,
   Card,
-  ConfigProvider,
   Descriptions,
   Drawer,
   Form,
@@ -304,42 +303,32 @@ export default function StaffManagementPage() {
   ];
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: COLORS.orange,
-          colorLink: COLORS.blue,
-          colorSuccess: COLORS.green,
-          borderRadius: 10,
-        },
-      }}
-    >
-      <div>
-        <PageHeader
-          title="Staff Management"
-          description="View and manage staff accounts used by the UniLife operation team."
-          breadcrumbs={["Dashboard", "Staff Management"]}
-          extra={
-            <Space wrap>
-              <Button
-                icon={<ReloadOutlined />}
-                loading={loading}
-                onClick={() =>
-                  fetchStaffs(pagination.current, pagination.pageSize, keyword, filters)
-                }
-              >
-                Refresh
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={openCreateModal}
-              >
-                Create Staff
-              </Button>
-            </Space>
-          }
-        />
+    <div>
+      <PageHeader
+        title="Staff Management"
+        description="View and manage staff accounts used by the UniLife operation team."
+        breadcrumbs={["Dashboard", "Staff Management"]}
+        extra={
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchStaffs(pagination.current, pagination.pageSize, keyword, filters)
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create Staff
+            </Button>
+          </Space>
+        }
+      />
 
         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
           <Card
@@ -638,6 +627,5 @@ export default function StaffManagementPage() {
         </Form>
       </Modal>
       </div>
-    </ConfigProvider>
   );
 }

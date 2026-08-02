@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Button,
   Card,
-  ConfigProvider,
   Input,
   message,
   Select,
@@ -18,6 +17,7 @@ import {
   ImportOutlined,
   InboxOutlined,
   PlusOutlined,
+  SearchOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 
@@ -605,7 +605,8 @@ export default function IngredientManagementPage() {
               <Search
                 placeholder="Search ingredient..."
                 allowClear
-                style={{ width: 240 }}
+                enterButton={<SearchOutlined />}
+                style={{ width: 280 }}
                 onSearch={(value) => {
                   setKeyword(value);
                   fetchIngredients(1, pagination.pageSize, value, filters, sorter);
