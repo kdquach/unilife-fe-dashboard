@@ -13,9 +13,9 @@ import { COLORS } from "../../orders/utils/orderUtils.jsx";
  */
 export default function RatingsSummaryCards({ ratings }) {
   const total = ratings.length;
-  const fiveStars = ratings.filter((r) => r.rating === 5).length;
-  const fourStars = ratings.filter((r) => r.rating === 4).length;
-  const oneToThreeStars = ratings.filter((r) => r.rating >= 1 && r.rating <= 3).length;
+  const fiveStars = ratings.filter((r) => r.stars === 5).length;
+  const fourStars = ratings.filter((r) => r.stars === 4).length;
+  const oneToThreeStars = ratings.filter((r) => r.stars >= 1 && r.stars <= 3).length;
 
   return (
     <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Card } from 'antd';
+import { Card, Button, Space } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import PageHeader from '../../../components/PageHeader';
 import RatingsFilterBar from '../components/RatingsFilterBar';
 import RatingsTable from '../components/RatingsTable';
@@ -45,6 +46,17 @@ const RatingsPage = () => {
         title="Customer Ratings" 
         description="Manage and respond to customer reviews for foods and orders."
         breadcrumbs={["Dashboard", "Customer Ratings"]}
+        extra={
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={listLoading}
+              onClick={refresh}
+            >
+              Refresh
+            </Button>
+          </Space>
+        }
       />
       
       <RatingsSummaryCards ratings={ratings} />

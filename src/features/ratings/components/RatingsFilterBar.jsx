@@ -1,6 +1,6 @@
 import React from 'react';
-import { Space, Input, Select, Button } from 'antd';
-import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
+import { Space, Input, Select } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 
 const { Search } = Input;
 
@@ -17,27 +17,15 @@ const RatingsFilterBar = ({ onFilterChange, loading }) => {
     });
   };
 
-  const handleReset = () => {
-    setKeyword('');
-    setType(null);
-    setHasReply(null);
-    onFilterChange({
-      keyword: undefined,
-      type: undefined,
-      hasReply: undefined,
-    });
-  };
-
   return (
     <Space wrap>
       <Search
         placeholder="Search by keyword..."
-        value={keyword}
-        onChange={(e) => setKeyword(e.target.value)}
-        onSearch={handleSearch}
         allowClear
         enterButton={<SearchOutlined />}
         style={{ width: 280 }}
+        onSearch={handleSearch}
+        onChange={(e) => setKeyword(e.target.value)}
       />
       
       <Select
@@ -45,6 +33,10 @@ const RatingsFilterBar = ({ onFilterChange, loading }) => {
         value={type}
         onChange={(value) => {
           setType(value);
+          handleSearch();
+        }}
+        onClear={() => {
+          setType(null);
           handleSearch();
         }}
         style={{ width: 150 }}
@@ -64,6 +56,10 @@ const RatingsFilterBar = ({ onFilterChange, loading }) => {
           setHasReply(value);
           handleSearch();
         }}
+        onClear={() => {
+          setHasReply(null);
+          handleSearch();
+        }}
         style={{ width: 150 }}
         allowClear
         options={[
@@ -71,14 +67,6 @@ const RatingsFilterBar = ({ onFilterChange, loading }) => {
           { label: 'Not Replied', value: false },
         ]}
       />
-
-      <Button 
-        icon={<ClearOutlined />} 
-        onClick={handleReset}
-        disabled={loading}
-      >
-        Reset
-      </Button>
     </Space>
   );
 };
