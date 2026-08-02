@@ -41,6 +41,8 @@ export default function SupplierFormModal({
       confirmLoading={loading}
       destroyOnClose
       width={540}
+      centered
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       <Form form={form} layout="vertical" className="pt-4">
         <Form.Item

@@ -167,15 +167,16 @@ export default function SupplierManagementPage() {
     {
       title: "Supplier",
       dataIndex: "name",
+      width: 250,
       render: (name, record) => (
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-unilife-soft text-unilife">
             <ShopOutlined />
           </div>
-          <div>
-            <div className="font-semibold text-slate-900">{name}</div>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-slate-900 truncate">{name}</div>
             {record.address && (
-              <div className="max-w-xs truncate text-xs text-slate-400">
+              <div className="truncate text-xs text-slate-400">
                 {record.address}
               </div>
             )}
@@ -186,19 +187,19 @@ export default function SupplierManagementPage() {
     {
       title: "Contact",
       dataIndex: "contactName",
-      width: 180,
+      width: 200,
       render: (contactName, record) => (
-        <div>
+        <div className="min-w-0">
           {contactName ? (
-            <div className="flex items-center gap-1.5 text-sm text-slate-700">
-              <UserOutlined className="text-slate-400" />
-              {contactName}
+            <div className="flex items-center gap-1.5 text-sm text-slate-700 truncate">
+              <UserOutlined className="flex-shrink-0 text-slate-400" />
+              <span className="truncate">{contactName}</span>
             </div>
           ) : null}
           {record.phone ? (
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <PhoneOutlined />
-              {record.phone}
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 truncate">
+              <PhoneOutlined className="flex-shrink-0" />
+              <span className="truncate">{record.phone}</span>
             </div>
           ) : null}
           {!contactName && !record.phone && (
@@ -210,13 +211,11 @@ export default function SupplierManagementPage() {
     {
       title: "Note",
       dataIndex: "note",
-      width: 300,
+      width: 200,
+      ellipsis: true,
       render: (note) =>
         note ? (
-          <span
-            className="block max-w-[180px] truncate text-sm text-slate-600"
-            title={note}
-          >
+          <span className="text-sm text-slate-600" title={note}>
             {note}
           </span>
         ) : (
@@ -226,7 +225,7 @@ export default function SupplierManagementPage() {
     {
       title: "Status",
       dataIndex: "isActive",
-      width: 120,
+      width: 100,
       render: (isActive) => (
         <Tag color={isActive ? "green" : "red"}>
           {isActive ? "Active" : "Inactive"}
@@ -236,31 +235,28 @@ export default function SupplierManagementPage() {
     {
       title: "Created At",
       dataIndex: "createdAt",
-      width: 165,
+      width: 150,
       render: formatDateTime,
     },
     {
       title: "Updated At",
       dataIndex: "updatedAt",
-      width: 165,
+      width: 150,
       render: formatDateTime,
     },
     {
       title: "Actions",
       fixed: "right",
-      width: 150,
+      width: 90,
       render: (_, record) => (
         <Space size={6}>
-          <Tooltip title="View details">
-            <Button
-              icon={<EyeOutlined />}
-              onClick={() => openDetailDrawer(record)}
-            />
-          </Tooltip>
           <Tooltip title="Edit">
             <Button
               icon={<EditOutlined />}
-              onClick={() => openEditModal(record)}
+              onClick={(e) => {
+                e.stopPropagation();
+                openEditModal(record);
+              }}
             />
           </Tooltip>
           <Popconfirm
@@ -269,13 +265,17 @@ export default function SupplierManagementPage() {
             okText="Deactivate"
             okButtonProps={{ danger: true }}
             cancelText="Cancel"
-            onConfirm={() => handleDeleteSupplier(record._id)}
+            onConfirm={(e) => {
+              e.stopPropagation();
+              handleDeleteSupplier(record._id);
+            }}
           >
             <Tooltip title="Deactivate">
               <Button
                 danger
                 icon={<DeleteOutlined />}
                 loading={deleting === record._id}
+                onClick={(e) => e.stopPropagation()}
               />
             </Tooltip>
           </Popconfirm>
@@ -287,7 +287,7 @@ export default function SupplierManagementPage() {
   return (
     <div>
       <PageHeader
-        title="Suppliers"
+        title="Suppliers Management"
         description="Manage ingredient and product suppliers for the UniLife cafeteria."
         breadcrumbs={["Dashboard", "Suppliers"]}
         extra={
@@ -450,7 +450,9 @@ export default function SupplierManagementPage() {
           loading={loading}
           dataSource={suppliers}
           columns={columns}
-          scroll={{ x: 1100 }}
+          onRow={(record) => ({
+            onClick: () => openDetailDrawer(record),
+          })}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
