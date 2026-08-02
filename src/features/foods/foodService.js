@@ -103,4 +103,10 @@ export const foodService = {
 
     return response.data;
   },
+
+  async getDailyFoods() {
+    const response = await apiClient.get("/foods/daily");
+
+    return response.data;
+  },
 };

@@ -5,6 +5,7 @@ import { notify } from "../../../utils/notify";
 import { getImageUrl, imageNotFound } from "../../../utils/image";
 import menuScheduleApi from "../../menuSchedules/api/menuScheduleApi";
 import { orderService } from "../orderService";
+import { foodService } from "../../foods/foodService";
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
@@ -31,9 +32,31 @@ function normalizeTodayMenuItems(todayMenu) {
           null,
         stockQuantity: item.remainingCount,
         isMenuItem: !!food.isMenuItem,
+        isDailyFood: false,
       };
     })
     .filter((f) => f.key && f.stockQuantity > 0);
+}
+
+function normalizeDailyFoods(dailyFoods) {
+  if (!dailyFoods || !Array.isArray(dailyFoods)) return [];
+
+  return dailyFoods
+    .filter((food) => food.isActive !== false)
+    .map((food) => ({
+      key: `daily_${food._id}`,
+      foodId: food._id,
+      menuScheduleItemId: null,
+      name: food.name || "Unknown",
+      price: food.price ?? 0,
+      imageUrl: getImageUrl(food.imageUrl),
+      categoryName:
+        (typeof food.categoryId === "object" && food.categoryId?.name) ||
+        null,
+      stockQuantity: food.stockQuantity ?? 999,
+      isMenuItem: !!food.isMenuItem,
+      isDailyFood: true,
+    }));
 }
 
 export default function WalkInOrderModal({ open, onClose, onSuccess }) {
@@ -48,10 +71,37 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   const fetchTodayMenuFoods = async () => {
     try {
       setFoodsLoading(true);
-      const response = await menuScheduleApi.getTodayMenuSchedule();
-      const todayMenu = response?.data ?? response;
-      const normalized = normalizeTodayMenuItems(todayMenu);
-      setFoods(normalized);
+
+      // Fetch both menu schedule foods and daily foods
+      const [menuScheduleResponse, dailyFoodsResponse] = await Promise.allSettled([
+        menuScheduleApi.getTodayMenuSchedule(),
+        foodService.getDailyFoods(),
+      ]);
+
+      // Process menu schedule foods
+      const todayMenu = menuScheduleResponse.status === 'fulfilled' 
+        ? (menuScheduleResponse.value?.data ?? menuScheduleResponse.value) 
+        : null;
+      const menuFoods = normalizeTodayMenuItems(todayMenu);
+
+      // Process daily foods
+      const dailyFoods = dailyFoodsResponse.status === 'fulfilled'
+        ? (dailyFoodsResponse.value?.data?.items ?? dailyFoodsResponse.value?.items ?? [])
+        : [];
+      const normalizedDailyFoods = normalizeDailyFoods(dailyFoods);
+
+      // Merge both food lists, prioritizing menu schedule items
+      const mergedFoods = [...menuFoods];
+      
+      // Add daily foods that aren't already in the menu
+      const menuFoodIds = new Set(menuFoods.map(f => f.foodId));
+      normalizedDailyFoods.forEach(dailyFood => {
+        if (!menuFoodIds.has(dailyFood.foodId)) {
+          mergedFoods.push(dailyFood);
+        }
+      });
+
+      setFoods(mergedFoods);
     } catch (error) {
       console.error(error);
       notify.error(
@@ -158,11 +208,23 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
 
       const payload = {
         paymentMethod,
-        items: cart.map((item) => ({
-          menuScheduleItemId: item.menuScheduleItemId,
-          itemType: "MENU_ITEM",
-          quantity: item.quantity,
-        })),
+        items: cart.map((item) => {
+          if (item.isDailyFood) {
+            // Daily food: send foodId and REGULAR_FOOD type
+            return {
+              foodId: item.foodId,
+              itemType: "REGULAR_FOOD",
+              quantity: item.quantity,
+            };
+          } else {
+            // Menu schedule item: send menuScheduleItemId and MENU_ITEM type
+            return {
+              menuScheduleItemId: item.menuScheduleItemId,
+              itemType: "MENU_ITEM",
+              quantity: item.quantity,
+            };
+          }
+        }),
       };
 
       if (note.trim()) {
@@ -233,6 +295,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
                 const inCartQty = cartQuantityOf(food.key);
                 const remaining = food.stockQuantity - inCartQty;
                 const soldOut = remaining <= 0;
+                const isDailyFood = food.isDailyFood;
 
                 return (
                   <div
@@ -255,6 +318,12 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
                         style={{ objectFit: "cover" }}
                         preview={false}
                       />
+
+                      {isDailyFood && (
+                        <div className="absolute top-2 left-2 rounded bg-green-500 px-2 py-0.5 text-xs font-medium text-white">
+                          Available
+                        </div>
+                      )}
 
                       {inCartQty > 0 && (
                         <Badge
