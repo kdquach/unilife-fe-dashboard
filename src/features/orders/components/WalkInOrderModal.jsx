@@ -55,10 +55,10 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     } catch (error) {
       console.error(error);
       notify.error(
-        "Load Today's Menu Failed",
-        error?.response?.data?.message ||
-          "Cannot load today's menu for walk-in order.",
-      );
+  "Failed to Load Today's Menu",
+  error?.response?.data?.message ||
+    "Unable to load today's menu for walk-in orders.",
+);
       setFoods([]);
     } finally {
       setFoodsLoading(false);
@@ -88,9 +88,9 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
 
     if (alreadyInCart >= food.stockQuantity) {
       notify.warning(
-        "Reached Limit",
-        `Chỉ còn ${food.stockQuantity} suất "${food.name}" hôm nay.`,
-      );
+  "Limit Reached",
+  `Only ${food.stockQuantity} servings of "${food.name}" are available today.`,
+);
       return;
     }
 
@@ -147,9 +147,9 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   const handleCreateWalkIn = async () => {
     if (cart.length === 0) {
       notify.warning(
-        "Empty Cart",
-        "Vui lòng chọn ít nhất một món trước khi tạo đơn.",
-      );
+  "Cart is Empty",
+  "Please select at least one item before creating an order.",
+);
       return;
     }
 
@@ -206,7 +206,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
           <Input
             allowClear
             prefix={<SearchOutlined className="text-slate-400" />}
-            placeholder="Tìm món ăn hôm nay..."
+            placeholder="Search today's menu..."
             value={foodSearch}
             onChange={(e) => setFoodSearch(e.target.value)}
             className="mb-3"
@@ -224,7 +224,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
 
             {!foodsLoading && filteredFoods.length === 0 && (
               <div className="col-span-full py-10">
-                <Empty description="Không có món nào trong thực đơn hôm nay" />
+                <Empty description="No food items available in today's menu" />
               </div>
             )}
 
@@ -291,7 +291,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
                           color={soldOut ? "red" : "green"}
                           style={{ margin: 0 }}
                         >
-                          {soldOut ? "Hết suất" : `Còn ${remaining}`}
+                          {soldOut ? "Sold Out" : `${remaining} Left`}
                         </Tag>
 
                         <Button
@@ -328,7 +328,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
           </div>
 
           <Input.TextArea
-            placeholder="Ghi chú..."
+            placeholder="Order note..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={2}
@@ -341,7 +341,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
           >
             {cart.length === 0 ? (
               <div className="flex h-full items-center justify-center text-slate-400">
-                Giỏ hàng trống
+                Cart is empty
               </div>
             ) : (
               cart.map((item) => (
@@ -400,11 +400,11 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
           {cart.length > 0 && (
             <div className="mt-3 border-t pt-3">
               <div className="flex justify-between text-lg font-bold">
-                <span>Tổng:</span>
+                <span>Total:</span>
                 <span>{formatVnd(cartTotal)}</span>
               </div>
               <div className="flex justify-between text-sm text-slate-500">
-                <span>{cartCount} món</span>
+                <span>{cartCount} item(s)</span>
               </div>
             </div>
           )}

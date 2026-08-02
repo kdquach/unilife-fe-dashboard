@@ -35,7 +35,7 @@ export function useKitchenQueue() {
       });
 
       setCurrentServing(response.currentServing || null);
-      setWaitingQueues(response.waitingQueues || []);
+      setWaitingQueues(response.waiting || []);
       setSummary(response.summary || {});
       setPagination({
         current: response.pagination.page,
@@ -52,9 +52,9 @@ export function useKitchenQueue() {
   const callNextQueue = async () => {
     try {
       setCallingNext(true);
-      await queueService.callNextQueue();
+      await queueService.callNextNumber();
       notify.success("Next queue called successfully");
-      await fetchMonitorQueue(pagination.current, pagination.pageSize, "", filters);
+      await fetchMonitorQueue(pagination.current, pagination.pageSize);
     } catch (error) {
       notify.error("Failed to call next queue", error.message);
     } finally {
