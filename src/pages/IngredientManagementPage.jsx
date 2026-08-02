@@ -19,6 +19,8 @@ import {
   PlusOutlined,
   SearchOutlined,
   WarningOutlined,
+  CheckCircleOutlined,
+  StopOutlined 
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
@@ -522,7 +524,7 @@ export default function IngredientManagementPage() {
                   fontSize: 18,
                 }}
               >
-                ✓
+                <CheckCircleOutlined />
               </div>
             </div>
           </Card>
@@ -556,7 +558,7 @@ export default function IngredientManagementPage() {
                   fontSize: 18,
                 }}
               >
-                ✗
+                <StopOutlined />
               </div>
             </div>
           </Card>

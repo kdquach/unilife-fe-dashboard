@@ -25,6 +25,8 @@ import {
   SearchOutlined,
   ShopOutlined,
   UserOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
@@ -378,7 +380,7 @@ export default function SupplierManagementPage() {
                 fontSize: 18,
               }}
             >
-              ✓
+              <CheckCircleOutlined />
             </div>
           </div>
         </Card>
@@ -412,7 +414,7 @@ export default function SupplierManagementPage() {
                 fontSize: 18,
               }}
             >
-              ✗
+              <StopOutlined />
             </div>
           </div>
         </Card>

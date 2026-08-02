@@ -1,6 +1,11 @@
 import React from "react";
 import { Card } from "antd";
-import { StarOutlined } from "@ant-design/icons";
+import {
+  StarOutlined,
+  TrophyOutlined,
+  LikeOutlined,
+  DislikeOutlined,
+} from "@ant-design/icons";
 import { COLORS } from "../../orders/utils/orderUtils.jsx";
 
 /**
@@ -77,7 +82,7 @@ export default function RatingsSummaryCards({ ratings }) {
               fontSize: 18,
             }}
           >
-            ★★★★★
+            <TrophyOutlined />
           </div>
         </div>
       </Card>
@@ -111,7 +116,7 @@ export default function RatingsSummaryCards({ ratings }) {
               fontSize: 18,
             }}
           >
-            ★★★★
+            <LikeOutlined />
           </div>
         </div>
       </Card>
@@ -145,7 +150,7 @@ export default function RatingsSummaryCards({ ratings }) {
               fontSize: 18,
             }}
           >
-            ★★★
+            <DislikeOutlined />
           </div>
         </div>
       </Card>

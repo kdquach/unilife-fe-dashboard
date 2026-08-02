@@ -22,7 +22,9 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
-  TeamOutlined,
+  UserSwitchOutlined,
+  CheckCircleOutlined,
+  StopOutlined 
 } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
@@ -360,7 +362,7 @@ export default function StaffManagementPage() {
                   fontSize: 18,
                 }}
               >
-                <TeamOutlined />
+                <UserSwitchOutlined />
               </div>
             </div>
           </Card>
@@ -394,7 +396,7 @@ export default function StaffManagementPage() {
                   fontSize: 18,
                 }}
               >
-                ✓
+                <CheckCircleOutlined />
               </div>
             </div>
           </Card>
@@ -428,7 +430,7 @@ export default function StaffManagementPage() {
                   fontSize: 18,
                 }}
               >
-                ✗
+                <StopOutlined />
               </div>
             </div>
           </Card>

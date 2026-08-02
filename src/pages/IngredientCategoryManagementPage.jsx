@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Table, Tag, Input, Button, Space } from "antd";
-import { PlusOutlined, AppstoreOutlined, SearchOutlined } from "@ant-design/icons";
+import { PlusOutlined, AppstoreOutlined, SearchOutlined, CheckCircleOutlined, StopOutlined  } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
@@ -190,7 +190,7 @@ export default function IngredientCategoryManagementPage() {
                 fontSize: 18,
               }}
             >
-              ✓
+              <CheckCircleOutlined />
             </div>
           </div>
         </Card>
@@ -224,7 +224,7 @@ export default function IngredientCategoryManagementPage() {
                 fontSize: 18,
               }}
             >
-              ✗
+              <StopOutlined />
             </div>
           </div>
         </Card>

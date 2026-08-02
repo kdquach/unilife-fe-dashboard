@@ -1,6 +1,11 @@
 import React from "react";
 import { Card } from "antd";
-import { AppstoreOutlined } from "@ant-design/icons";
+import {
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
+  CoffeeOutlined,
+} from "@ant-design/icons";
 import { COLORS } from "../orders/utils/orderUtils.jsx";
 
 export default function FoodSummaryCards({ stats }) {
@@ -69,7 +74,7 @@ export default function FoodSummaryCards({ stats }) {
               fontSize: 18,
             }}
           >
-            ✓
+            <CheckCircleOutlined />
           </div>
         </div>
       </Card>
@@ -103,7 +108,7 @@ export default function FoodSummaryCards({ stats }) {
               fontSize: 18,
             }}
           >
-            ✗
+            <StopOutlined />
           </div>
         </div>
       </Card>
@@ -137,7 +142,7 @@ export default function FoodSummaryCards({ stats }) {
               fontSize: 18,
             }}
           >
-            🍽️
+            <CoffeeOutlined />
           </div>
         </div>
       </Card>
