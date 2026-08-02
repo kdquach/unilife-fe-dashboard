@@ -240,9 +240,10 @@ export default function FoodFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Update"}
-      destroyOnHidden
+      destroyOnClose
       forceRender
       width={850}
+      centered
     >
       <Form
         key={formKey}
@@ -354,6 +355,7 @@ export default function FoodFormModal({
                     height={112}
                     className="rounded-md object-cover border border-slate-200"
                     preview={Boolean(initialValues?.imageUrl)}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               )}

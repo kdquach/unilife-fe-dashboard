@@ -32,7 +32,7 @@ export function useFoods() {
         keyword: searchKeyword || undefined,
         categoryId: filters.categoryId,
         isActive: filters.isActive,
-        kind: filters.kind,
+        isMenuItem: filters.isMenuItem,
       });
 
       setFoods(response.data || []);

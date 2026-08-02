@@ -86,6 +86,7 @@ export default function FoodDetailDrawer({
                 height={104}
                 className="rounded-md object-cover"
                 preview={Boolean(food.imageUrl)}
+                onClick={(e) => e.stopPropagation()}
               />
 
               <div>

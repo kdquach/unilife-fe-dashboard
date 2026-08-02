@@ -57,7 +57,7 @@ export default function FoodTable({
             width={64}
             height={64}
             className="rounded-md object-cover"
-            preview={Boolean(record.imageUrl)}
+            preview={false}
           />
 
           <div className="min-w-0">
@@ -165,7 +165,10 @@ export default function FoodTable({
               actionLoadingId ===
               getRecordId(record)
             }
-            onClick={() => onEdit(record)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(record);
+            }}
           />
         </Space>
       ),

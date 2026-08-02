@@ -39,7 +39,7 @@ export default function FoodManagementPage() {
   const [filters, setFilters] = useState({
     categoryId: undefined,
     isActive: undefined,
-    kind: undefined,
+    isMenuItem: undefined,
   });
 
   // Custom hook
@@ -252,14 +252,14 @@ export default function FoodManagementPage() {
                 options={[
                   {
                     label: "Daily",
-                    value: "alwaysAvailable",
+                    value: false,
                   },
                   {
                     label: "Menu Item",
-                    value: "menuItem",
+                    value: true,
                   },
                 ]}
-                onChange={(value) => handleFilterChange("kind", value)}
+                onChange={(value) => handleFilterChange("isMenuItem", value)}
               />
 
               <Select
