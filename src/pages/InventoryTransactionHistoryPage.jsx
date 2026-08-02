@@ -19,12 +19,17 @@ import {
   HistoryOutlined,
   InboxOutlined,
   ReloadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  SyncOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
 import { ingredientService } from "../features/ingredients/ingredientService";
 import { ingredientTransactionService } from "../features/ingredients/ingredientTransactionService";
 import { formatDate, formatDateTime } from "../utils/format";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
 const { RangePicker } = DatePicker;
 const { Search } = Input;
@@ -112,6 +117,24 @@ export default function InventoryTransactionHistoryPage() {
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+  const stats = useMemo(() => {
+    const stockIn = transactions.filter(
+      (t) => t.transactionType === "STOCK_IMPORT" || t.transactionType === "STOCK_IN"
+    ).length;
+    const stockOut = transactions.filter(
+      (t) => t.transactionType === "STOCK_OUT" || t.transactionType === "MENU_USAGE"
+    ).length;
+    const adjustments = transactions.filter(
+      (t) => t.transactionType === "STOCK_ADJUSTMENT"
+    ).length;
+    return {
+      total: transactions.length,
+      stockIn,
+      stockOut,
+      adjustments,
+    };
+  }, [transactions]);
 
   const ingredientOptions = useMemo(
     () =>
@@ -262,7 +285,7 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Type",
       dataIndex: "transactionType",
-      width: 170,
+      width: 140,
       sorter: true,
       render: (value) => (
         <Tag color={getTypeColor(value)}>{getTypeLabel(value)}</Tag>
@@ -271,6 +294,8 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Ingredient",
       dataIndex: "ingredientId",
+      width: 180,
+      ellipsis: true,
       render: (value) => (
         <Typography.Text strong>{getIngredientName(value)}</Typography.Text>
       ),
@@ -278,7 +303,7 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Quantity",
       dataIndex: "quantity",
-      width: 130,
+      width: 110,
       sorter: true,
       render: (value, record) => {
         const quantity = asNumber(value);
@@ -294,7 +319,7 @@ export default function InventoryTransactionHistoryPage() {
     },
     {
       title: "Stock Change",
-      width: 170,
+      width: 140,
       render: (_, record) => (
         <span>
           {record.stockBefore ?? "-"} {" -> "} {record.stockAfter ?? "-"}
@@ -304,29 +329,22 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Expiry",
       dataIndex: "batchId",
-      width: 130,
+      width: 110,
       render: (batch) => formatDate(batch?.expiryDate),
     },
     {
       title: "Updated By",
       dataIndex: "adjustedBy",
-      width: 180,
+      width: 140,
+      ellipsis: true,
       render: (value) => getUserName(value),
     },
     {
       title: "Created At",
       dataIndex: "createdAt",
-      width: 170,
+      width: 150,
       sorter: true,
       render: (value) => formatDateTime(value),
-    },
-    {
-      title: "Action",
-      fixed: "right",
-      width: 90,
-      render: (_, record) => (
-        <Button icon={<EyeOutlined />} onClick={() => openDetail(record)} />
-      ),
     },
   ];
 
@@ -339,18 +357,173 @@ export default function InventoryTransactionHistoryPage() {
         title="Inventory Transaction History"
         description="View stock imports, removals, and inventory adjustments."
         breadcrumbs={["Dashboard", "Inventory Transactions"]}
+        extra={
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() =>
+                fetchTransactions({
+                  page: pagination.current,
+                  pageSize: pagination.pageSize,
+                  searchKeyword: keyword,
+                  nextFilters: filters,
+                })
+              }
+            >
+              Refresh
+            </Button>
+          </Space>
+        }
       />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.blue}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Total Transactions</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.blue }}>
+                {stats.total}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.blue}1a`,
+                color: COLORS.blue,
+                fontSize: 18,
+              }}
+            >
+              <HistoryOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.green}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Stock In</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                {stats.stockIn}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.green}1a`,
+                color: COLORS.green,
+                fontSize: 18,
+              }}
+            >
+              <ArrowUpOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.red}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Stock Out</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                {stats.stockOut}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.red}1a`,
+                color: COLORS.red,
+                fontSize: 18,
+              }}
+            >
+              <ArrowDownOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Adjustments</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                {stats.adjustments}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
+            >
+              <SyncOutlined />
+            </div>
+          </div>
+        </Card>
+      </div>
 
       <Card
         title="Transaction History"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Search
               allowClear
+              enterButton={<SearchOutlined />}
               placeholder="Search reason or reference..."
-              style={{ width: 260 }}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              style={{ width: 280 }}
               onSearch={(value) => {
                 setKeyword(value);
                 fetchTransactions({
@@ -362,18 +535,20 @@ export default function InventoryTransactionHistoryPage() {
             />
             <Select
               allowClear
+              showSearch
               loading={ingredientLoading}
               placeholder="Ingredient"
-              options={ingredientOptions}
               style={{ width: 200 }}
+              options={ingredientOptions}
+              optionFilterProp="label"
               value={filters.ingredientId}
               onChange={(value) => handleFilterChange("ingredientId", value)}
             />
             <Select
               allowClear
               placeholder="Type"
-              options={TRANSACTION_TYPE_OPTIONS}
               style={{ width: 170 }}
+              options={TRANSACTION_TYPE_OPTIONS}
               value={filters.transactionType}
               onChange={(value) => handleFilterChange("transactionType", value)}
             />
@@ -382,9 +557,6 @@ export default function InventoryTransactionHistoryPage() {
               onChange={(value) => handleFilterChange("dateRange", value)}
               format="DD/MM/YYYY"
             />
-            <Button icon={<ReloadOutlined />} onClick={resetFilters}>
-              Reset
-            </Button>
           </Space>
         }
       >
@@ -403,7 +575,9 @@ export default function InventoryTransactionHistoryPage() {
           loading={loading}
           dataSource={transactions}
           columns={columns}
-          scroll={{ x: 1250 }}
+          onRow={(record) => ({
+            onClick: () => openDetail(record),
+          })}
           locale={{
             emptyText: (
               <div className="py-8">
