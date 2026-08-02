@@ -79,13 +79,21 @@ const MenuSchedulePage = () => {
         breadcrumbs={['Dashboard', 'Menu Schedules']}
         description="View list and details of menu schedules"
         extra={
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            Create New Schedule
-          </Button>
+          <Space wrap>
+            <Button 
+              icon={<ReloadOutlined />}
+              onClick={refresh}
+            >
+              Refresh
+            </Button>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              Create New Schedule
+            </Button>
+          </Space>
         }
       />
 
@@ -250,21 +258,6 @@ const MenuSchedulePage = () => {
               onChange={(dates) => applyFilters({ dateRange: dates })}
               format="DD/MM/YYYY"
             />
-
-            <Button 
-              icon={<ReloadOutlined />} 
-              onClick={() => {
-                setFilters({ status: [], dateRange: null, includeInactive: false });
-                handleFilterChange({
-                  status: undefined,
-                  dateFrom: undefined,
-                  dateTo: undefined,
-                  includeInactive: undefined
-                });
-              }}
-            >
-              Reset
-            </Button>
           </Space>
         }
       >

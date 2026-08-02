@@ -16,14 +16,15 @@ export function useFoods() {
     total: 0,
   });
 
-  const fetchFoods = async (
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-    searchKeyword = "",
-    filters = {},
-  ) => {
+  const fetchFoods = async (params) => {
     try {
       setLoading(true);
+
+      // Handle both object and individual parameter calls
+      const page = typeof params === 'object' ? params.page : params;
+      const pageSize = typeof params === 'object' ? params.pageSize : arguments[1];
+      const searchKeyword = typeof params === 'object' ? params.searchKeyword : arguments[2];
+      const filters = typeof params === 'object' ? (params.nextFilters || params.filters || {}) : (arguments[3] || {});
 
       const response = await foodService.getManagedFoods({
         page,

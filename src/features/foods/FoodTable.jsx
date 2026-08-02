@@ -8,7 +8,6 @@ import {
   Typography,
 } from "antd";
 import {
-  EyeOutlined,
   EditOutlined,
 } from "@ant-design/icons";
 
@@ -157,14 +156,9 @@ export default function FoodTable({
     {
       title: "Actions",
       fixed: "right",
-      width: 130,
+      width: 80,
       render: (_, record) => (
         <Space size={6}>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => onView(record)}
-          />
-
           <Button
             icon={<EditOutlined />}
             loading={
@@ -201,6 +195,10 @@ export default function FoodTable({
           nextPagination.pageSize
         )
       }
+      onRow={(record) => ({
+        onClick: () => onView(record),
+        style: { cursor: 'pointer' }
+      })}
     />
   );
 }
