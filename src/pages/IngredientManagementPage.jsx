@@ -360,7 +360,6 @@ export default function IngredientManagementPage() {
         expiryDate: values.expiryDate,
         supplierId: values.supplierId,
         unitPrice: values.unitPrice,
-        importCode: values.importCode,
         reason: values.reason,
         referenceType: "STOCK_IMPORT",
       });
