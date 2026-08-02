@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { Modal, Form, Input, Button, Space } from "antd";
+import { Modal, Form, Input, Button, Divider } from "antd";
 import { QrcodeOutlined } from "@ant-design/icons";
 import { orderService } from "../orderService";
 import { notify } from "../../../utils/notify";
@@ -263,91 +263,139 @@ export default function ScanPickupQrModal({ open, onClose, onSuccess }) {
     scanForm.resetFields();
   };
 
+  const handleToggleCamera = async () => {
+    if (cameraActive) {
+      try {
+        if (html5QrCodeRef.current) {
+          try {
+            await html5QrCodeRef.current.stop();
+          } catch (stopErr) {
+            console.log("Stop Camera stop error:", stopErr);
+          }
+          try {
+            await html5QrCodeRef.current.clear();
+          } catch (clearErr) {
+            console.log("Stop Camera clear error:", clearErr);
+          }
+          html5QrCodeRef.current = null;
+        }
+      } catch (err) {
+        console.log("Stop Camera cleanup error:", err);
+      }
+    }
+    setCameraActive(!cameraActive);
+  };
+
+  const showLiveCamera = cameraActive && !scanDisabled;
+
   return (
     <Modal
       key={scannerKey}
-      title="Scan Pickup QR"
+      title={
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <QrcodeOutlined />
+          </span>
+          <span>Scan Pickup QR</span>
+        </div>
+      }
       open={open}
+      width={480}
       confirmLoading={scanning}
+      okText="Confirm"
+      cancelText="Close"
       onCancel={handleCancel}
       onOk={() => scanForm.submit()}
     >
-      <div className="mb-4">
-        <Space>
+      <div className="flex flex-col gap-4">
+        {/* Camera area */}
+        <div>
+          {showLiveCamera ? (
+            <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-black shadow-inner">
+              <div id="qr-reader" style={{ width: "100%" }}></div>
+
+              {/* Corner frame overlay */}
+              <div className="pointer-events-none absolute inset-4">
+                <span className="absolute left-0 top-0 h-6 w-6 rounded-tl-md border-l-4 border-t-4 border-blue-400" />
+                <span className="absolute right-0 top-0 h-6 w-6 rounded-tr-md border-r-4 border-t-4 border-blue-400" />
+                <span className="absolute bottom-0 left-0 h-6 w-6 rounded-bl-md border-b-4 border-l-4 border-blue-400" />
+                <span className="absolute bottom-0 right-0 h-6 w-6 rounded-br-md border-b-4 border-r-4 border-blue-400" />
+              </div>
+
+              {/* Scanning status badge */}
+              <div className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                </span>
+                Scanning...
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 py-10">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-500">
+                <QrcodeOutlined />
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-slate-700">
+                  Camera is off
+                </div>
+                <div className="text-xs text-slate-400">
+                  Tap the button below to start scanning
+                </div>
+              </div>
+            </div>
+          )}
+
           <Button
+            block
+            size="large"
+            type={cameraActive ? "default" : "primary"}
+            danger={cameraActive}
             icon={<QrcodeOutlined />}
-            onClick={async () => {
-              if (cameraActive) {
-                try {
-                  if (html5QrCodeRef.current) {
-                    try {
-                      await html5QrCodeRef.current.stop();
-                    } catch (stopErr) {
-                      console.log("Stop Camera stop error:", stopErr);
-                    }
-                    try {
-                      await html5QrCodeRef.current.clear();
-                    } catch (clearErr) {
-                      console.log("Stop Camera clear error:", clearErr);
-                    }
-                    html5QrCodeRef.current = null;
-                  }
-                } catch (err) {
-                  console.log("Stop Camera cleanup error:", err);
-                }
-              }
-              setCameraActive(!cameraActive);
-            }}
+            loading={cameraLoading}
+            className="mt-3"
+            onClick={handleToggleCamera}
           >
             {cameraActive ? "Stop Camera" : "Scan with Camera"}
           </Button>
-        </Space>
-        
-        {cameraActive && !scanDisabled && (
-          <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
-            <div id="qr-reader" style={{ width: '100%' }}></div>
-          </div>
-        )}
-        
-        {!cameraActive && (
-          <div className="mt-3 text-sm text-slate-500">
-            <p>💡 <strong>Tips:</strong></p>
-            <ul className="list-disc pl-5 mt-1 space-y-1">
-              <li>Camera access requires HTTPS or localhost</li>
-              <li>Allow camera permission when prompted</li>
-              <li>Make sure no other app is using the camera</li>
-              <li>Hold QR code steady and at proper distance</li>
-              <li>Ensure good lighting and focus</li>
-              <li>Use manual input below if camera doesn't work</li>
-            </ul>
-          </div>
-        )}
-        
-        {cameraActive && (
-          <div className="mt-3 text-xs text-slate-400">
-            <p>📷 Point camera at QR code. Hold steady at 10-20cm distance.</p>
-          </div>
-        )}
-      </div>
 
-      <Form form={scanForm} layout="vertical" onFinish={handleScanPickupQr}>
-        <Form.Item
-          label="QR payload or order code"
-          name="qrPayload"
-          rules={[
-            {
-              required: true,
-              message: "Scan or enter a pickup QR payload.",
-            },
-          ]}
+          {showLiveCamera && (
+            <div className="mt-2 text-center text-xs text-slate-400">
+              📷 Hold the QR code 10–20cm from the camera, in good light.
+            </div>
+          )}
+        </div>
+
+        <Divider className="!my-0 text-xs text-slate-400">
+          Or enter manually
+        </Divider>
+
+        <Form
+          form={scanForm}
+          layout="vertical"
+          onFinish={handleScanPickupQr}
+          className="!mb-0"
         >
-          <Input.TextArea
-            autoFocus
-            rows={4}
-            placeholder='Scan QR here, paste JSON like {"type":"UNILIFE_PICKUP","orderId":"...","orderCode":"..."}, or enter order code like "478969"'
-          />
-        </Form.Item>
-      </Form>
+          <Form.Item
+            name="qrPayload"
+            rules={[
+              {
+                required: true,
+                message: "Scan or enter a pickup QR payload.",
+              },
+            ]}
+            className="!mb-0"
+          >
+            <Input.TextArea
+              autoFocus
+              rows={3}
+              className="font-mono text-xs"
+              placeholder='Paste QR payload or enter order code, e.g. "478969"'
+            />
+          </Form.Item>
+        </Form>
+      </div>
     </Modal>
   );
 }
