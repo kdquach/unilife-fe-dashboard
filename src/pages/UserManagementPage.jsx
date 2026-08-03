@@ -261,9 +261,15 @@ export default function UserManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 80,
+      width: 120,
       render: (_, record) => (
         <Space>
+          <Button
+            icon={<EyeOutlined />}
+            aria-label={`View ${record.fullName}`}
+            title="View details"
+            onClick={() => openDrawer(record)}
+          />
           <Button
             icon={<EditOutlined />}
             onClick={(e) => {
@@ -458,9 +464,6 @@ export default function UserManagementPage() {
           loading={loading}
           dataSource={users}
           columns={columns}
-          onRow={(record) => ({
-            onClick: () => openDrawer(record),
-          })}
           scroll={{ x: 1050 }}
           pagination={{
             current: pagination.current,
