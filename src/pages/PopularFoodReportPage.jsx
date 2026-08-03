@@ -285,7 +285,7 @@ export default function PopularFoodReportPage() {
         <PopularFoodTable
           loading={loading}
           data={foods}
-          onRowClick={(record) => {
+          onView={(record) => {
             setSelectedFood(record);
             setDrawerOpen(true);
           }}

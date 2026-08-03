@@ -238,7 +238,7 @@ export default function OrderStatisticsReportPage() {
         <OrderStatisticsTable
           loading={loading}
           data={statistics}
-          onRowClick={(record) => {
+          onView={(record) => {
             setSelectedStatus(record);
             setDrawerOpen(true);
           }}

@@ -1,5 +1,6 @@
 import React from "react";
-import { Table } from "antd";
+import { Button, Table } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 
 const formatMoney = (value = 0) =>
   new Intl.NumberFormat("vi-VN").format(value) + " ₫";
@@ -7,7 +8,7 @@ const formatMoney = (value = 0) =>
 export default function RevenueTable({
   loading,
   data,
-  onRowClick,
+  onView,
 }) {
   const columns = [
     {
@@ -23,6 +24,19 @@ export default function RevenueTable({
       title: "Orders",
       dataIndex: "orders",
     },
+    {
+      title: "Actions",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          aria-label={`View revenue for ${record._id}`}
+          title="View details"
+          onClick={() => onView?.(record)}
+        />
+      ),
+    },
   ];
 
   return (
@@ -33,12 +47,6 @@ export default function RevenueTable({
       columns={columns}
       dataSource={data}
       pagination={false}
-      onRow={(record) => ({
-        onClick: () => onRowClick?.(record),
-        style: {
-          cursor: "pointer",
-        },
-      })}
     />
   );
 }

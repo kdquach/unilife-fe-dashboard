@@ -346,6 +346,20 @@ export default function InventoryTransactionHistoryPage() {
       sorter: true,
       render: (value) => formatDateTime(value),
     },
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          aria-label="View transaction details"
+          title="View details"
+          onClick={() => openDetail(record)}
+        />
+      ),
+    },
   ];
 
   const detail = selectedTransaction;
@@ -575,9 +589,6 @@ export default function InventoryTransactionHistoryPage() {
           loading={loading}
           dataSource={transactions}
           columns={columns}
-          onRow={(record) => ({
-            onClick: () => openDetail(record),
-          })}
           locale={{
             emptyText: (
               <div className="py-8">
