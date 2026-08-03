@@ -49,6 +49,27 @@ export default function FoodCategoryTable({
       width: 180,
       render: (value) => formatDateTime(value),
     },
+    {
+      title: "Actions",
+      width: 110,
+      align: "center",
+      render: (_, record) => (
+        <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            aria-label={`View ${record.name}`}
+            title="View details"
+            onClick={() => onViewDetail?.(record)}
+          />
+          <Button
+            icon={<EditOutlined />}
+            aria-label={`Edit ${record.name}`}
+            title="Edit"
+            onClick={() => onEdit?.(record)}
+          />
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -67,12 +88,6 @@ export default function FoodCategoryTable({
       onChange={(pager) => {
         onPaginationChange?.(pager);
       }}
-      onRow={(record) => ({
-        onClick: () => onViewDetail?.(record),
-        style: {
-          cursor: "pointer",
-        },
-      })}
     />
   );
 }

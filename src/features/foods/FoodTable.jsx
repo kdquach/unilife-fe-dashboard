@@ -9,6 +9,7 @@ import {
 } from "antd";
 import {
   EditOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 
 import {
@@ -156,9 +157,15 @@ export default function FoodTable({
     {
       title: "Actions",
       fixed: "right",
-      width: 80,
+      width: 120,
       render: (_, record) => (
         <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            aria-label={`View ${record.name}`}
+            title="View details"
+            onClick={() => onView(record)}
+          />
           <Button
             icon={<EditOutlined />}
             loading={
@@ -198,10 +205,6 @@ export default function FoodTable({
           nextPagination.pageSize
         )
       }
-      onRow={(record) => ({
-        onClick: () => onView(record),
-        style: { cursor: 'pointer' }
-      })}
     />
   );
 }

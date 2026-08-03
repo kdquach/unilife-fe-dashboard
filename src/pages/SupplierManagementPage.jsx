@@ -247,9 +247,16 @@ export default function SupplierManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 90,
+      width: 130,
       render: (_, record) => (
         <Space size={6}>
+          <Tooltip title="View details">
+            <Button
+              icon={<EyeOutlined />}
+              aria-label={`View ${record.name}`}
+              onClick={() => openDetailDrawer(record)}
+            />
+          </Tooltip>
           <Tooltip title="Edit">
             <Button
               icon={<EditOutlined />}
@@ -450,9 +457,6 @@ export default function SupplierManagementPage() {
           loading={loading}
           dataSource={suppliers}
           columns={columns}
-          onRow={(record) => ({
-            onClick: () => openDetailDrawer(record),
-          })}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,

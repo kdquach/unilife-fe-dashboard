@@ -312,7 +312,7 @@ export default function RevenueReportPage() {
         <RevenueTable
           loading={loading}
           data={revenue}
-          onRowClick={(record) => {
+          onView={(record) => {
             setSelectedRevenue(record);
             setDrawerOpen(true);
           }}

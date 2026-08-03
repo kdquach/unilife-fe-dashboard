@@ -7,6 +7,7 @@ import {
   Button,
   Space,
 } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 
 import { notify } from "../utils/notify";
 
@@ -156,6 +157,22 @@ console.log(response.summary);
       render: (value) =>
         new Intl.NumberFormat("vi-VN").format(value) +
         " ₫",
+    },
+    {
+      title: "Actions",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          aria-label={`View details for ${String(record.hour).padStart(2, "0")}:00`}
+          title="View details"
+          onClick={() => {
+            setSelectedHour(record);
+            setDrawerOpen(true);
+          }}
+        />
+      ),
     },
   ];
 
@@ -316,15 +333,6 @@ console.log(response.summary);
           columns={columns}
           dataSource={peakHours}
           pagination={false}
-          onRow={(record) => ({
-            onClick: () => {
-              setSelectedHour(record);
-              setDrawerOpen(true);
-            },
-            style: {
-              cursor: "pointer",
-            },
-          })}
         />
 
         <PeakHourDetailDrawer
