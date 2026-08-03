@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,#fff1ed,transparent_36%),linear-gradient(135deg,#fff,#f8fafc)]">
       <div className="hidden flex-1 items-center justify-center p-10 lg:flex">
         <div className="max-w-xl">
-          <div className="mb-8 inline-flex rounded-3xl bg-white p-5 shadow-soft">
+          <div className="mb-8">
             <img src={logoLg} alt="UniLife" className="h-24 object-contain" />
           </div>
           <Typography.Title className="!text-5xl !leading-tight !text-slate-950">
