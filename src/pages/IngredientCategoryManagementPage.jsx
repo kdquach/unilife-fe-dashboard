@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Card, Table, Tag, Input, Button, Space } from "antd";
-import { PlusOutlined, AppstoreOutlined, SearchOutlined, CheckCircleOutlined, StopOutlined, ReloadOutlined } from "@ant-design/icons";
+import {
+  AppstoreOutlined,
+  CheckCircleOutlined,
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 
@@ -106,6 +115,27 @@ export default function IngredientCategoryManagementPage() {
       title: "Updated",
       dataIndex: "updatedAt",
       render: (value) => new Date(value).toLocaleString("vi-VN"),
+    },
+    {
+      title: "Actions",
+      fixed: "right",
+      width: 120,
+      render: (_, record) => (
+        <Space size={6}>
+          <Button
+            icon={<EyeOutlined />}
+            aria-label={`View ${record.name}`}
+            title="View details"
+            onClick={() => openDrawer(record._id || record.id)}
+          />
+          <Button
+            icon={<EditOutlined />}
+            aria-label={`Edit ${record.name}`}
+            title="Edit"
+            onClick={() => openEditModal(record)}
+          />
+        </Space>
+      ),
     },
   ];
 
@@ -261,6 +291,7 @@ export default function IngredientCategoryManagementPage() {
           loading={loading}
           dataSource={categories}
           columns={columns}
+          scroll={{ x: 800 }}
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,
