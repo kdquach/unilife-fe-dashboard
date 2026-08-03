@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  BellOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -67,11 +66,6 @@ export default function DashboardHeader({
       </div>
 
       <div className="flex items-center gap-3">
-        <Button
-          shape="circle"
-          icon={<BellOutlined />}
-        />
-
         <Dropdown
           menu={{
             items: [

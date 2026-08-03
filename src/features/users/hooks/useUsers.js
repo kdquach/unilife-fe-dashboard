@@ -75,7 +75,7 @@ export function useUsers() {
   const changeUserRole = async (id, role) => {
     try {
       setChangingRoleId(id);
-      await userService.changeUserRole(id, role);
+      await userService.updateUserRole(id, role);
       notify.success("User role changed successfully");
     } catch (error) {
       notify.error(error.message);

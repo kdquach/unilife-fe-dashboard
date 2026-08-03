@@ -24,7 +24,7 @@ import { notify } from "../utils/notify";
 import dayjs from "dayjs";
 import PageHeader from "../components/PageHeader";
 import { activityLogService } from "../features/activityLogs/activityLogService";
-import { userService } from "../features/users/userService";
+import { staffService } from "../features/staffs/staffService";
 import ActivityLogDetailDrawer from "../features/activityLogs/ActivityLogDetailDrawer";
 import { formatDateTime } from "../utils/format";
 
@@ -91,8 +91,8 @@ export default function ActivityLogPage() {
   });
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Users dropdown options
-  const [userOptions, setUserOptions] = useState([]);
+  // Canteen staff dropdown options
+  const [staffOptions, setStaffOptions] = useState([]);
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -102,25 +102,25 @@ export default function ActivityLogPage() {
   const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
   const [dateRange, setDateRange] = useState(null);
 
-  // Load user list for dropdown filter
+  // Load only canteen staff for the user filter.
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadStaffs = async () => {
       try {
-        const response = await userService.getUsers({ limit: 100 });
-        const items = response?.items || response?.data || response || [];
+        const response = await staffService.getStaffs({ limit: 100 });
+        const items = response?.data || [];
         if (Array.isArray(items)) {
-          setUserOptions(
-            items.map((u) => ({
-              label: `${u.fullName || "User"} (${u.role || u.email})`,
-              value: u.userId || u._id,
+          setStaffOptions(
+            items.map((staff) => ({
+              label: `${staff.fullName || "Staff"} (${staff.role || staff.email})`,
+              value: staff.userId || staff._id || staff.id,
             })),
           );
         }
       } catch (err) {
-        console.error("Failed to load user list:", err);
+        console.error("Failed to load staff list:", err);
       }
     };
-    loadUsers();
+    loadStaffs();
   }, []);
 
   const fetchLogs = useCallback(
@@ -527,14 +527,14 @@ export default function ActivityLogPage() {
             />
 
             <Select
-              placeholder="Filter by User"
+              placeholder="Filter by Staff"
               allowClear
               showSearch
               filterOption={(input, option) =>
                 (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
               style={{ width: 210 }}
-              options={userOptions}
+              options={staffOptions}
               onChange={handleUserChange}
               value={filters.userId}
             />
