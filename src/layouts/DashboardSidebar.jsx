@@ -34,12 +34,14 @@ const filterMenuByRole = (items, role) => {
         if (filteredChildren.length === 0) {
           return null;
         }
-        return { ...item, children: filteredChildren };
+        const { allowedRoles, ...rest } = item;
+        return { ...rest, children: filteredChildren };
       }
 
       const allowed = item.allowedRoles || ["ADMIN", "MANAGER"];
       if (allowed.includes(role)) {
-        return item;
+        const { allowedRoles, ...rest } = item;
+        return rest;
       }
       return null;
     })
@@ -129,6 +131,7 @@ export default function DashboardSidebar({
                 itemSelectedColor: COLORS.orange,
                 itemHoverBg: "#f5f5f5",
                 itemBorderRadius: 8,
+                itemMarginBottom: 4,
               },
             },
           }}
@@ -139,9 +142,6 @@ export default function DashboardSidebar({
             defaultOpenKeys={openKeys}
             items={filteredMenuItems}
             className="border-none"
-            itemStyle={{
-              marginBottom: 4,
-            }}
           />
         </ConfigProvider>
       </div>

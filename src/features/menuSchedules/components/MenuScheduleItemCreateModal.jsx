@@ -96,7 +96,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
       okText={selectedFoods.length > 1 ? `Add ${selectedFoods.length} Foods` : 'Add Food'}
       cancelText="Cancel"
       width={1000}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" className="mt-4">
         <div className="flex gap-4" style={{ minHeight: '500px' }}>

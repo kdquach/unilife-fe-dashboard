@@ -240,7 +240,7 @@ export default function FoodFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Update"}
-      destroyOnClose
+      destroyOnHidden
       forceRender
       width={850}
       centered

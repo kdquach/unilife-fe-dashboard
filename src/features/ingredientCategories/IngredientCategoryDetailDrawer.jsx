@@ -47,7 +47,7 @@ export default function IngredientCategoryDetailDrawer({
       width={520}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading ? (
         <div
