@@ -142,7 +142,7 @@ export default function IngredientStockAdjustModal({
       onCancel={onCancel}
       onOk={handleSubmit}
       okText="Save Adjustment"
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
         className="mb-4"

@@ -565,7 +565,7 @@ export default function StaffManagementPage() {
         onOk={handleSubmitStaff}
         okText={formMode === "create" ? "Create" : "Save changes"}
         confirmLoading={saving}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="pt-4">
           <Form.Item

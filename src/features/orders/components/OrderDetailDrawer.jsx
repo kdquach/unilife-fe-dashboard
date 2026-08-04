@@ -1,6 +1,70 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Drawer, Descriptions, Table, Tag, Button, Space, Popconfirm, message } from "antd";
 import { orderService } from "../orderService";
+
+function extractPaymentErrors(note) {
+  if (!note) return { cleanNote: "", errors: [] };
+
+  // Split by pipe '|' or '. Error:'
+  const parts = note.split(/\s*\|\s*/);
+  
+  const cleanParts = [];
+  const errors = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.startsWith("error:") ||
+      lower.includes("order not confirmed") ||
+      lower.includes("order not found") ||
+      lower.includes("not found") ||
+      lower.includes("invalid payment amount") ||
+      lower.includes("invalid transfer content") ||
+      lower.includes("transfer content") ||
+      lower.includes("incorrect transfer content") ||
+      lower.includes("content mismatch") ||
+      lower.includes("mismatch") ||
+      lower.includes("incorrect") ||
+      lower.includes("invalid") ||
+      lower.includes("failed") ||
+      lower.includes("rejected")
+    ) {
+      let errText = trimmed.replace(/^(?:error|message):\s*/i, "").trim();
+      errText = errText.replace(/\.?\s*order not confirmed\.?$/i, "").trim();
+      if (errText) {
+        errors.push(errText);
+      }
+    } else {
+      cleanParts.push(trimmed);
+    }
+  }
+
+  // Fallback if no pipe separator was used
+  if (errors.length === 0 && (
+    note.toLowerCase().includes("error:") ||
+    note.toLowerCase().includes("order not confirmed") ||
+    note.toLowerCase().includes("not found")
+  )) {
+    const errorRegex = /(?:Error|Message):\s*(.*?)(?=\.\s*Order not confirmed|\||$)/gi;
+    const matches = [...note.matchAll(errorRegex)];
+    if (matches.length > 0) {
+      const fullErrorRegex = /(?:Error|Message):\s*.*?(?=\.\s*Order not confirmed|\||$)(?:\.\s*Order not confirmed\.?)?/gi;
+      let cleanNote = note.replace(fullErrorRegex, "").replace(/[\s|.,;]+$/, "").trim();
+      const extractedErrors = matches.map(m => m[1].replace(/\.?\s*order not confirmed\.?$/i, "").trim()).filter(Boolean);
+      return { cleanNote, errors: extractedErrors };
+    } else {
+      return { cleanNote: "", errors: [note.trim()] };
+    }
+  }
+
+  return {
+    cleanNote: cleanParts.join(", ").trim(),
+    errors,
+  };
+}
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
@@ -33,15 +97,60 @@ const renderPaymentStatus = (status) => {
   return <Tag color={colors[status] || "default"}>{status}</Tag>;
 };
 
-export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
+export default function OrderDetailDrawer({ order: initialOrder, open, onClose, onSuccess }) {
+  const [order, setOrder] = useState(initialOrder);
   const [updating, setUpdating] = useState(false);
   const [liveTimeLeft, setLiveTimeLeft] = useState(0);
 
-  const isPending = order?.status === "PENDING_PAYMENT" || order?.status === "PENDING";
-  const isCash = order?.paymentMethod === "CASH";
-  const isSePay = order?.paymentMethod === "SEPAY";
+  useEffect(() => {
+    setOrder(initialOrder);
+  }, [initialOrder, open]);
 
-  React.useEffect(() => {
+  const isPending = order?.status === "PENDING_PAYMENT" || order?.status === "PENDING" || order?.paymentStatus === "PENDING";
+  const isCash = order?.paymentMethod === "CASH";
+  const isSePay = order?.paymentMethod === "SEPAY" || order?.paymentMethod === "BANK_TRANSFER";
+
+  // Polling for live updates when drawer is open
+  useEffect(() => {
+    let intervalId;
+    if (open && order && order._id && isPending && isSePay) {
+      intervalId = setInterval(async () => {
+        try {
+          const freshOrder = await orderService.getOrderById(order._id);
+          if (freshOrder) {
+            setOrder(freshOrder);
+            const isPaidOrConfirmed =
+              freshOrder.paymentStatus === "PAID" ||
+              freshOrder.status === "PAID" ||
+              freshOrder.status === "CONFIRMED" ||
+              freshOrder.status === "COMPLETED";
+
+            if (isPaidOrConfirmed) {
+              const isWalkInOrder = freshOrder.isWalkIn === true || freshOrder.isWalkIn === "true";
+              if (isWalkInOrder && freshOrder.status !== "COMPLETED") {
+                try {
+                  await orderService.updateOrder(freshOrder._id, { status: "COMPLETED" });
+                  setOrder((prev) => ({ ...prev, status: "COMPLETED", paymentStatus: "PAID" }));
+                } catch (updateErr) {
+                  console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+                }
+              }
+              message.success("Payment confirmed!");
+              onSuccess?.();
+            }
+          }
+        } catch (err) {
+          console.error("Polling error in OrderDetailDrawer:", err);
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [open, order?._id, order?.status, order?.paymentMethod, onSuccess]);
+
+  useEffect(() => {
     let timer;
     if (order && isPending && isSePay) {
       const calculateTimeLeft = () => {
@@ -59,7 +168,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
     }
     return () => {
       if (timer) clearInterval(timer);
-    }
+    };
   }, [order, isPending, isSePay]);
 
   if (!order) return null;
@@ -82,9 +191,12 @@ export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
   const handleMarkAsPaid = async () => {
     try {
       setUpdating(true);
-      await orderService.updateOrder(order._id, { status: "PAID", paymentStatus: "PAID" });
+      const isWalkInOrder = order.isWalkIn === true || order.isWalkIn === "true";
+      const targetStatus = isWalkInOrder ? "COMPLETED" : "PAID";
+      await orderService.updateOrder(order._id, { status: targetStatus, paymentStatus: "PAID" });
+      setOrder((prev) => ({ ...prev, status: targetStatus, paymentStatus: "PAID" }));
       
-      message.success("Order marked as PAID.");
+      message.success(`Order marked as ${targetStatus}.`);
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -100,32 +212,28 @@ export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
 
   // Render SePay Pending Area
   const renderSePayPending = () => {
-    const isPaymentFailed = order.paymentStatus === "FAILED" || order.paymentStatus === "ERROR" || order.status === "FAILED" || (order.note && order.note.includes("Error: Invalid payment amount"));
-    if (isPaymentFailed && isSePay) {
-      return (
-        <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-6 border border-red-200">
-          <span className="text-red-600 font-bold mb-2 text-lg">Payment Failed (Amount Mismatch)</span>
-          <span className="text-sm text-slate-600">
-            The automated system rejected this payment due to an amount mismatch or invalid content. 
-            This order must be reconciled manually at the end of the day.
-          </span>
-        </div>
-      );
-    }
-    
     if (!isPending || !isSePay) return null;
-    
+
+    const { errors } = extractPaymentErrors(order.note);
+    const hasPaymentError = errors.length > 0 || (order.note && (
+      order.note.toLowerCase().includes("error") ||
+      order.note.toLowerCase().includes("order not confirmed") ||
+      order.note.toLowerCase().includes("mismatch") ||
+      order.note.toLowerCase().includes("invalid") ||
+      order.note.toLowerCase().includes("content") ||
+      order.note.toLowerCase().includes("amount")
+    ));
+
+    const bank = order.paymentInfo?.bankName || "MB";
+    const acc = order.paymentInfo?.accountNumber || "0988776655";
+    const amount = order.totalPrice;
+    const transferContent = order.transferContent || (order.orderCode ? `UN${order.orderCode.replace(/-/g, '')}` : '');
+
     // Use BE provided qrCodeUrl or fallback
     let qrUrl = order.paymentInfo?.qrCodeUrl;
     if (!qrUrl) {
-      const bank = order.paymentInfo?.bankName || "MB";
-      const acc = order.paymentInfo?.accountNumber || "0988776655";
-      const amount = order.totalPrice;
-      const des = order.transferContent || (order.orderCode ? `UN${order.orderCode.replace(/-/g, '')}` : '');
-      qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${des}`;
+      qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${transferContent}`;
     }
-
-    const transferContent = order.transferContent || (order.orderCode ? `UN${order.orderCode.replace(/-/g, '')}` : '');
 
     return (
       <div className="flex flex-col items-center justify-center p-6 bg-slate-50 border rounded-lg mb-6 shadow-sm">
@@ -138,24 +246,67 @@ export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
         </div>
 
         {liveTimeLeft === 0 ? (
-          <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center border border-red-200">
+          <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center border border-red-200 w-full max-w-sm">
             <span className="text-red-500 font-bold mb-2">QR Code Expired</span>
             <span className="text-sm text-slate-600">The 15-minute payment window has closed. Please cancel this order.</span>
           </div>
         ) : (
           <>
-            <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full max-w-sm text-center">
-              <strong>⚠️ IMPORTANT WARNING:</strong><br />
-              Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment, and you will have to wait for the end-of-day revenue reconciliation to resolve it.
-            </div>
+            {hasPaymentError ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm w-full max-w-md text-center">
+                <div className="font-bold text-red-700 mb-1.5 flex items-center justify-center gap-1.5">
+                  <span>⚠️ PAYMENT ERROR DETECTED</span>
+                </div>
+                <div className="text-xs text-red-600 mb-2">
+                  {errors.length > 0 ? (
+                    <div className="flex flex-col gap-1.5 text-left bg-white/90 p-2.5 rounded border border-red-100 my-1">
+                      {errors.map((err, idx) => (
+                        <div key={idx} className="flex items-start gap-1.5 font-medium text-red-800">
+                          <span>• {err}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span>The system rejected the previous payment attempt due to invalid payment details or transfer content.</span>
+                  )}
+                </div>
+                <div className="text-xs text-slate-600">
+                  Please scan the QR code below or use manual transfer with the <b>exact amount and transfer content</b>.
+                </div>
+              </div>
+            ) : (
+              <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full max-w-sm text-center">
+                <strong>⚠️ IMPORTANT WARNING:</strong><br />
+                Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment.
+              </div>
+            )}
+
             <img 
               src={qrUrl} 
               alt="SePay QR Code" 
               style={{ width: 250, border: '1px solid #e2e8f0', borderRadius: 8, marginBottom: 16 }}
             />
-            <div className="flex flex-col items-center justify-center bg-white p-4 rounded text-center w-full max-w-sm border">
-              <span className="text-xs text-slate-500 mb-1">Transfer Content (Important)</span>
-              <span className="text-lg font-bold text-slate-800">{transferContent}</span>
+            
+            <div className="flex flex-col bg-white p-4 rounded-lg w-full max-w-sm border shadow-sm">
+              <div className="text-sm mb-3 font-bold text-slate-700 text-center uppercase tracking-wider border-b pb-2">Manual Transfer Info</div>
+              <div className="flex flex-col gap-2 text-sm">
+                <div className="flex justify-between items-center border-b pb-1.5">
+                  <span className="text-slate-500 font-medium">Bank</span>
+                  <span className="font-bold text-slate-800">{bank}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-1.5">
+                  <span className="text-slate-500 font-medium">Account Number</span>
+                  <span className="font-bold text-slate-800 font-mono select-all">{acc}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-1.5">
+                  <span className="text-slate-500 font-medium">Amount</span>
+                  <span className="font-bold text-blue-600">{formatVnd(amount)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-0.5">
+                  <span className="text-slate-500 font-medium">Transfer Content</span>
+                  <span className="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200 font-mono select-all">{transferContent}</span>
+                </div>
+              </div>
             </div>
           </>
         )}
@@ -255,7 +406,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
         </Descriptions.Item>
 
         <Descriptions.Item label="Order Type">
-          {order.isWalkIn ? "Walk-in" : "Online"}
+          {order.isWalkIn === true || order.isWalkIn === "true" ? "Walk-in" : "Online"}
         </Descriptions.Item>
 
         <Descriptions.Item label="Total Price">
@@ -267,15 +418,47 @@ export default function OrderDetailDrawer({ order, open, onClose, onSuccess }) {
         </Descriptions.Item>
 
         <Descriptions.Item label="Created At">
-          {new Date(order.createdAt).toLocaleString("vi-VN")}
+          {new Date(order.createdAt).toLocaleString("en-US")}
         </Descriptions.Item>
 
         <Descriptions.Item label="Updated At">
-          {new Date(order.updatedAt).toLocaleString("vi-VN")}
+          {new Date(order.updatedAt).toLocaleString("en-US")}
         </Descriptions.Item>
 
         <Descriptions.Item label="Note" span={2}>
-          {order.note || "-"}
+          {(() => {
+            if (!order.note) return "-";
+            
+            const { cleanNote, errors } = extractPaymentErrors(order.note);
+            
+            if (errors.length > 0) {
+              return (
+                <div className="flex flex-col gap-1.5 w-full">
+                  {cleanNote && (
+                    <div className="text-slate-800 font-medium">
+                      <span className="text-slate-500">Customer Note: </span>
+                      {cleanNote}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold text-red-600">
+                      Payment Error Log ({errors.length} attempt{errors.length > 1 ? "s" : ""}):
+                    </span>
+                    <ul className="list-disc list-inside text-xs text-red-600 space-y-0.5 pl-1">
+                      {errors.map((errContent, index) => (
+                        <li key={index} className="font-medium">
+                          {errContent}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              );
+            }
+            
+            return order.note;
+          })()}
         </Descriptions.Item>
       </Descriptions>
 

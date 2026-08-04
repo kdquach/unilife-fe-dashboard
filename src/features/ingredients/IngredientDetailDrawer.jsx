@@ -101,7 +101,7 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
       width={560}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading ? (
         <div className="mt-24 flex justify-center">

@@ -36,7 +36,7 @@ export default function FoodCategoryFormModal({
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Save changes"}
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" className="pt-4">
         <Form.Item

@@ -258,7 +258,7 @@ const MenuScheduleItemsTable = ({ items, loading, isReadOnly, onUpdateItem, onTo
         onOk={handleUpdateMaxServing}
         onCancel={() => setEditingItem(null)}
         okText="Update"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" className="mt-4">
           <div className="mb-4 text-sm text-slate-600">

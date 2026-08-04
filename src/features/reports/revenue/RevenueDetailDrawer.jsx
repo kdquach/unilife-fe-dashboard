@@ -28,7 +28,7 @@ export default function RevenueDetailDrawer({
       width={520}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       {!data ? null : (
         <>

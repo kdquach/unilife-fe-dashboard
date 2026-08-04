@@ -45,6 +45,7 @@ export default function OrderTable({
   onViewDetail,
   onScanPickup,
   scanning,
+  onChange,
 }) {
   const columns = [
     {
@@ -138,6 +139,7 @@ export default function OrderTable({
         showSizeChanger: true,
         showTotal: (total) => `${total} orders`,
       }}
+      onChange={onChange}
     />
   );
 }

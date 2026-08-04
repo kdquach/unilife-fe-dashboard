@@ -39,7 +39,7 @@ export default function SupplierFormModal({
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Save Changes"}
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
       width={540}
       centered
       styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}

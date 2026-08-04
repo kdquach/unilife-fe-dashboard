@@ -73,8 +73,11 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   const [polling, setPolling] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [paymentFailed, setPaymentFailed] = useState(false);
+  const [paymentWarning, setPaymentWarning] = useState(false);
+  const [paymentWarningData, setPaymentWarningData] = useState(null);
   const [successCountdown, setSuccessCountdown] = useState(10);
   const [timeLeft, setTimeLeft] = useState(0);
+  const initialNoteRef = useRef("");
 
   const fetchTodayMenuFoods = async () => {
     try {
@@ -139,6 +142,8 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     setPolling(false);
     setPaymentSuccess(false);
     setPaymentFailed(false);
+    setPaymentWarning(false);
+    setPaymentWarningData(null);
     setSuccessCountdown(10);
     fetchTodayMenuFoods();
   };
@@ -228,6 +233,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
 
       const payload = {
         paymentMethod,
+        isWalkIn: true,
         items: cart.map((item) => {
           if (item.isDailyFood) {
             // Daily food: send foodId and REGULAR_FOOD type
@@ -259,7 +265,8 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
         "Order has been created successfully.",
       );
 
-      if (paymentMethod === "SEPAY") {
+      if (paymentMethod === "SEPAY" || paymentMethod === "BANK_TRANSFER") {
+        initialNoteRef.current = newOrder?.note || "";
         setCreatedOrder(newOrder);
         setPolling(true);
       } else {
@@ -314,16 +321,79 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
             }
           }
           
-          if (order && (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED")) {
+          if (order && (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED" || order.status === "CONFIRMED")) {
             setPolling(false);
             clearInterval(intervalId);
+
+            if (order.isWalkIn && order.status !== "COMPLETED") {
+              try {
+                await orderService.updateOrder(order._id, { status: "COMPLETED" });
+              } catch (updateErr) {
+                console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+              }
+            }
+
             setPaymentSuccess(true);
             onSuccess();
+          } else if (order && order.note && (
+            order.note !== initialNoteRef.current ||
+            order.note.includes("Order not confirmed") ||
+            order.note.toLowerCase().includes("error") ||
+            order.note.toLowerCase().includes("mismatch") ||
+            order.note.toLowerCase().includes("invalid") ||
+            order.note.toLowerCase().includes("incorrect") ||
+            order.note.toLowerCase().includes("content") ||
+            order.note.toLowerCase().includes("amount") ||
+            order.note.toLowerCase().includes("not found") ||
+            order.note.toLowerCase().includes("failed") ||
+            order.note.toLowerCase().includes("rejected") ||
+            order.note.toLowerCase().includes("transfer")
+          )) {
+            // Do not clear interval, keep polling! Just set a warning flag.
+            setPaymentWarning(true);
+            
+            const errorRegex = /(?:Error|Message):\s*(.*?)(?=\.\s*Order not confirmed|\||$)/gi;
+            const matches = [...order.note.matchAll(errorRegex)];
+            
+            let targetError = "";
+            if (matches.length > 0) {
+              targetError = matches[matches.length - 1][1].trim();
+            } else {
+              targetError = order.note.replace(/\.?\s*Order not confirmed\.?$/i, "").trim();
+              targetError = targetError.replace(/^(?:error|message):\s*/i, "").trim();
+            }
+
+            const lowerErr = targetError.toLowerCase();
+            const amountMatch = targetError.match(/Received:\s*(\d+),\s*Expected:\s*(\d+)/i);
+            const contentMatch = targetError.match(/Received:\s*["']?([^,"']+)["']?,\s*Expected:\s*["']?([^,"']+)["']?/i);
+
+            const isAmountError = (amountMatch && (lowerErr.includes("amount") || lowerErr.includes("payment amount"))) || lowerErr.includes("invalid payment amount");
+            const isContentError = lowerErr.includes("content") || lowerErr.includes("description") || lowerErr.includes("code") || lowerErr.includes("transfer") || lowerErr.includes("not found") || lowerErr.includes("mismatch") || lowerErr.includes("incorrect");
+
+            if (isAmountError && amountMatch) {
+              setPaymentWarningData({
+                type: 'amount',
+                received: parseInt(amountMatch[1], 10),
+                expected: parseInt(amountMatch[2], 10),
+                message: targetError,
+              });
+            } else if (isContentError || contentMatch) {
+              setPaymentWarningData({
+                type: 'content',
+                receivedContent: contentMatch ? contentMatch[1].trim() : null,
+                expectedContent: contentMatch ? contentMatch[2].trim() : (createdOrder?.transferContent || null),
+                message: targetError || "Invalid transfer content detected for this payment"
+              });
+            } else {
+              setPaymentWarningData({
+                type: 'other',
+                message: targetError || "Invalid payment details or transfer content"
+              });
+            }
           } else if (order && (
             order.paymentStatus === "FAILED" || 
             order.paymentStatus === "ERROR" || 
-            order.status === "FAILED" ||
-            (order.note && order.note.includes("Error: Invalid payment amount"))
+            order.status === "FAILED"
           )) {
             setPolling(false);
             clearInterval(intervalId);
@@ -397,10 +467,10 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     }
 
     confirm({
-      title: 'Xác nhận đóng',
-      content: 'Đơn hàng đang chờ thanh toán. Nếu đóng, bạn vẫn có thể mở lại mã QR trong phần Xem Chi Tiết Đơn Hàng.',
-      okText: 'Đóng Popup',
-      cancelText: 'Tiếp tục thanh toán',
+      title: 'Confirm Close',
+      content: 'The order is pending payment. If closed, you can still reopen the QR code in Order Details.',
+      okText: 'Close Popup',
+      cancelText: 'Continue Payment',
       onOk() {
         onClose();
         onSuccess();
@@ -411,17 +481,15 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   // If order is created and pending payment (SePay), show QR screen
   if (createdOrder) {
     let qrUrl = createdOrder.paymentInfo?.qrCodeUrl;
+    const bank = createdOrder.paymentInfo?.bankName || "MB";
+    const acc = createdOrder.paymentInfo?.accountNumber || "0988776655";
+    const amount = createdOrder.totalPrice;
+    const transferContent = createdOrder.transferContent || (createdOrder.orderCode ? `UN${createdOrder.orderCode.replace(/-/g, '')}` : '');
     
     // Fallback if backend doesn't provide qrCodeUrl
     if (!qrUrl) {
-      const bank = createdOrder.paymentInfo?.bankName || "MB";
-      const acc = createdOrder.paymentInfo?.accountNumber || "0988776655";
-      const amount = createdOrder.totalPrice;
-      const des = createdOrder.transferContent || (createdOrder.orderCode ? `UN${createdOrder.orderCode.replace(/-/g, '')}` : '');
-      qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${des}`;
+      qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${transferContent}`;
     }
-
-    const transferContent = createdOrder.transferContent || (createdOrder.orderCode ? `UN${createdOrder.orderCode.replace(/-/g, '')}` : '');
 
     const minutes = Math.floor(timeLeft / 60);
     const seconds = timeLeft % 60;
@@ -437,7 +505,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
             Close
           </Button>
         ]}
-        destroyOnClose
+        destroyOnHidden
       >
         <div className="flex flex-col items-center py-6">
           <div className="text-lg font-bold mb-2">Total: {formatVnd(createdOrder.totalPrice)}</div>
@@ -464,7 +532,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
               <CloseCircleOutlined style={{ fontSize: 48, color: '#ff4d4f', marginBottom: 12 }} />
               <span className="text-red-600 font-bold mb-2 text-lg">Payment Failed</span>
               <span className="text-sm text-slate-600 mb-4">
-                You have modified the transfer amount or content. The automated system cannot confirm this order. 
+                The automated system cannot confirm this order. 
                 Please wait for the end-of-day revenue reconciliation to resolve this issue or contact the canteen staff.
               </span>
               <Button danger onClick={onClose} type="primary">
@@ -482,10 +550,75 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
             </div>
           ) : (
             <>
-              <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full text-center">
-                <strong>⚠️ IMPORTANT WARNING:</strong><br />
-                Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment, and you will have to wait for the end-of-day revenue reconciliation to resolve it.
-              </div>
+              {paymentWarning && paymentWarningData ? (
+                <div className="bg-white border-2 border-red-200 rounded-xl mb-4 overflow-hidden shadow-sm w-full">
+                  <div className="bg-red-50 px-4 py-2 border-b border-red-200 flex items-center justify-center gap-2">
+                    <CloseCircleOutlined className="text-red-600 text-lg" />
+                    <span className="font-bold text-red-700 uppercase tracking-wide">
+                      {paymentWarningData.type === 'amount'
+                        ? 'Invalid Payment Amount'
+                        : paymentWarningData.type === 'content'
+                        ? 'Invalid Transfer Content'
+                        : 'Payment Details Error'}
+                    </span>
+                  </div>
+                  <div className="p-4 text-center">
+                    {paymentWarningData.type === 'amount' && paymentWarningData.received ? (
+                      <>
+                        <div className="flex justify-center items-center gap-6 mb-3">
+                           <div className="flex flex-col items-end">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Received</span>
+                              <span className="text-lg font-bold text-red-600">{formatVnd(paymentWarningData.received)}</span>
+                           </div>
+                           <div className="h-10 w-px bg-red-200"></div>
+                           <div className="flex flex-col items-start">
+                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Expected</span>
+                              <span className="text-lg font-bold text-green-600">{formatVnd(paymentWarningData.expected)}</span>
+                           </div>
+                        </div>
+                        <div className="text-xs text-red-800 bg-red-50 inline-block px-3 py-1 rounded-full border border-red-100 font-medium mb-3">
+                          Difference: {formatVnd(Math.abs(paymentWarningData.expected - paymentWarningData.received))}
+                        </div>
+                      </>
+                    ) : paymentWarningData.type === 'content' ? (
+                      <div className="mb-3">
+                        <div className="text-sm font-semibold text-red-600 bg-red-50 p-2.5 border border-red-100 rounded mb-2">
+                          ⚠️ {paymentWarningData.message || "Invalid transfer content detected!"}
+                        </div>
+                        {(paymentWarningData.receivedContent || paymentWarningData.expectedContent) && (
+                          <div className="text-xs text-slate-700 bg-red-50/50 p-2.5 rounded border border-red-100 mb-2 flex flex-col gap-1.5 text-left">
+                            {paymentWarningData.receivedContent && (
+                              <div>
+                                <span className="text-slate-500 font-medium">Entered Content: </span>
+                                <code className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-mono font-bold">{paymentWarningData.receivedContent}</code>
+                              </div>
+                            )}
+                            {paymentWarningData.expectedContent && (
+                              <div>
+                                <span className="text-slate-500 font-medium">Correct Required Content: </span>
+                                <code className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-mono font-bold">{paymentWarningData.expectedContent}</code>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-sm mt-1 mb-3 font-medium bg-red-50 text-red-600 p-2 border border-red-100 rounded">
+                        {paymentWarningData.message || "Invalid transfer content detected"}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-600 m-0">
+                      Please scan the QR code below and transfer with the <b>exact amount and content</b> to complete your order.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full text-center">
+                  <strong>⚠️ IMPORTANT WARNING:</strong><br />
+                  Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment, and you will have to wait for the end-of-day revenue reconciliation to resolve it.
+                </div>
+              )}
+              
               <Image 
                 src={qrUrl} 
                 fallback={imageNotFound}
@@ -495,9 +628,26 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
                 className="border rounded shadow-sm mb-4"
               />
               
-              <div className="flex flex-col items-center justify-center bg-slate-50 p-4 rounded text-center w-full mt-2">
-                <span className="text-xs text-slate-500 mb-1">Transfer Content (Important)</span>
-                <span className="text-sm font-bold text-slate-800 bg-white px-3 py-1 rounded border">{transferContent}</span>
+              <div className="flex flex-col bg-slate-50 p-4 rounded w-full mt-2 border">
+                <div className="text-sm mb-3 font-bold text-slate-700 text-center uppercase tracking-wider">Manual Transfer Info</div>
+                <div className="flex flex-col gap-2 text-sm">
+                  <div className="flex justify-between items-center border-b pb-1">
+                    <span className="text-slate-500">Bank</span>
+                    <span className="font-bold text-slate-800">{bank}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b pb-1">
+                    <span className="text-slate-500">Account</span>
+                    <span className="font-bold text-slate-800">{acc}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b pb-1">
+                    <span className="text-slate-500">Amount</span>
+                    <span className="font-bold text-blue-600">{formatVnd(amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-slate-500">Content</span>
+                    <span className="font-bold text-red-600 bg-white px-2 py-0.5 rounded border">{transferContent}</span>
+                  </div>
+                </div>
               </div>
             </>
           )}
@@ -521,7 +671,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       onCancel={onClose}
       onOk={handleCreateWalkIn}
       confirmLoading={creating}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className="flex flex-col gap-4 md:flex-row">
         {/* Food picker */}

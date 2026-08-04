@@ -682,7 +682,7 @@ export default function ProfilePage() {
           </Button>,
         ]}
         width={480}
-        destroyOnClose
+        destroyOnHidden
         className="rounded-3xl overflow-hidden"
       >
         <div className="py-2 space-y-4">

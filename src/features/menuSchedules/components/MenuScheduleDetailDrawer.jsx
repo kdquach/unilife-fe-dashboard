@@ -102,7 +102,7 @@ const MenuScheduleDetailDrawer = ({ open, onClose, detail, loading }) => {
       width={720}
       onClose={onClose}
       open={open}
-      destroyOnClose
+      destroyOnHidden
     >
       {renderContent()}
     </Drawer>

@@ -155,7 +155,7 @@ export default function IngredientFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Update"}
-      destroyOnClose
+      destroyOnHidden
       forceRender
       afterOpenChange={(visible) => {
         if (visible) fillForm();

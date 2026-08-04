@@ -80,7 +80,7 @@ export default function IngredientStockImportModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText="Record Import"
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
         className="mb-4"
