@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Result, Space, Modal } from 'antd';
+import { Button, Result, Space, Modal, Alert, Spin } from 'antd';
 import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons';
 import { formatDate } from '../../../utils/format';
 import dayjs from 'dayjs';
@@ -26,6 +26,7 @@ const MenuScheduleDetailPage = () => {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = React.useState(false);
 
   useEffect(() => {
+    console.log('MenuScheduleDetailPage mounted, id:', id);
     fetchDetail(id, true);
     return () => resetDetail();
   }, [id, fetchDetail, resetDetail]);
@@ -152,6 +153,19 @@ const MenuScheduleDetailPage = () => {
             </Button>
           ]}
         />
+      </div>
+    );
+  }
+
+  if (loading && !detail) {
+    return (
+      <div>
+        <PageHeader 
+          title={backButtonTitle}
+        />
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+        </div>
       </div>
     );
   }

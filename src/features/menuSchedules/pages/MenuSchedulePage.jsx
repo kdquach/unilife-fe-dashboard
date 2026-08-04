@@ -5,7 +5,7 @@ import MenuScheduleTable from '../components/MenuScheduleTable';
 import MenuScheduleCreateModal from '../components/MenuScheduleCreateModal';
 import PageHeader from '../../../components/PageHeader';
 import { COLORS } from '../../orders/utils/orderUtils.jsx';
-import { Button, Card, Select, DatePicker, Switch, Space } from 'antd';
+import { Button, Card, Select, DatePicker, Switch, Space, Alert, Spin } from 'antd';
 import { PlusOutlined, ReloadOutlined, CalendarOutlined, CheckCircleOutlined, EditOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import useCreateMenuSchedule from '../hooks/useCreateMenuSchedule';
 
@@ -16,6 +16,7 @@ const MenuSchedulePage = () => {
     data, 
     loading, 
     pagination, 
+    error,
     handleTableChange, 
     handleFilterChange,
     refresh
@@ -97,7 +98,25 @@ const MenuSchedulePage = () => {
         }
       />
 
-      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+      {error && (
+        <Alert
+          message="Error loading menu schedules"
+          description={error}
+          type="error"
+          showIcon
+          closable
+          onClose={() => refresh()}
+          style={{ marginBottom: 16 }}
+        />
+      )}
+
+      {loading && !data.length ? (
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card
           className="dashboard-card"
           styles={{ body: { padding: "16px 18px" } }}
@@ -269,6 +288,8 @@ const MenuSchedulePage = () => {
           onViewDetail={handleViewDetail}
         />
       </Card>
+      </>
+      )}
 
       <MenuScheduleCreateModal
         open={isCreateModalOpen}

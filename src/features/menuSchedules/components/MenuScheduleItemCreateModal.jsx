@@ -37,7 +37,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
       setDefaultMaxServing(50);
       form.resetFields();
     }
-  }, [open, message, form]);
+  }, [open, form]);
 
   const availableFoods = useMemo(() => {
     return foods.filter(food => food.isMenuItem && !existingFoodIds.includes(food._id));

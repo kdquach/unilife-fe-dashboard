@@ -10,10 +10,12 @@ const useMenuScheduleDetail = () => {
   const fetchDetail = useCallback(async (id, includeInactive = false) => {
     if (!id) return;
     
+    console.log('fetchDetail called with id:', id, 'includeInactive:', includeInactive);
     setLoading(true);
     setError(null);
     try {
       const response = await menuScheduleApi.getMenuScheduleDetail(id, { includeInactive });
+      console.log('fetchDetail response:', response);
       if (response.success && response.data) {
         setDetail(response.data);
       } else {
@@ -22,7 +24,8 @@ const useMenuScheduleDetail = () => {
         notify.error('Failed to fetch menu schedule detail', errorMsg);
       }
     } catch (err) {
-      const errorMsg = err.message || 'An error occurred while fetching details';
+      console.error('fetchDetail error:', err);
+      const errorMsg = err.message || err.response?.data?.message || 'An error occurred while fetching details';
       setError(errorMsg);
       notify.error('An error occurred while fetching details', errorMsg);
     } finally {
