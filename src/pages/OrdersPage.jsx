@@ -130,6 +130,7 @@ export default function OrdersPage() {
         order={selectedOrder}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
+        onSuccess={() => fetchOrders()}
       />
 
       <WalkInOrderModal

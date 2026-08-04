@@ -12,12 +12,22 @@ export const orderService = {
     };
   },
 
+  async getOrderById(id) {
+    const response = await apiClient.get(`/orders/${id}`);
+    return response.data;
+  },
+
   async createWalkInOrder(payload) {
     const response = await apiClient.post(
       "/orders/walk-in",
       payload
     );
 
+    return response.data;
+  },
+
+  async updateOrder(id, payload) {
+    const response = await apiClient.patch(`/orders/${id}`, payload);
     return response.data;
   },
 

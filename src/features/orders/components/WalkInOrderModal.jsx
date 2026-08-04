@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Modal, Input, Button, Space, Tag, Empty, Badge, Image, Form, Select, Spin } from "antd";
-import { PlusOutlined, MinusOutlined, DeleteOutlined, SearchOutlined } from "@ant-design/icons";
 import { notify } from "../../../utils/notify";
 import { getImageUrl, imageNotFound } from "../../../utils/image";
+import { PlusOutlined, MinusOutlined, DeleteOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import menuScheduleApi from "../../menuSchedules/api/menuScheduleApi";
 import { orderService } from "../orderService";
 import { foodService } from "../../foods/foodService";
+
+const { confirm } = Modal;
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
@@ -67,6 +69,12 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [note, setNote] = useState("");
   const [creating, setCreating] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState(null);
+  const [polling, setPolling] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [successCountdown, setSuccessCountdown] = useState(10);
+  const [timeLeft, setTimeLeft] = useState(0);
 
   const fetchTodayMenuFoods = async () => {
     try {
@@ -127,6 +135,11 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     setPaymentMethod("CASH");
     setNote("");
     setFoodSearch("");
+    setCreatedOrder(null);
+    setPolling(false);
+    setPaymentSuccess(false);
+    setPaymentFailed(false);
+    setSuccessCountdown(10);
     fetchTodayMenuFoods();
   };
 
@@ -195,11 +208,18 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   }, [foods, foodSearch]);
 
   const handleCreateWalkIn = async () => {
+    if (creating) return;
+
     if (cart.length === 0) {
       notify.warning(
   "Cart is Empty",
   "Please select at least one item before creating an order.",
 );
+      return;
+    }
+
+    if (cart.some(item => item.quantity < 1)) {
+      notify.error("Invalid Quantity", "Quantity must be at least 1.");
       return;
     }
 
@@ -231,15 +251,21 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
         payload.note = note.trim();
       }
 
-      await orderService.createWalkInOrder(payload);
+      const response = await orderService.createWalkInOrder(payload);
+      const newOrder = response?.data || response;
 
       notify.success(
         "Walk-in Order Created",
         "Order has been created successfully.",
       );
 
-      onClose();
-      onSuccess();
+      if (paymentMethod === "SEPAY") {
+        setCreatedOrder(newOrder);
+        setPolling(true);
+      } else {
+        onClose();
+        onSuccess();
+      }
     } catch (error) {
       console.error(error);
 
@@ -251,6 +277,241 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       setCreating(false);
     }
   };
+
+  const handleCancelExpiredOrder = async () => {
+    if (!createdOrder) return;
+    try {
+      setCreating(true);
+      await orderService.updateOrder(createdOrder._id, { status: "CANCELLED", paymentStatus: "FAILED" });
+      notify.success("Order Cancelled", "The expired order has been cancelled.");
+      onClose();
+      onSuccess();
+    } catch (err) {
+      console.error(err);
+      notify.error("Cancel Failed", "Failed to cancel the order.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  useEffect(() => {
+    let intervalId;
+    if (polling && createdOrder) {
+      intervalId = setInterval(async () => {
+        try {
+          let order;
+          try {
+            const res = await orderService.getOrderById(createdOrder._id);
+            order = res.data || res;
+          } catch (e) {
+            // fallback to getOrders if getOrderById 404s
+            const res = await orderService.getOrders({ keyword: createdOrder.orderCode, limit: 20 });
+            order = res.data?.find(o => o._id === createdOrder._id);
+            if (!order) {
+               // try without keyword just first page
+               const res2 = await orderService.getOrders({ limit: 20 });
+               order = res2.data?.find(o => o._id === createdOrder._id);
+            }
+          }
+          
+          if (order && (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED")) {
+            setPolling(false);
+            clearInterval(intervalId);
+            setPaymentSuccess(true);
+            onSuccess();
+          } else if (order && (
+            order.paymentStatus === "FAILED" || 
+            order.paymentStatus === "ERROR" || 
+            order.status === "FAILED" ||
+            (order.note && order.note.includes("Error: Invalid payment amount"))
+          )) {
+            setPolling(false);
+            clearInterval(intervalId);
+            setPaymentFailed(true);
+          }
+        } catch (err) {
+          console.error("Polling error", err);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [polling, createdOrder, onSuccess]);
+
+  useEffect(() => {
+    let timer;
+    if (paymentSuccess && successCountdown > 0) {
+      timer = setInterval(() => {
+        setSuccessCountdown(prev => prev - 1);
+      }, 1000);
+    } else if (paymentSuccess && successCountdown === 0) {
+      onClose();
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentSuccess, successCountdown]);
+
+  useEffect(() => {
+    let timer;
+    if (createdOrder) {
+      const expiresAt = new Date(createdOrder.createdAt).getTime() + 15 * 60000;
+      
+      timer = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = expiresAt - now;
+        
+        if (distance <= 0) {
+          clearInterval(timer);
+          setTimeLeft(0);
+        } else {
+          setTimeLeft(Math.floor(distance / 1000));
+        }
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    }
+  }, [createdOrder]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (polling && createdOrder && !paymentSuccess) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome to show the warning dialog
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [polling, createdOrder, paymentSuccess]);
+
+  const handleClosePayment = () => {
+    if (paymentSuccess) {
+      onClose();
+      return;
+    }
+
+    confirm({
+      title: 'Xác nhận đóng',
+      content: 'Đơn hàng đang chờ thanh toán. Nếu đóng, bạn vẫn có thể mở lại mã QR trong phần Xem Chi Tiết Đơn Hàng.',
+      okText: 'Đóng Popup',
+      cancelText: 'Tiếp tục thanh toán',
+      onOk() {
+        onClose();
+        onSuccess();
+      },
+    });
+  };
+
+  // If order is created and pending payment (SePay), show QR screen
+  if (createdOrder) {
+    let qrUrl = createdOrder.paymentInfo?.qrCodeUrl;
+    
+    // Fallback if backend doesn't provide qrCodeUrl
+    if (!qrUrl) {
+      const bank = createdOrder.paymentInfo?.bankName || "MB";
+      const acc = createdOrder.paymentInfo?.accountNumber || "0988776655";
+      const amount = createdOrder.totalPrice;
+      const des = createdOrder.transferContent || (createdOrder.orderCode ? `UN${createdOrder.orderCode.replace(/-/g, '')}` : '');
+      qrUrl = `https://qr.sepay.vn/img?acc=${acc}&bank=${bank}&amount=${amount}&des=${des}`;
+    }
+
+    const transferContent = createdOrder.transferContent || (createdOrder.orderCode ? `UN${createdOrder.orderCode.replace(/-/g, '')}` : '');
+
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+
+    return (
+      <Modal
+        title="Waiting for Payment"
+        open={open}
+        width={400}
+        onCancel={handleClosePayment}
+        footer={(paymentSuccess || paymentFailed) ? null : [
+          <Button key="close" onClick={handleClosePayment}>
+            Close
+          </Button>
+        ]}
+        destroyOnClose
+      >
+        <div className="flex flex-col items-center py-6">
+          <div className="text-lg font-bold mb-2">Total: {formatVnd(createdOrder.totalPrice)}</div>
+          <div className="text-sm text-slate-500 mb-4">Order Code: {createdOrder.orderCode}</div>
+          
+          {!paymentSuccess && (
+            <div className="mb-4">
+              <Tag color={timeLeft > 0 ? "orange" : "red"} style={{ margin: 0, padding: '4px 12px', fontSize: 14 }}>
+                Expires in: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+              </Tag>
+            </div>
+          )}
+
+          {timeLeft === 0 && !paymentSuccess && !paymentFailed ? (
+            <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200">
+              <span className="text-red-500 font-bold mb-2">QR Code Expired</span>
+              <span className="text-sm text-slate-600 mb-4">The 15-minute payment window has closed. Please cancel this order and create a new one.</span>
+              <Button danger onClick={handleCancelExpiredOrder} loading={creating}>
+                Cancel Order
+              </Button>
+            </div>
+          ) : paymentFailed ? (
+            <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200">
+              <CloseCircleOutlined style={{ fontSize: 48, color: '#ff4d4f', marginBottom: 12 }} />
+              <span className="text-red-600 font-bold mb-2 text-lg">Payment Failed</span>
+              <span className="text-sm text-slate-600 mb-4">
+                You have modified the transfer amount or content. The automated system cannot confirm this order. 
+                Please wait for the end-of-day revenue reconciliation to resolve this issue or contact the canteen staff.
+              </span>
+              <Button danger onClick={onClose} type="primary">
+                Close Now
+              </Button>
+            </div>
+          ) : paymentSuccess ? (
+            <div className="flex flex-col items-center justify-center bg-green-50 p-6 rounded-lg text-center mb-4 border border-green-200">
+              <CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a', marginBottom: 12 }} />
+              <span className="text-green-600 font-bold mb-2 text-lg">Payment Successful!</span>
+              <span className="text-sm text-slate-600 mb-4">Order has been confirmed. This window will close automatically in {successCountdown} seconds.</span>
+              <Button type="primary" onClick={onClose} style={{ backgroundColor: '#52c41a' }}>
+                Close Now
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full text-center">
+                <strong>⚠️ IMPORTANT WARNING:</strong><br />
+                Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment, and you will have to wait for the end-of-day revenue reconciliation to resolve it.
+              </div>
+              <Image 
+                src={qrUrl} 
+                fallback={imageNotFound}
+                alt="SePay QR Code" 
+                width={250} 
+                preview={false} 
+                className="border rounded shadow-sm mb-4"
+              />
+              
+              <div className="flex flex-col items-center justify-center bg-slate-50 p-4 rounded text-center w-full mt-2">
+                <span className="text-xs text-slate-500 mb-1">Transfer Content (Important)</span>
+                <span className="text-sm font-bold text-slate-800 bg-white px-3 py-1 rounded border">{transferContent}</span>
+              </div>
+            </>
+          )}
+          
+          {timeLeft > 0 && !paymentSuccess && !paymentFailed && (
+            <div className="flex items-center gap-2 mt-6 text-blue-600">
+              <Spin size="small" />
+              <span className="text-sm font-medium">Waiting for payment...</span>
+            </div>
+          )}
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
