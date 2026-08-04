@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
-import { App } from 'antd';
 import menuScheduleApi from '../api/menuScheduleApi';
+import { notify } from '../../../utils/notify';
 
 const useCreateMenuSchedule = () => {
-  const { message } = App.useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createSchedule = useCallback(async (data) => {
@@ -11,20 +10,20 @@ const useCreateMenuSchedule = () => {
     try {
       const response = await menuScheduleApi.createMenuSchedule(data);
       if (response.success) {
-        message.success(response.message || 'Menu schedule created successfully');
+        notify.success('Menu schedule created successfully', response.message);
         return response;
       } else {
-        message.error(response.message || 'Failed to create menu schedule');
+        notify.error('Failed to create menu schedule', response.message);
         return response;
       }
     } catch (error) {
       const errorMsg = error.response?.data?.message || error.message || 'An error occurred during creation';
-      message.error(errorMsg);
+      notify.error('An error occurred during creation', errorMsg);
       throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }, [message]);
+  }, []);
 
   return {
     isSubmitting,

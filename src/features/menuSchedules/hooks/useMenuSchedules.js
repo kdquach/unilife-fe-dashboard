@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import menuScheduleApi from '../api/menuScheduleApi';
-import { App } from 'antd';
+import { notify } from '../../../utils/notify';
 
 const useMenuSchedules = (initialParams = { page: 1, limit: 10 }) => {
-  const { message } = App.useApp();
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
   const [loading, setLoading] = useState(false);
@@ -17,10 +16,10 @@ const useMenuSchedules = (initialParams = { page: 1, limit: 10 }) => {
         setData(response.data.items || []);
         setPagination(response.data.pagination || { page: 1, limit: 10, total: 0 });
       } else {
-        message.error(response.message || 'Failed to fetch menu schedules');
+        notify.error('Failed to fetch menu schedules', response.message);
       }
     } catch (error) {
-      message.error(error.message || 'An error occurred while fetching menu schedules');
+      notify.error('An error occurred while fetching menu schedules', error.message);
     } finally {
       setLoading(false);
     }

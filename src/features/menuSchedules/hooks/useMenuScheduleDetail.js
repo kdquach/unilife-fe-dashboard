@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import menuScheduleApi from '../api/menuScheduleApi';
-import { App } from 'antd';
+import { notify } from '../../../utils/notify';
 
 const useMenuScheduleDetail = () => {
-  const { message } = App.useApp();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,12 +19,12 @@ const useMenuScheduleDetail = () => {
       } else {
         const errorMsg = response.message || 'Failed to fetch menu schedule detail';
         setError(errorMsg);
-        message.error(errorMsg);
+        notify.error('Failed to fetch menu schedule detail', errorMsg);
       }
     } catch (err) {
       const errorMsg = err.message || 'An error occurred while fetching details';
       setError(errorMsg);
-      message.error(errorMsg);
+      notify.error('An error occurred while fetching details', errorMsg);
     } finally {
       setLoading(false);
     }

@@ -18,11 +18,11 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
 import { supplierService } from "../features/suppliers/supplierService";
 import SupplierFormModal from "../features/suppliers/SupplierFormModal";
 import { formatDateTime } from "../utils/format";
+import { notify } from "../utils/notify";
 
 export default function SupplierDetailPage() {
   const { id } = useParams();
@@ -49,7 +49,7 @@ export default function SupplierDetailPage() {
       const data = await supplierService.getSupplierById(id);
       setSupplier(data);
     } catch (error) {
-      message.error(error.message);
+      notify.error("Failed to load supplier", error.message);
     } finally {
       setSupplierLoading(false);
     }
@@ -73,7 +73,7 @@ export default function SupplierDetailPage() {
         total: response.pagination.total,
       });
     } catch (error) {
-      message.error(error.message);
+      notify.error("Failed to load supplier", error.message);
     } finally {
       setBatchesLoading(false);
     }
@@ -91,10 +91,10 @@ export default function SupplierDetailPage() {
     try {
       const updated = await supplierService.updateSupplier(id, values);
       setSupplier(updated);
-      message.success("Supplier updated");
+      notify.success("Supplier updated");
       setFormOpen(false);
     } catch (error) {
-      message.error(error.message);
+      notify.error("Failed to load supplier", error.message);
     } finally {
       setSaving(false);
     }

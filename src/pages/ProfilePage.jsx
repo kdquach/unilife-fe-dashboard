@@ -19,7 +19,6 @@ import {
   Tooltip,
   Typography,
   Upload,
-  message,
 } from "antd";
 import {
   CameraOutlined,
@@ -45,6 +44,7 @@ import {
 import { useAuth } from "../features/auth/AuthContext";
 import { profileService } from "../features/profile/profileService";
 import { getImageUrl } from "../utils/image";
+import { notify } from "../utils/notify";
 
 const { Title, Text } = Typography;
 
@@ -88,7 +88,7 @@ export default function ProfilePage() {
         });
       }
     } catch (err) {
-      message.error(err?.message || "Failed to load profile details");
+      notify.error("Failed to load profile details", err?.message);
     } finally {
       setLoading(false);
     }
@@ -117,9 +117,9 @@ export default function ProfilePage() {
             }
           : {}),
       });
-      message.success("Profile updated successfully!");
+      notify.success("Profile updated successfully");
     } catch (err) {
-      message.error(err?.message || "Failed to update profile");
+      notify.error("Failed to update profile", err?.message);
     } finally {
       setUpdatingProfile(false);
     }
@@ -132,10 +132,10 @@ export default function ProfilePage() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       });
-      message.success("Password changed successfully!");
+      notify.success("Password changed successfully");
       passwordForm.resetFields();
     } catch (err) {
-      message.error(err?.message || "Failed to change password");
+      notify.error("Failed to change password", err?.message);
     } finally {
       setUpdatingPassword(false);
     }
@@ -263,10 +263,10 @@ export default function ProfilePage() {
           setProfileData((prev) => ({ ...prev, avatar: avatarUrl, avatarUrl }));
           updateUser({ avatar: avatarUrl, avatarUrl });
         }
-        message.success("Avatar updated successfully!");
+        notify.success("Avatar updated successfully");
         setAdjustModalOpen(false);
       } catch (err) {
-        message.error(err?.message || "Failed to upload avatar");
+        notify.error("Failed to upload avatar", err?.message);
       } finally {
         setUploadingAvatar(false);
       }
@@ -276,7 +276,7 @@ export default function ProfilePage() {
   const copyToClipboard = (text) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
-    message.success("Copied to clipboard!");
+    notify.success("Copied to clipboard");
   };
 
   const currentUser = profileData || user;

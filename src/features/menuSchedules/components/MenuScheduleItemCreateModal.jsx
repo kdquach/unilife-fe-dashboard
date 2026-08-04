@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Form, InputNumber, App, Button, Space, Tag, Image, Badge, Empty } from 'antd';
+import { Modal, Form, InputNumber, Button, Space, Tag, Image, Badge, Empty } from 'antd';
 import { PlusOutlined, MinusOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { foodService } from '../../foods/foodService';
 import { getImageUrl, imageNotFound } from '../../../utils/image';
+import { notify } from '../../../utils/notify';
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
@@ -12,7 +13,6 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
   const [loadingFoods, setLoadingFoods] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState([]);
   const [defaultMaxServing, setDefaultMaxServing] = useState(50);
-  const { message } = App.useApp();
 
   useEffect(() => {
     if (open) {
@@ -26,7 +26,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
           });
           setFoods(response.data || []);
         } catch {
-          message.error('Failed to load foods list');
+          notify.error('Failed to load foods list');
         } finally {
           setLoadingFoods(false);
         }
@@ -68,7 +68,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
 
   const handleOk = () => {
     if (selectedFoods.length === 0) {
-      message.warning('Please select at least one food item to add!');
+      notify.warning('Please select at least one food item to add');
       return;
     }
 
@@ -118,7 +118,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
                   type="dashed"
                   size="small"
                   icon={<ThunderboltOutlined />}
-                  onClick={() => message.info('Default serving will be applied to newly added items')}
+                  onClick={() => notify.info('Default serving will be applied to newly added items')}
                 >
                   Default
                 </Button>

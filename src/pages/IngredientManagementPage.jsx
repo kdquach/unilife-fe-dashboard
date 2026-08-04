@@ -3,7 +3,6 @@ import {
   Button,
   Card,
   Input,
-  message,
   Select,
   Space,
   Table,
@@ -26,6 +25,7 @@ import {
 
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
+import { notify } from "../utils/notify";
 
 // Components
 import IngredientDetailDrawer from "../features/ingredients/IngredientDetailDrawer";
@@ -109,7 +109,7 @@ export default function IngredientManagementPage() {
       setCategories(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       setCategories([]);
-      message.warning(err.message || "Unable to load ingredient categories");
+      notify.warning("Unable to load ingredient categories", err.message);
     } finally {
       setCategoryLoading(false);
     }
@@ -128,7 +128,7 @@ export default function IngredientManagementPage() {
       setSuppliers(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       setSuppliers([]);
-      message.warning(err.message || "Unable to load suppliers");
+      notify.warning("Unable to load suppliers", err.message);
     } finally {
       setSupplierLoading(false);
     }
@@ -185,7 +185,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(record);
 
     if (!id) {
-      message.warning("Ingredient ID is missing");
+      notify.warning("Ingredient ID is missing");
       return;
     }
 
@@ -232,7 +232,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(record);
 
     if (!id) {
-      message.warning("Ingredient ID is missing");
+      notify.warning("Ingredient ID is missing");
       return;
     }
 
@@ -246,7 +246,7 @@ export default function IngredientManagementPage() {
       setSelectedIngredient(detail || record);
       setAdjustBatches(Array.isArray(detail?.batches) ? detail.batches : []);
     } catch (err) {
-      message.warning(err.message || "Unable to load ingredient batches");
+      notify.warning("Unable to load ingredient batches", err.message);
     } finally {
       setBatchLoading(false);
     }
@@ -256,7 +256,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(record);
 
     if (!id) {
-      message.warning("Ingredient ID is missing");
+      notify.warning("Ingredient ID is missing");
       return;
     }
 
@@ -270,7 +270,7 @@ export default function IngredientManagementPage() {
       setSelectedIngredient(detail || record);
       setImportBatches(Array.isArray(detail?.batches) ? detail.batches : []);
     } catch (err) {
-      message.warning(err.message || "Unable to load ingredient batches");
+      notify.warning("Unable to load ingredient batches", err.message);
     } finally {
       setBatchLoading(false);
     }

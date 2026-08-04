@@ -12,7 +12,6 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
 import {
   EyeOutlined,
@@ -30,6 +29,7 @@ import { ingredientService } from "../features/ingredients/ingredientService";
 import { ingredientTransactionService } from "../features/ingredients/ingredientTransactionService";
 import { formatDate, formatDateTime } from "../utils/format";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
+import { notify } from "../utils/notify";
 
 const { RangePicker } = DatePicker;
 const { Search } = Input;
@@ -161,7 +161,7 @@ export default function InventoryTransactionHistoryPage() {
       setIngredients(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       setIngredients([]);
-      message.warning(err.message || "Unable to load ingredients");
+      notify.warning("Unable to load ingredients", err.message);
     } finally {
       setIngredientLoading(false);
     }
@@ -202,7 +202,7 @@ export default function InventoryTransactionHistoryPage() {
       setTransactions([]);
       setPagination((prev) => ({ ...prev, current: 1, total: 0 }));
       setError(err.message || "Unable to load inventory transaction history");
-      message.error(err.message || "Unable to load inventory transaction history");
+      notify.error("Unable to load inventory transaction history", err.message);
     } finally {
       setLoading(false);
     }
@@ -245,7 +245,7 @@ export default function InventoryTransactionHistoryPage() {
     const id = getRecordId(record);
 
     if (!id) {
-      message.warning("Transaction ID is missing");
+      notify.warning("Transaction ID is missing");
       return;
     }
 
@@ -258,7 +258,7 @@ export default function InventoryTransactionHistoryPage() {
         await ingredientTransactionService.getIngredientTransactionById(id);
       setSelectedTransaction(detail || record);
     } catch (err) {
-      message.warning(err.message || "Unable to load transaction detail");
+      notify.warning("Unable to load transaction detail", err.message);
     } finally {
       setDetailLoading(false);
     }

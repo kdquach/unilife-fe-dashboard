@@ -1,20 +1,20 @@
 import { useState } from 'react';
-import { message } from 'antd';
 import ratingApi from '../api/ratingApi';
+import { notify } from '../../../utils/notify';
 
 const useReplyRating = () => {
   const [loading, setLoading] = useState(false);
 
   const submitReply = async (id, staffReply, onSuccess) => {
     if (!staffReply || !staffReply.trim()) {
-      message.error('Reply content cannot be empty');
+      notify.error('Reply content cannot be empty');
       return false;
     }
 
     setLoading(true);
     try {
       await ratingApi.replyRating(id, { staffReply: staffReply.trim() });
-      message.success('Replied successfully');
+      notify.success('Replied successfully');
       if (onSuccess) {
         onSuccess();
       }
@@ -25,7 +25,7 @@ const useReplyRating = () => {
       if (err instanceof Error) {
         errorMsg = err.message;
       }
-      message.error(errorMsg);
+      notify.error('An error occurred while replying', errorMsg);
       return false;
     } finally {
       setLoading(false);
