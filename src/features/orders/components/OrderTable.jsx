@@ -95,10 +95,20 @@ export default function OrderTable({
       dataIndex: "paymentMethod",
     },
     {
-      title: "Created",
-      dataIndex: "createdAt",
-      render: (value) => new Date(value).toLocaleString("vi-VN"),
-    },
+  title: "Created",
+  dataIndex: "createdAt",
+  width: 150,
+  render: (value) => {
+    const date = new Date(value);
+
+    return (
+      <div>
+        <div>{date.toLocaleTimeString("vi-VN")}</div>
+        <div>{date.toLocaleDateString("vi-VN")}</div>
+      </div>
+    );
+  },
+},
     {
       title: "Actions",
       fixed: "right",
@@ -110,15 +120,6 @@ export default function OrderTable({
             onClick={(e) => {
               e.stopPropagation();
               onViewDetail(record);
-            }}
-          />
-          <Button
-            icon={<QrcodeOutlined />}
-            disabled={!canScanPickup(record)}
-            loading={scanning}
-            onClick={(e) => {
-              e.stopPropagation();
-              onScanPickup(record);
             }}
           />
         </Space>

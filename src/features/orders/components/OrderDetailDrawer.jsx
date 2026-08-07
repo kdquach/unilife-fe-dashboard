@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Drawer, Descriptions, Table, Tag, Button, Space, Popconfirm, message } from "antd";
+import { Drawer, Descriptions, Table, Tag, Button, Space, Popconfirm } from "antd";
 import { orderService } from "../orderService";
+import { notify } from "../../../utils/notify";
 
 function extractPaymentErrors(note) {
   if (!note) return { cleanNote: "", errors: [] };
@@ -138,7 +139,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
                   console.error("Failed to update walk-in order status to COMPLETED", updateErr);
                 }
               }
-              message.success("Payment confirmed!");
+              notify.success("Payment confirmed!");
               onSuccess?.();
             }
           }
@@ -188,12 +189,11 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
         setUpdating(true);
         await orderService.updateOrder(order._id, { status: "CANCELLED", paymentStatus: "FAILED" });
         setOrder((prev) => ({ ...prev, status: "CANCELLED", paymentStatus: "FAILED" }));
-        message.info("Order automatically cancelled due to QR code expiration.");
+        notify.info("Order automatically cancelled due to QR code expiration.");
         onSuccess?.();
       } catch (err) {
-        console.error(err);
         autoCancelRef.current = false;
-        message.error("Failed to auto-cancel expired order.");
+        notify.error("Failed to auto-cancel expired order.");
       } finally {
         setUpdating(false);
       }
@@ -208,12 +208,12 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
     try {
       setUpdating(true);
       await orderService.updateOrder(order._id, { status: "CANCELLED", paymentStatus: "FAILED" });
-      message.success("Order has been cancelled.");
+      notify.success("Order has been cancelled.");
       onSuccess?.();
       onClose();
     } catch (err) {
       console.error(err);
-      message.error("Failed to cancel order.");
+      notify.error("Failed to cancel order.");
     } finally {
       setUpdating(false);
     }
@@ -226,13 +226,11 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
       const targetStatus = isWalkInOrder ? "COMPLETED" : "PAID";
       await orderService.updateOrder(order._id, { status: targetStatus, paymentStatus: "PAID" });
       setOrder((prev) => ({ ...prev, status: targetStatus, paymentStatus: "PAID" }));
-      
-      message.success(`Order marked as ${targetStatus}.`);
+      notify.success(`Order marked as ${targetStatus}.`);
       onSuccess?.();
       onClose();
     } catch (err) {
-      console.error(err);
-      message.error("Failed to mark order as paid.");
+      notify.error("Failed to mark order as paid.");
     } finally {
       setUpdating(false);
     }
