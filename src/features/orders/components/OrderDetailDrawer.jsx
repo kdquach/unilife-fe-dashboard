@@ -154,8 +154,9 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
     let timer;
     if (order && isPending && isSePay) {
       const calculateTimeLeft = () => {
-        const expiresAt = new Date(order.createdAt).getTime() + 15 * 60000;
-        const now = new Date().getTime();
+        const createdTime = order.createdAt ? new Date(order.createdAt).getTime() : Date.now();
+        const expiresAt = createdTime + 15 * 60000;
+        const now = Date.now();
         const distance = expiresAt - now;
         return Math.max(0, Math.floor(distance / 1000));
       };
@@ -169,7 +170,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [order, isPending, isSePay]);
+  }, [order?.createdAt, isPending, isSePay]);
 
   if (!order) return null;
 
@@ -209,10 +210,11 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
 
   const minutes = Math.floor(liveTimeLeft / 60);
   const seconds = liveTimeLeft % 60;
+  const canCancel = isPending && order?.status !== "CANCELLED" && order?.status !== "EXPIRED" && order?.paymentStatus !== "FAILED";
 
   // Render SePay Pending Area
   const renderSePayPending = () => {
-    if (!isPending || !isSePay) return null;
+    if (!isPending || !isSePay || order?.status === "CANCELLED" || order?.status === "EXPIRED") return null;
 
     const { errors } = extractPaymentErrors(order.note);
     const hasPaymentError = errors.length > 0 || (order.note && (
@@ -324,7 +326,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
       footer={
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Space>
-            {isPending && (
+            {canCancel && (
               <Popconfirm
                 title="Cancel Order"
                 description="Are you sure you want to cancel this order?"

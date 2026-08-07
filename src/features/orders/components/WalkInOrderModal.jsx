@@ -56,9 +56,70 @@ function normalizeDailyFoods(dailyFoods) {
         (typeof food.categoryId === "object" && food.categoryId?.name) ||
         null,
       stockQuantity: food.stockQuantity ?? 999,
-      isMenuItem: !!food.isMenuItem,
+      isMenuItem: false,
       isDailyFood: true,
     }));
+}
+
+function extractPaymentErrors(note) {
+  if (!note) return { cleanNote: "", errors: [] };
+
+  const parts = note.split(/\s*\|\s*/);
+  const cleanParts = [];
+  const errors = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.startsWith("error:") ||
+      lower.includes("order not confirmed") ||
+      lower.includes("order not found") ||
+      lower.includes("not found") ||
+      lower.includes("invalid payment amount") ||
+      lower.includes("invalid transfer content") ||
+      lower.includes("transfer content") ||
+      lower.includes("incorrect transfer content") ||
+      lower.includes("content mismatch") ||
+      lower.includes("mismatch") ||
+      lower.includes("incorrect") ||
+      lower.includes("invalid") ||
+      lower.includes("failed") ||
+      lower.includes("rejected")
+    ) {
+      let errText = trimmed.replace(/^(?:error|message):\s*/i, "").trim();
+      errText = errText.replace(/\.?\s*order not confirmed\.?$/i, "").trim();
+      if (errText) {
+        errors.push(errText);
+      }
+    } else {
+      cleanParts.push(trimmed);
+    }
+  }
+
+  if (errors.length === 0 && (
+    note.toLowerCase().includes("error:") ||
+    note.toLowerCase().includes("order not confirmed") ||
+    note.toLowerCase().includes("not found")
+  )) {
+    const errorRegex = /(?:Error|Message):\s*(.*?)(?=\.\s*Order not confirmed|\||$)/gi;
+    const matches = [...note.matchAll(errorRegex)];
+    if (matches.length > 0) {
+      const fullErrorRegex = /(?:Error|Message):\s*.*?(?=\.\s*Order not confirmed|\||$)(?:\.\s*Order not confirmed\.?)?/gi;
+      let cleanNote = note.replace(fullErrorRegex, "").replace(/[\s|.,;]+$/, "").trim();
+      const extractedErrors = matches.map(m => m[1].replace(/\.?\s*order not confirmed\.?$/i, "").trim()).filter(Boolean);
+      return { cleanNote, errors: extractedErrors };
+    } else {
+      return { cleanNote: "", errors: [note.trim()] };
+    }
+  }
+
+  return {
+    cleanNote: cleanParts.join(", ").trim(),
+    errors,
+  };
 }
 
 export default function WalkInOrderModal({ open, onClose, onSuccess }) {
@@ -235,18 +296,18 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
         paymentMethod,
         isWalkIn: true,
         items: cart.map((item) => {
-          if (item.isDailyFood) {
-            // Daily food: send foodId and REGULAR_FOOD type
-            return {
-              foodId: item.foodId,
-              itemType: "REGULAR_FOOD",
-              quantity: item.quantity,
-            };
-          } else {
+          if (item.menuScheduleItemId) {
             // Menu schedule item: send menuScheduleItemId and MENU_ITEM type
             return {
               menuScheduleItemId: item.menuScheduleItemId,
               itemType: "MENU_ITEM",
+              quantity: item.quantity,
+            };
+          } else {
+            // Regular food: send foodId and REGULAR_FOOD type
+            return {
+              foodId: item.foodId || item._id,
+              itemType: "REGULAR_FOOD",
               quantity: item.quantity,
             };
           }
@@ -300,104 +361,52 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       setCreating(false);
     }
   };
-
-  useEffect(() => {
+  useEffect(() => {
     let intervalId;
-    if (polling && createdOrder) {
+    const targetId = createdOrder?._id || createdOrder?.id;
+
+    if (polling && targetId) {
       intervalId = setInterval(async () => {
         try {
           let order;
           try {
-            const res = await orderService.getOrderById(createdOrder._id);
-            order = res.data || res;
+            const res = await orderService.getOrderById(targetId);
+            order = res?.data || res;
           } catch (e) {
-            // fallback to getOrders if getOrderById 404s
-            const res = await orderService.getOrders({ keyword: createdOrder.orderCode, limit: 20 });
-            order = res.data?.find(o => o._id === createdOrder._id);
+            const res = await orderService.getOrders({ keyword: createdOrder?.orderCode, limit: 20 });
+            order = res.data?.find(o => (o._id === targetId || o.id === targetId));
             if (!order) {
-               // try without keyword just first page
                const res2 = await orderService.getOrders({ limit: 20 });
-               order = res2.data?.find(o => o._id === createdOrder._id);
+               order = res2.data?.find(o => (o._id === targetId || o.id === targetId));
             }
           }
-          
-          if (order && (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED" || order.status === "CONFIRMED")) {
-            setPolling(false);
-            clearInterval(intervalId);
 
-            if (order.isWalkIn && order.status !== "COMPLETED") {
-              try {
-                await orderService.updateOrder(order._id, { status: "COMPLETED" });
-              } catch (updateErr) {
-                console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+          if (order) {
+            setCreatedOrder(order);
+
+            if (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED" || order.status === "CONFIRMED") {
+              setPolling(false);
+              clearInterval(intervalId);
+
+              if (order.isWalkIn && order.status !== "COMPLETED") {
+                try {
+                  await orderService.updateOrder(order._id || order.id, { status: "COMPLETED" });
+                } catch (updateErr) {
+                  console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+                }
               }
+
+              setPaymentSuccess(true);
+              onSuccess();
+            } else if (
+              order.paymentStatus === "FAILED" || 
+              order.paymentStatus === "ERROR" || 
+              order.status === "FAILED"
+            ) {
+              setPolling(false);
+              clearInterval(intervalId);
+              setPaymentFailed(true);
             }
-
-            setPaymentSuccess(true);
-            onSuccess();
-          } else if (order && order.note && (
-            order.note !== initialNoteRef.current ||
-            order.note.includes("Order not confirmed") ||
-            order.note.toLowerCase().includes("error") ||
-            order.note.toLowerCase().includes("mismatch") ||
-            order.note.toLowerCase().includes("invalid") ||
-            order.note.toLowerCase().includes("incorrect") ||
-            order.note.toLowerCase().includes("content") ||
-            order.note.toLowerCase().includes("amount") ||
-            order.note.toLowerCase().includes("not found") ||
-            order.note.toLowerCase().includes("failed") ||
-            order.note.toLowerCase().includes("rejected") ||
-            order.note.toLowerCase().includes("transfer")
-          )) {
-            // Do not clear interval, keep polling! Just set a warning flag.
-            setPaymentWarning(true);
-            
-            const errorRegex = /(?:Error|Message):\s*(.*?)(?=\.\s*Order not confirmed|\||$)/gi;
-            const matches = [...order.note.matchAll(errorRegex)];
-            
-            let targetError = "";
-            if (matches.length > 0) {
-              targetError = matches[matches.length - 1][1].trim();
-            } else {
-              targetError = order.note.replace(/\.?\s*Order not confirmed\.?$/i, "").trim();
-              targetError = targetError.replace(/^(?:error|message):\s*/i, "").trim();
-            }
-
-            const lowerErr = targetError.toLowerCase();
-            const amountMatch = targetError.match(/Received:\s*(\d+),\s*Expected:\s*(\d+)/i);
-            const contentMatch = targetError.match(/Received:\s*["']?([^,"']+)["']?,\s*Expected:\s*["']?([^,"']+)["']?/i);
-
-            const isAmountError = (amountMatch && (lowerErr.includes("amount") || lowerErr.includes("payment amount"))) || lowerErr.includes("invalid payment amount");
-            const isContentError = lowerErr.includes("content") || lowerErr.includes("description") || lowerErr.includes("code") || lowerErr.includes("transfer") || lowerErr.includes("not found") || lowerErr.includes("mismatch") || lowerErr.includes("incorrect");
-
-            if (isAmountError && amountMatch) {
-              setPaymentWarningData({
-                type: 'amount',
-                received: parseInt(amountMatch[1], 10),
-                expected: parseInt(amountMatch[2], 10),
-                message: targetError,
-              });
-            } else if (isContentError || contentMatch) {
-              setPaymentWarningData({
-                type: 'content',
-                receivedContent: contentMatch ? contentMatch[1].trim() : null,
-                expectedContent: contentMatch ? contentMatch[2].trim() : (createdOrder?.transferContent || null),
-                message: targetError || "Invalid transfer content detected for this payment"
-              });
-            } else {
-              setPaymentWarningData({
-                type: 'other',
-                message: targetError || "Invalid payment details or transfer content"
-              });
-            }
-          } else if (order && (
-            order.paymentStatus === "FAILED" || 
-            order.paymentStatus === "ERROR" || 
-            order.status === "FAILED"
-          )) {
-            setPolling(false);
-            clearInterval(intervalId);
-            setPaymentFailed(true);
           }
         } catch (err) {
           console.error("Polling error", err);
@@ -407,7 +416,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [polling, createdOrder, onSuccess]);
+  }, [polling, createdOrder?._id, createdOrder?.id, onSuccess]);
 
   useEffect(() => {
     let timer;
@@ -419,7 +428,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       onClose();
     }
     return () => {
-      if (timer) clearInterval(timer);
+      if (timer) timer && clearInterval(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentSuccess, successCountdown]);
@@ -427,24 +436,26 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   useEffect(() => {
     let timer;
     if (createdOrder) {
-      const expiresAt = new Date(createdOrder.createdAt).getTime() + 15 * 60000;
+      const createdTime = createdOrder.createdAt ? new Date(createdOrder.createdAt).getTime() : Date.now();
+      const expiresAt = createdTime + 15 * 60000;
       
-      timer = setInterval(() => {
-        const now = new Date().getTime();
+      const updateCountdown = () => {
+        const now = Date.now();
         const distance = expiresAt - now;
-        
         if (distance <= 0) {
-          clearInterval(timer);
           setTimeLeft(0);
         } else {
           setTimeLeft(Math.floor(distance / 1000));
         }
-      }, 1000);
+      };
+
+      updateCountdown();
+      timer = setInterval(updateCountdown, 1000);
     }
     return () => {
       if (timer) clearInterval(timer);
-    }
-  }, [createdOrder]);
+    };
+  }, [createdOrder?.createdAt]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -484,7 +495,17 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     const bank = createdOrder.paymentInfo?.bankName || "MB";
     const acc = createdOrder.paymentInfo?.accountNumber || "0988776655";
     const amount = createdOrder.totalPrice;
-    const transferContent = createdOrder.transferContent || (createdOrder.orderCode ? `UN${createdOrder.orderCode.replace(/-/g, '')}` : '');
+    const getTransferContent = (ord) => {
+      if (!ord) return "";
+      if (ord.transferContent) return ord.transferContent;
+      if (ord.paymentInfo?.transferContent) return ord.paymentInfo.transferContent;
+      if (ord.orderCode) {
+        const cleanCode = String(ord.orderCode).replace(/-/g, "");
+        return cleanCode.toUpperCase().startsWith("UN") ? cleanCode : `UN${cleanCode}`;
+      }
+      return "";
+    };
+    const transferContent = getTransferContent(createdOrder);
     
     // Fallback if backend doesn't provide qrCodeUrl
     if (!qrUrl) {
@@ -519,7 +540,16 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
             </div>
           )}
 
-          {timeLeft === 0 && !paymentSuccess && !paymentFailed ? (
+          {createdOrder.status === "CANCELLED" || createdOrder.status === "EXPIRED" ? (
+            <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200 w-full">
+              <CloseCircleOutlined style={{ fontSize: 48, color: '#ff4d4f', marginBottom: 12 }} />
+              <span className="text-red-600 font-bold mb-2 text-lg">Order Cancelled</span>
+              <span className="text-sm text-slate-600 mb-4">This order has been cancelled. QR code is no longer active.</span>
+              <Button danger onClick={onClose} type="primary">
+                Close
+              </Button>
+            </div>
+          ) : timeLeft === 0 && !paymentSuccess && !paymentFailed ? (
             <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200">
               <span className="text-red-500 font-bold mb-2">QR Code Expired</span>
               <span className="text-sm text-slate-600 mb-4">The 15-minute payment window has closed. Please cancel this order and create a new one.</span>
@@ -550,74 +580,50 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
             </div>
           ) : (
             <>
-              {paymentWarning && paymentWarningData ? (
-                <div className="bg-white border-2 border-red-200 rounded-xl mb-4 overflow-hidden shadow-sm w-full">
-                  <div className="bg-red-50 px-4 py-2 border-b border-red-200 flex items-center justify-center gap-2">
-                    <CloseCircleOutlined className="text-red-600 text-lg" />
-                    <span className="font-bold text-red-700 uppercase tracking-wide">
-                      {paymentWarningData.type === 'amount'
-                        ? 'Invalid Payment Amount'
-                        : paymentWarningData.type === 'content'
-                        ? 'Invalid Transfer Content'
-                        : 'Payment Details Error'}
-                    </span>
-                  </div>
-                  <div className="p-4 text-center">
-                    {paymentWarningData.type === 'amount' && paymentWarningData.received ? (
-                      <>
-                        <div className="flex justify-center items-center gap-6 mb-3">
-                           <div className="flex flex-col items-end">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Received</span>
-                              <span className="text-lg font-bold text-red-600">{formatVnd(paymentWarningData.received)}</span>
-                           </div>
-                           <div className="h-10 w-px bg-red-200"></div>
-                           <div className="flex flex-col items-start">
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Expected</span>
-                              <span className="text-lg font-bold text-green-600">{formatVnd(paymentWarningData.expected)}</span>
-                           </div>
-                        </div>
-                        <div className="text-xs text-red-800 bg-red-50 inline-block px-3 py-1 rounded-full border border-red-100 font-medium mb-3">
-                          Difference: {formatVnd(Math.abs(paymentWarningData.expected - paymentWarningData.received))}
-                        </div>
-                      </>
-                    ) : paymentWarningData.type === 'content' ? (
-                      <div className="mb-3">
-                        <div className="text-sm font-semibold text-red-600 bg-red-50 p-2.5 border border-red-100 rounded mb-2">
-                          ⚠️ {paymentWarningData.message || "Invalid transfer content detected!"}
-                        </div>
-                        {(paymentWarningData.receivedContent || paymentWarningData.expectedContent) && (
-                          <div className="text-xs text-slate-700 bg-red-50/50 p-2.5 rounded border border-red-100 mb-2 flex flex-col gap-1.5 text-left">
-                            {paymentWarningData.receivedContent && (
-                              <div>
-                                <span className="text-slate-500 font-medium">Entered Content: </span>
-                                <code className="bg-red-100 text-red-800 px-1.5 py-0.5 rounded font-mono font-bold">{paymentWarningData.receivedContent}</code>
+              {(() => {
+                const { errors: paymentErrors } = extractPaymentErrors(createdOrder?.note);
+                const hasPaymentError = paymentErrors.length > 0 || (createdOrder?.note && (
+                  createdOrder?.note.toLowerCase().includes("error") ||
+                  createdOrder?.note.toLowerCase().includes("order not confirmed") ||
+                  createdOrder?.note.toLowerCase().includes("mismatch") ||
+                  createdOrder?.note.toLowerCase().includes("invalid") ||
+                  createdOrder?.note.toLowerCase().includes("content") ||
+                  createdOrder?.note.toLowerCase().includes("amount")
+                )) || createdOrder?.paymentStatus === "REFUND_PENDING";
+
+                if (hasPaymentError) {
+                  return (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4 text-sm w-full max-w-md text-center">
+                      <div className="font-bold text-red-700 mb-1.5 flex items-center justify-center gap-1.5">
+                        <span>⚠️ PAYMENT ERROR DETECTED</span>
+                      </div>
+                      <div className="text-xs text-red-600 mb-2">
+                        {paymentErrors.length > 0 ? (
+                          <div className="flex flex-col gap-1.5 text-left bg-white/90 p-2.5 rounded border border-red-100 my-1">
+                            {paymentErrors.map((err, idx) => (
+                              <div key={idx} className="flex items-start gap-1.5 font-medium text-red-800">
+                                <span>• {err}</span>
                               </div>
-                            )}
-                            {paymentWarningData.expectedContent && (
-                              <div>
-                                <span className="text-slate-500 font-medium">Correct Required Content: </span>
-                                <code className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-mono font-bold">{paymentWarningData.expectedContent}</code>
-                              </div>
-                            )}
+                            ))}
                           </div>
+                        ) : (
+                          <span>The system rejected the previous payment attempt due to invalid payment details or transfer content.</span>
                         )}
                       </div>
-                    ) : (
-                      <div className="text-sm mt-1 mb-3 font-medium bg-red-50 text-red-600 p-2 border border-red-100 rounded">
-                        {paymentWarningData.message || "Invalid transfer content detected"}
+                      <div className="text-xs text-slate-600">
+                        Please scan the QR code below or use manual transfer with the <b>exact amount and transfer content</b>.
                       </div>
-                    )}
-                    <p className="text-xs text-slate-600 m-0">
-                      Please scan the QR code below and transfer with the <b>exact amount and content</b> to complete your order.
-                    </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full text-center">
+                    <strong>⚠️ IMPORTANT WARNING:</strong><br />
+                    Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment.
                   </div>
-                </div>
-              ) : (
-                <div className="bg-orange-50 border border-orange-200 text-orange-700 px-4 py-3 rounded mb-4 text-sm w-full text-center">
-                  <strong>⚠️ IMPORTANT WARNING:</strong><br />
-                  Do <b>NOT</b> modify the transfer amount or content. Incorrect details will cause the system to reject the payment, and you will have to wait for the end-of-day revenue reconciliation to resolve it.
-                </div>
-              )}
+                );
+              })()}
               
               <Image 
                 src={qrUrl} 
