@@ -102,11 +102,17 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
   const [order, setOrder] = useState(initialOrder);
   const [updating, setUpdating] = useState(false);
   const [liveTimeLeft, setLiveTimeLeft] = useState(0);
-  const autoCancelRef = useRef(false);
+  const autoCancelledOrderIdRef = useRef(null);
+  const openRef = useRef(open);
+  openRef.current = open;
 
   useEffect(() => {
-    setOrder(initialOrder);
-    autoCancelRef.current = false;
+    if (open) {
+      setOrder(initialOrder);
+    } else {
+      setLiveTimeLeft(0);
+      setUpdating(false);
+    }
   }, [initialOrder, open]);
 
   const isCancelled = order?.status === "CANCELLED";
@@ -156,7 +162,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
 
   useEffect(() => {
     let timer;
-    if (order && isPending && isSePay) {
+    if (open && order && isPending && isSePay) {
       const calculateTimeLeft = () => {
         const createdTime = order.createdAt ? new Date(order.createdAt).getTime() : Date.now();
         const expiresAt = createdTime + 15 * 60000;
@@ -174,33 +180,63 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [order?.createdAt, isPending, isSePay]);
+  }, [open, order?.createdAt, isPending, isSePay]);
 
   useEffect(() => {
-    if (!order?._id || isCancelled || !isPending || !isSePay || autoCancelRef.current) return;
+    if (!open || !order?._id || isCancelled || !isPending || !isSePay) return;
+    if (autoCancelledOrderIdRef.current === order._id) return;
 
-    const expiresAt = new Date(order.createdAt).getTime() + 15 * 60000;
+    const createdTime = order.createdAt ? new Date(order.createdAt).getTime() : null;
+    if (!createdTime) return;
+
+    const expiresAt = createdTime + 15 * 60000;
     if (Date.now() < expiresAt) return;
 
-    autoCancelRef.current = true;
+    autoCancelledOrderIdRef.current = order._id;
+    const orderId = order._id;
+    let isStale = false;
 
     const autoCancelExpiredOrder = async () => {
       try {
         setUpdating(true);
-        await orderService.updateOrder(order._id, { status: "CANCELLED", paymentStatus: "FAILED" });
+        await orderService.updateOrder(orderId, { status: "CANCELLED", paymentStatus: "FAILED" });
+        if (isStale || !openRef.current) return;
         setOrder((prev) => ({ ...prev, status: "CANCELLED", paymentStatus: "FAILED" }));
-        notify.info("Order automatically cancelled due to QR code expiration.");
+        notify.info("Order Cancelled", "Order automatically cancelled due to QR code expiration.");
         onSuccess?.();
       } catch (err) {
-        autoCancelRef.current = false;
-        notify.error("Failed to auto-cancel expired order.");
+        if (isStale || !openRef.current) return;
+
+        const errMsg = String(err?.response?.data?.message || err?.message || "").toLowerCase();
+        const statusCode = err?.response?.status;
+        const alreadyCancelled =
+          statusCode === 400 ||
+          statusCode === 409 ||
+          errMsg.includes("cancelled") ||
+          errMsg.includes("cancel") ||
+          errMsg.includes("already") ||
+          errMsg.includes("invalid status");
+
+        if (alreadyCancelled) {
+          setOrder((prev) => ({ ...prev, status: "CANCELLED", paymentStatus: "FAILED" }));
+          onSuccess?.();
+          return;
+        }
+
+        notify.error("Cancel Failed", "Failed to auto-cancel expired order.");
       } finally {
-        setUpdating(false);
+        if (!isStale && openRef.current) {
+          setUpdating(false);
+        }
       }
     };
 
     autoCancelExpiredOrder();
-  }, [liveTimeLeft, order?._id, order?.createdAt, isCancelled, isPending, isSePay, onSuccess]);
+
+    return () => {
+      isStale = true;
+    };
+  }, [liveTimeLeft, open, order?._id, order?.createdAt, isCancelled, isPending, isSePay, onSuccess]);
 
   if (!order) return null;
 

@@ -128,7 +128,10 @@ export default function OrdersPage() {
       <OrderDetailDrawer
         order={selectedOrder}
         open={detailOpen}
-        onClose={() => setDetailOpen(false)}
+        onClose={() => {
+          setDetailOpen(false);
+          setSelectedOrder(null);
+        }}
         onSuccess={() => fetchOrders()}
       />
 
