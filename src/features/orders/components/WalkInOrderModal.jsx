@@ -138,7 +138,9 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   const [paymentWarningData, setPaymentWarningData] = useState(null);
   const [successCountdown, setSuccessCountdown] = useState(10);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [orderCancelled, setOrderCancelled] = useState(false);
   const initialNoteRef = useRef("");
+  const autoCancelRef = useRef(false);
 
   const fetchTodayMenuFoods = async () => {
     try {
@@ -206,6 +208,9 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     setPaymentWarning(false);
     setPaymentWarningData(null);
     setSuccessCountdown(10);
+    setTimeLeft(0);
+    setOrderCancelled(false);
+    autoCancelRef.current = false;
     fetchTodayMenuFoods();
   };
 
@@ -346,16 +351,28 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     }
   };
 
-  const handleCancelExpiredOrder = async () => {
-    if (!createdOrder) return;
+  const handleCancelExpiredOrder = async (isAuto = false) => {
+    if (!createdOrder || autoCancelRef.current) return;
+    autoCancelRef.current = true;
     try {
       setCreating(true);
       await orderService.updateOrder(createdOrder._id, { status: "CANCELLED", paymentStatus: "FAILED" });
-      notify.success("Order Cancelled", "The expired order has been cancelled.");
-      onClose();
+      setCreatedOrder((prev) => ({ ...prev, status: "CANCELLED", paymentStatus: "FAILED" }));
+      setPolling(false);
+      setOrderCancelled(true);
+      notify.success(
+        "Order Cancelled",
+        isAuto
+          ? "The order was automatically cancelled due to QR code expiration."
+          : "The expired order has been cancelled.",
+      );
       onSuccess();
+      if (!isAuto) {
+        onClose();
+      }
     } catch (err) {
       console.error(err);
+      autoCancelRef.current = false;
       notify.error("Cancel Failed", "Failed to cancel the order.");
     } finally {
       setCreating(false);
@@ -458,6 +475,24 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   }, [createdOrder?.createdAt]);
 
   useEffect(() => {
+    if (
+      !createdOrder ||
+      createdOrder.status === "CANCELLED" ||
+      paymentSuccess ||
+      paymentFailed ||
+      orderCancelled
+    ) {
+      return;
+    }
+
+    const expiresAt = new Date(createdOrder.createdAt).getTime() + 15 * 60000;
+    if (Date.now() >= expiresAt) {
+      handleCancelExpiredOrder(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, createdOrder, paymentSuccess, paymentFailed, orderCancelled]);
+
+  useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (polling && createdOrder && !paymentSuccess) {
         e.preventDefault();
@@ -521,7 +556,11 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
         open={open}
         width={400}
         onCancel={handleClosePayment}
-        footer={(paymentSuccess || paymentFailed) ? null : [
+        footer={(paymentSuccess || paymentFailed || orderCancelled) ? [
+          <Button key="close" onClick={onClose}>
+            Close
+          </Button>
+        ] : [
           <Button key="close" onClick={handleClosePayment}>
             Close
           </Button>
@@ -532,7 +571,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
           <div className="text-lg font-bold mb-2">Total: {formatVnd(createdOrder.totalPrice)}</div>
           <div className="text-sm text-slate-500 mb-4">Order Code: {createdOrder.orderCode}</div>
           
-          {!paymentSuccess && (
+          {!paymentSuccess && !orderCancelled && (
             <div className="mb-4">
               <Tag color={timeLeft > 0 ? "orange" : "red"} style={{ margin: 0, padding: '4px 12px', fontSize: 14 }}>
                 Expires in: {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
@@ -551,11 +590,19 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
             </div>
           ) : timeLeft === 0 && !paymentSuccess && !paymentFailed ? (
             <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200">
-              <span className="text-red-500 font-bold mb-2">QR Code Expired</span>
-              <span className="text-sm text-slate-600 mb-4">The 15-minute payment window has closed. Please cancel this order and create a new one.</span>
-              <Button danger onClick={handleCancelExpiredOrder} loading={creating}>
-                Cancel Order
+              <CloseCircleOutlined style={{ fontSize: 48, color: '#ff4d4f', marginBottom: 12 }} />
+              <span className="text-red-600 font-bold mb-2 text-lg">Order Cancelled</span>
+              <span className="text-sm text-slate-600 mb-4">
+                The order was automatically cancelled because the QR code payment window expired.
+              </span>
+              <Button danger onClick={onClose} type="primary">
+                Close
               </Button>
+            </div>
+          ) : timeLeft === 0 && !paymentSuccess && !paymentFailed ? (
+            <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200">
+              <span className="text-red-500 font-bold mb-2">QR Code Expired</span>
+              <span className="text-sm text-slate-600">Cancelling order automatically...</span>
             </div>
           ) : paymentFailed ? (
             <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center mb-4 border border-red-200">

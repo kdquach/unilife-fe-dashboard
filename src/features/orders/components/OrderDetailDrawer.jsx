@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Drawer, Descriptions, Table, Tag, Button, Space, Popconfirm, message } from "antd";
 import { orderService } from "../orderService";
 
@@ -101,12 +101,15 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
   const [order, setOrder] = useState(initialOrder);
   const [updating, setUpdating] = useState(false);
   const [liveTimeLeft, setLiveTimeLeft] = useState(0);
+  const autoCancelRef = useRef(false);
 
   useEffect(() => {
     setOrder(initialOrder);
+    autoCancelRef.current = false;
   }, [initialOrder, open]);
 
-  const isPending = order?.status === "PENDING_PAYMENT" || order?.status === "PENDING" || order?.paymentStatus === "PENDING";
+  const isCancelled = order?.status === "CANCELLED";
+  const isPending = !isCancelled && (order?.status === "PENDING_PAYMENT" || order?.status === "PENDING" || order?.paymentStatus === "PENDING");
   const isCash = order?.paymentMethod === "CASH";
   const isSePay = order?.paymentMethod === "SEPAY" || order?.paymentMethod === "BANK_TRANSFER";
 
@@ -171,6 +174,33 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
       if (timer) clearInterval(timer);
     };
   }, [order?.createdAt, isPending, isSePay]);
+
+  useEffect(() => {
+    if (!order?._id || isCancelled || !isPending || !isSePay || autoCancelRef.current) return;
+
+    const expiresAt = new Date(order.createdAt).getTime() + 15 * 60000;
+    if (Date.now() < expiresAt) return;
+
+    autoCancelRef.current = true;
+
+    const autoCancelExpiredOrder = async () => {
+      try {
+        setUpdating(true);
+        await orderService.updateOrder(order._id, { status: "CANCELLED", paymentStatus: "FAILED" });
+        setOrder((prev) => ({ ...prev, status: "CANCELLED", paymentStatus: "FAILED" }));
+        message.info("Order automatically cancelled due to QR code expiration.");
+        onSuccess?.();
+      } catch (err) {
+        console.error(err);
+        autoCancelRef.current = false;
+        message.error("Failed to auto-cancel expired order.");
+      } finally {
+        setUpdating(false);
+      }
+    };
+
+    autoCancelExpiredOrder();
+  }, [liveTimeLeft, order?._id, order?.createdAt, isCancelled, isPending, isSePay, onSuccess]);
 
   if (!order) return null;
 
@@ -250,7 +280,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
         {liveTimeLeft === 0 ? (
           <div className="flex flex-col items-center justify-center bg-red-50 p-6 rounded-lg text-center border border-red-200 w-full max-w-sm">
             <span className="text-red-500 font-bold mb-2">QR Code Expired</span>
-            <span className="text-sm text-slate-600">The 15-minute payment window has closed. Please cancel this order.</span>
+            <span className="text-sm text-slate-600">Cancelling order automatically...</span>
           </div>
         ) : (
           <>
