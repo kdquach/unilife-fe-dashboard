@@ -338,6 +338,13 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
         setCreatedOrder(newOrder);
         setPolling(true);
       } else {
+        // For CASH payments, automatically set status to COMPLETED for walk-in orders
+        const orderId = newOrder._id || newOrder.id;
+        try {
+          await orderService.updateOrder(orderId, { status: "COMPLETED" });
+        } catch (updateErr) {
+          console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+        }
         onClose();
         onSuccess();
       }
