@@ -313,7 +313,6 @@ export default function StaffManagementPage() {
     <div>
       <PageHeader
         title="Staff Management"
-        description="View and manage staff accounts used by the UniLife operation team."
         breadcrumbs={["Dashboard", "Staff Management"]}
         extra={
           <Space wrap>

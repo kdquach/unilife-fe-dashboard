@@ -131,7 +131,6 @@ export default function PopularFoodReportPage() {
     <div>
       <PageHeader
         title="Popular Food Report"
-        description="Popular food analytics"
         breadcrumbs={[
           "Dashboard",
           "Reports",

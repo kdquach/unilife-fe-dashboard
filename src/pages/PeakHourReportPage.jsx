@@ -180,7 +180,6 @@ console.log(response.summary);
     <div>
       <PageHeader
         title="Peak Hour Report"
-        description="Business peak hour analytics"
         breadcrumbs={[
           "Dashboard",
           "Reports",

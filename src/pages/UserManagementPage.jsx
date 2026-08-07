@@ -286,7 +286,6 @@ export default function UserManagementPage() {
     <div>
       <PageHeader
         title="User Management"
-        description="Sprint 1 Admin function: view, search, filter, update role and activate/deactivate user accounts."
         breadcrumbs={["Dashboard", "User Management"]}
         extra={
           <Space wrap>

@@ -192,7 +192,6 @@ export default function FoodManagementPage() {
       <div>
         <PageHeader
           title="Food Management"
-          description="Manage food items sold by UniLife."
           breadcrumbs={["Dashboard", "Foods"]}
           extra={
             <Space wrap>

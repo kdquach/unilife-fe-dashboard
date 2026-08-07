@@ -369,7 +369,6 @@ export default function InventoryTransactionHistoryPage() {
     <div>
       <PageHeader
         title="Inventory Transaction History"
-        description="View stock imports, removals, and inventory adjustments."
         breadcrumbs={["Dashboard", "Inventory Transactions"]}
         extra={
           <Space wrap>

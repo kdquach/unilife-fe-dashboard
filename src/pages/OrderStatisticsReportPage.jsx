@@ -113,7 +113,6 @@ export default function OrderStatisticsReportPage() {
     <div>
       <PageHeader
         title="Order Statistics Report"
-        description="Order status analytics"
         breadcrumbs={["Dashboard", "Reports", "Order Statistics"]}
       />
 

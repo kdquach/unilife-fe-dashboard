@@ -161,7 +161,6 @@ export default function RevenueReportPage() {
     <div>
       <PageHeader
         title="Revenue Report"
-        description="Business revenue analytics"
         breadcrumbs={[
           "Dashboard",
           "Reports",

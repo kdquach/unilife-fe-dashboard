@@ -116,7 +116,6 @@ export default function FoodCategoryManagementPage() {
     <div>
       <PageHeader
         title="Food Categories"
-        description="Manage the category groups used to organize foods in UniLife."
         breadcrumbs={["Dashboard", "Food Categories"]}
         extra={
           <Space wrap>

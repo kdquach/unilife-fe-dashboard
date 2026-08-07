@@ -143,7 +143,6 @@ export default function IngredientCategoryManagementPage() {
     <div>
       <PageHeader
         title="Ingredient Categories"
-        description="Manage ingredient categories"
         breadcrumbs={["Dashboard", "Ingredient Categories"]}
         extra={
           <Space wrap>

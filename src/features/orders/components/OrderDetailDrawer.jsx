@@ -386,7 +386,6 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
     >
       {renderSePayPending()}
 
-      {/* Customer Information */}
       <Descriptions
         bordered
         column={2}

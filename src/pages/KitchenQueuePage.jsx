@@ -206,7 +206,6 @@ export default function KitchenQueuePage() {
     <div>
       <PageHeader
         title="Kitchen Queue"
-        description="Serve scanned orders in kitchen order. Paid orders only appear here after Counter Staff scans the QR."
         breadcrumbs={["Dashboard", "Kitchen Queue"]}
         extra={
           <>

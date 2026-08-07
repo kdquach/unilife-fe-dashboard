@@ -79,7 +79,6 @@ export default function OrdersPage() {
     <div>
       <PageHeader
         title="Order Management"
-        description="Manage customer orders, payment status and walk-in orders."
         breadcrumbs={["Dashboard", "Order Management"]}
         extra={
           <Space>

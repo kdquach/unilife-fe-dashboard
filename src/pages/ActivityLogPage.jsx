@@ -309,7 +309,6 @@ export default function ActivityLogPage() {
     <div>
       <PageHeader
         title="Activity Logs & Analytics"
-        description="Monitor system operations, audit user activities, and analyze performance metrics."
         breadcrumbs={["Dashboard", "Activity Logs"]}
         extra={
           <Button

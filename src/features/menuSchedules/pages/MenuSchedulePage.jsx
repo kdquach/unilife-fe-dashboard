@@ -78,7 +78,6 @@ const MenuSchedulePage = () => {
       <PageHeader
         title="Menu Schedule Management"
         breadcrumbs={['Dashboard', 'Menu Schedules']}
-        description="View list and details of menu schedules"
         extra={
           <Space wrap>
             <Button 

@@ -295,7 +295,6 @@ export default function SupplierManagementPage() {
     <div>
       <PageHeader
         title="Suppliers Management"
-        description="Manage ingredient and product suppliers for the UniLife cafeteria."
         breadcrumbs={["Dashboard", "Suppliers"]}
         extra={
           <Space wrap>

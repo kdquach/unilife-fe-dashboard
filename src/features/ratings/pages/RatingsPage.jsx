@@ -44,7 +44,6 @@ const RatingsPage = () => {
     <div>
       <PageHeader 
         title="Customer Ratings" 
-        description="Manage and respond to customer reviews for foods and orders."
         breadcrumbs={["Dashboard", "Customer Ratings"]}
         extra={
           <Space wrap>
