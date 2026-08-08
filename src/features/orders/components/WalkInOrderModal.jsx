@@ -422,7 +422,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     const targetId = createdOrder?._id || createdOrder?.id;
 
     if (polling && targetId) {
-      intervalId = setInterval(async () => {
+      intervalId = window.setInterval(async () => {
         try {
           let order;
           try {
@@ -442,7 +442,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
 
             if (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED" || order.status === "CONFIRMED") {
               setPolling(false);
-              clearInterval(intervalId);
+              window.clearInterval(intervalId);
 
               if (order.isWalkIn && order.status !== "COMPLETED") {
                 try {
@@ -460,7 +460,7 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
               order.status === "FAILED"
             ) {
               setPolling(false);
-              clearInterval(intervalId);
+              window.clearInterval(intervalId);
               setPaymentFailed(true);
             }
           }
@@ -470,23 +470,22 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       }, 3000);
     }
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) window.clearInterval(intervalId);
     };
   }, [polling, createdOrder?._id, createdOrder?.id, onSuccess]);
 
   useEffect(() => {
     let timer;
     if (paymentSuccess && successCountdown > 0) {
-      timer = setInterval(() => {
+      timer = window.setInterval(() => {
         setSuccessCountdown(prev => prev - 1);
       }, 1000);
     } else if (paymentSuccess && successCountdown === 0) {
       onClose();
     }
     return () => {
-      if (timer) timer && clearInterval(timer);
+      if (timer) timer && window.clearInterval(timer);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentSuccess, successCountdown]);
 
   useEffect(() => {
@@ -506,10 +505,10 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       };
 
       updateCountdown();
-      timer = setInterval(updateCountdown, 1000);
+      timer = window.setInterval(updateCountdown, 1000);
     }
     return () => {
-      if (timer) clearInterval(timer);
+      if (timer) window.clearInterval(timer);
     };
   }, [open, createdOrder?.createdAt]);
 
@@ -532,7 +531,6 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     if (Date.now() < expiresAt) return;
 
     handleCancelExpiredOrder(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, timeLeft, createdOrder, paymentSuccess, paymentFailed, orderCancelled]);
 
   useEffect(() => {

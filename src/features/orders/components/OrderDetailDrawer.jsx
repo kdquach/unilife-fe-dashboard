@@ -124,7 +124,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
   useEffect(() => {
     let intervalId;
     if (open && order && order._id && isPending && isSePay) {
-      intervalId = setInterval(async () => {
+      intervalId = window.setInterval(async () => {
         try {
           const freshOrder = await orderService.getOrderById(order._id);
           if (freshOrder) {
@@ -156,7 +156,7 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
     }
 
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (intervalId) window.clearInterval(intervalId);
     };
   }, [open, order?._id, order?.status, order?.paymentMethod, onSuccess]);
 
@@ -173,12 +173,12 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
       
       setLiveTimeLeft(calculateTimeLeft());
       
-      timer = setInterval(() => {
+      timer = window.setInterval(() => {
         setLiveTimeLeft(calculateTimeLeft());
       }, 1000);
     }
     return () => {
-      if (timer) clearInterval(timer);
+      if (timer) window.clearInterval(timer);
     };
   }, [open, order?.createdAt, isPending, isSePay]);
 
