@@ -1,23 +1,26 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Form, InputNumber, Button, Space, Tag, Image, Badge, Empty } from 'antd';
-import { PlusOutlined, MinusOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Modal, Form, InputNumber, Button, Space, Image, Badge, Empty } from 'antd';
+import { PlusOutlined, DeleteOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { foodService } from '../../foods/foodService';
 import { getImageUrl, imageNotFound } from '../../../utils/image';
 import { notify } from '../../../utils/notify';
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
+const getValidServing = (value) => {
+  const numberValue = Number(value);
+  return Number.isInteger(numberValue) && numberValue > 0 ? numberValue : null;
+};
+
 const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, existingFoodIds = [] }) => {
   const [form] = Form.useForm();
   const [foods, setFoods] = useState([]);
-  const [loadingFoods, setLoadingFoods] = useState(false);
   const [selectedFoods, setSelectedFoods] = useState([]);
   const [defaultMaxServing, setDefaultMaxServing] = useState(50);
 
   useEffect(() => {
     if (open) {
       const fetchFoods = async () => {
-        setLoadingFoods(true);
         try {
           const response = await foodService.getManagedFoods({
             page: 1,
@@ -27,8 +30,6 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
           setFoods(response.data || []);
         } catch {
           notify.error('Failed to load foods list');
-        } finally {
-          setLoadingFoods(false);
         }
       };
 
@@ -52,7 +53,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
       price: food.price,
       imageUrl: food.imageUrl,
       categoryName: food.categoryId?.name || food.category?.name,
-      maxServing: defaultMaxServing || 50,
+      maxServing: getValidServing(defaultMaxServing) || 50,
     }]);
   };
 
@@ -62,7 +63,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
 
   const updateServing = (foodId, value) => {
     setSelectedFoods(prev => prev.map(f => 
-      f.foodId === foodId ? { ...f, maxServing: Math.max(1, parseInt(value) || 1) } : f
+      f.foodId === foodId ? { ...f, maxServing: value } : f
     ));
   };
 
@@ -72,9 +73,17 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
       return;
     }
 
+    const invalidItem = selectedFoods.find(
+      (item) => !getValidServing(item.maxServing),
+    );
+    if (invalidItem) {
+      notify.warning('Serving capacity must be a whole number greater than 0');
+      return;
+    }
+
     const itemsPayload = selectedFoods.map(item => ({
       foodId: item.foodId,
-      maxServing: item.maxServing,
+      maxServing: getValidServing(item.maxServing),
     }));
 
     onCreate({ items: itemsPayload });
@@ -109,6 +118,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
               <Space>
                 <InputNumber
                   min={1}
+                  precision={0}
                   value={defaultMaxServing}
                   onChange={(val) => setDefaultMaxServing(val)}
                   style={{ width: 100 }}
@@ -231,6 +241,7 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
                     <div className="flex items-center gap-1">
                       <InputNumber
                         min={1}
+                        precision={0}
                         size="small"
                         value={item.maxServing}
                         onChange={(val) => updateServing(item.foodId, val)}
