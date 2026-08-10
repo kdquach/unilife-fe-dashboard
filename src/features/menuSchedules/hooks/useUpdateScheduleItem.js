@@ -20,9 +20,11 @@ const useUpdateScheduleItem = () => {
         return response;
       }
     } catch (error) {
-      // For 409, we let the component handle it with a modal. We don't show a generic toast.
-      if (error.response?.status !== 409) {
-        const errorMsg = error.response?.data?.message || error.message || 'An error occurred while updating the item';
+      // For 409 and ingredient shortage errors, we let the component handle it with a modal. We don't show a generic toast.
+      const errorMsg = error.response?.data?.message || error.message || '';
+      const isIngredientShortage = errorMsg.includes('Insufficient ingredient') || errorMsg.includes('Shortage');
+      
+      if (error.response?.status !== 409 && !isIngredientShortage) {
         notify.error('An error occurred while updating the item', errorMsg);
       }
       throw error;

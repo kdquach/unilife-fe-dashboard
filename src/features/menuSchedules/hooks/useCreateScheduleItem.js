@@ -20,8 +20,8 @@ const useCreateScheduleItem = () => {
         return response;
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || 'An error occurred while adding the item';
-      notify.error('An error occurred while adding the item', errorMsg);
+      // Log error for debugging but let calling component handle the display
+      console.error('Error in createItem:', error);
       throw error;
     } finally {
       setIsSubmitting(false);
@@ -44,8 +44,8 @@ const useCreateScheduleItem = () => {
         return response;
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || 'An error occurred while adding food items';
-      notify.error('An error occurred while adding food items', errorMsg);
+      // Log error for debugging but let calling component handle the display
+      console.error('Error in createBulkItems:', error);
       throw error;
     } finally {
       setIsSubmitting(false);
