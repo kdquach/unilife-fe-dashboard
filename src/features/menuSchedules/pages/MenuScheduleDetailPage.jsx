@@ -110,15 +110,43 @@ const MenuScheduleDetailPage = () => {
               const ingredientItems = ingredientsContent.split('; ');
               
               for (const item of ingredientItems) {
-                // Parse each ingredient: "Ingredient" - Required: X kg, Available: Y kg, Shortage: Z kg
-                const match = item.match(/"([^"]+)" - Required: ([\d.]+) kg, Available: ([\d.]+) kg, Shortage: ([\d.]+) kg/);
+                // Parse each ingredient: "Ingredient" - Required: X unit, Available: Y unit, Shortage: Z unit
+                // Support various units: kg, piece, etc.
+                const match = item.match(/"([^"]+)" - Required: ([\d.]+) (\w+), Available: ([\d.]+) (\w+), Shortage: ([\d.]+) (\w+)/);
                 if (match) {
                   shortages.push({
                     food: foodName,
                     ingredient: match[1],
                     required: match[2],
-                    available: match[3],
-                    shortage: match[4],
+                    available: match[4],
+                    shortage: match[6],
+                    unit: match[3], // Store unit for display
+                  });
+                }
+              }
+            }
+            
+            return shortages;
+          }
+          
+          // Check if this is single food format with "Insufficient ingredients for food" prefix
+          if (message.includes('Insufficient ingredients for food')) {
+            const foodMatch = message.match(/Insufficient ingredients for food "([^"]+)":/);
+            if (foodMatch) {
+              const foodName = foodMatch[1];
+              const content = message.replace(/Insufficient ingredients for food "[^"]+":\s*/, '');
+              const ingredientItems = content.split('; ');
+              
+              for (const item of ingredientItems) {
+                const match = item.match(/"([^"]+)" - Required: ([\d.]+) (\w+), Available: ([\d.]+) (\w+), Shortage: ([\d.]+) (\w+)/);
+                if (match) {
+                  shortages.push({
+                    food: foodName,
+                    ingredient: match[1],
+                    required: match[2],
+                    available: match[4],
+                    shortage: match[6],
+                    unit: match[3],
                   });
                 }
               }
@@ -215,24 +243,25 @@ const MenuScheduleDetailPage = () => {
             key: 'food',
           },
           {
-            title: 'Required (kg)',
+            title: 'Required',
             dataIndex: 'required',
             key: 'required',
             align: 'right',
+            render: (text, record) => `${text} ${record.unit || 'kg'}`,
           },
           {
-            title: 'Available (kg)',
+            title: 'Available',
             dataIndex: 'available',
             key: 'available',
             align: 'right',
-            render: (text) => <span style={{ color: text === '0' ? '#ff4d4f' : 'inherit' }}>{text}</span>,
+            render: (text, record) => <span style={{ color: text === '0' ? '#ff4d4f' : 'inherit' }}>{text} {record.unit || 'kg'}</span>,
           },
           {
-            title: 'Shortage (kg)',
+            title: 'Shortage',
             dataIndex: 'shortage',
             key: 'shortage',
             align: 'right',
-            render: (text) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{text}</span>,
+            render: (text, record) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{text} {record.unit || 'kg'}</span>,
           },
         ];
 
@@ -333,33 +362,36 @@ const MenuScheduleDetailPage = () => {
           // Handle single ingredient format (including "Required increase")
           const patterns = [
             {
-              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required increase: ([\d.]+) kg, Available in stock: ([\d.]+) kg \(Shortage: ([\d.]+) kg\)/g,
+              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required increase: ([\d.]+) (\w+), Available in stock: ([\d.]+) (\w+) \(Shortage: ([\d.]+) (\w+)\)/g,
               parseMatch: (match) => ({
                 ingredient: match[1],
                 food: match[2],
                 required: match[3],
                 available: match[4],
-                shortage: match[5],
+                shortage: match[6],
+                unit: match[4],
               }),
             },
             {
-              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required: ([\d.]+) kg, Available in stock: ([\d.]+) kg \(Shortage: ([\d.]+) kg\)/g,
+              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required: ([\d.]+) (\w+), Available in stock: ([\d.]+) (\w+) \(Shortage: ([\d.]+) (\w+)\)/g,
               parseMatch: (match) => ({
                 ingredient: match[1],
                 food: match[2],
                 required: match[3],
                 available: match[4],
-                shortage: match[5],
+                shortage: match[6],
+                unit: match[4],
               }),
             },
             {
-              regex: /Insufficient ingredients for food "([^"]+)":\s*"([^"]+)" - Required: ([\d.]+) kg, Available: ([\d.]+) kg, Shortage: ([\d.]+) kg/g,
+              regex: /Insufficient ingredients for food "([^"]+)":\s*"([^"]+)" - Required: ([\d.]+) (\w+), Available: ([\d.]+) (\w+), Shortage: ([\d.]+) (\w+)/g,
               parseMatch: (match) => ({
                 ingredient: match[2],
                 food: match[1],
                 required: match[3],
                 available: match[4],
-                shortage: match[5],
+                shortage: match[6],
+                unit: match[4],
               }),
             },
           ];
@@ -403,24 +435,25 @@ const MenuScheduleDetailPage = () => {
             key: 'food',
           },
           {
-            title: 'Required (kg)',
+            title: 'Required',
             dataIndex: 'required',
             key: 'required',
             align: 'right',
+            render: (text, record) => `${text} ${record.unit || 'kg'}`,
           },
           {
-            title: 'Available (kg)',
+            title: 'Available',
             dataIndex: 'available',
             key: 'available',
             align: 'right',
-            render: (text) => <span style={{ color: text === '0' ? '#ff4d4f' : 'inherit' }}>{text}</span>,
+            render: (text, record) => <span style={{ color: text === '0' ? '#ff4d4f' : 'inherit' }}>{text} {record.unit || 'kg'}</span>,
           },
           {
-            title: 'Shortage (kg)',
+            title: 'Shortage',
             dataIndex: 'shortage',
             key: 'shortage',
             align: 'right',
-            render: (text) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{text}</span>,
+            render: (text, record) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{text} {record.unit || 'kg'}</span>,
           },
         ];
 
