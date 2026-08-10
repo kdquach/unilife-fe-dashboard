@@ -67,6 +67,11 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
     ));
   };
 
+  const validateServing = (value) => {
+    const numberValue = Number(value);
+    return Number.isInteger(numberValue) && numberValue > 0;
+  };
+
   const handleOk = () => {
     if (selectedFoods.length === 0) {
       notify.warning('Please select at least one food item to add');
@@ -74,16 +79,16 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
     }
 
     const invalidItem = selectedFoods.find(
-      (item) => !getValidServing(item.maxServing),
+      (item) => !validateServing(item.maxServing),
     );
     if (invalidItem) {
-      notify.warning('Serving capacity must be a whole number greater than 0');
+      notify.warning('The quantity of food must be greater than 0');
       return;
     }
 
     const itemsPayload = selectedFoods.map(item => ({
       foodId: item.foodId,
-      maxServing: getValidServing(item.maxServing),
+      maxServing: item.maxServing,
     }));
 
     onCreate({ items: itemsPayload });
@@ -240,12 +245,13 @@ const MenuScheduleItemCreateModal = ({ open, onCancel, onCreate, isSubmitting, e
                     </div>
                     <div className="flex items-center gap-1">
                       <InputNumber
-                        min={1}
+                        min={0}
                         precision={0}
                         size="small"
                         value={item.maxServing}
                         onChange={(val) => updateServing(item.foodId, val)}
                         style={{ width: 70 }}
+                        placeholder="Qty"
                       />
                       <Button
                         size="small"
