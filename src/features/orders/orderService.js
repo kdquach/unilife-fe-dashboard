@@ -6,9 +6,13 @@ export const orderService = {
       params,
     });
 
+    const payload = response?.data || response || {};
+    const items = payload.items || payload.data || (Array.isArray(payload) ? payload : []);
+    const pagination = payload.pagination || { page: 1, limit: 10, total: items.length };
+
     return {
-      data: response.data.items,
-      pagination: response.data.pagination,
+      data: items,
+      pagination,
     };
   },
 

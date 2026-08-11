@@ -9,6 +9,7 @@ import {
 } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 import { ingredientCategoryService } from "./ingredientCategoryService";
+import { formatDateTime } from "../../utils/format";
 
 export default function IngredientCategoryDetailDrawer({
   open,
@@ -102,11 +103,11 @@ export default function IngredientCategoryDetailDrawer({
               </Descriptions.Item>
 
               <Descriptions.Item label="Created At">
-                {new Date(category.createdAt).toLocaleString("vi-VN")}
+                {formatDateTime(category.createdAt)}
               </Descriptions.Item>
 
               <Descriptions.Item label="Updated At">
-                {new Date(category.updatedAt).toLocaleString("vi-VN")}
+                {formatDateTime(category.updatedAt)}
               </Descriptions.Item>
             </Descriptions>
 

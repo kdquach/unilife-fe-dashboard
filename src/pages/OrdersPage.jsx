@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Card, Space, Button } from "antd";
-import { PlusOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { Card, Space, Button, Tag } from "antd";
+import { PlusOutlined, QrcodeOutlined, ReloadOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import OrderFilters from "../features/orders/components/OrderFilters";
@@ -28,10 +28,34 @@ export default function OrdersPage() {
 
   const { orders, loading, pagination, fetchOrders } = useOrders();
 
-  // Initial data fetch
+  // Initial data fetch and realtime auto-sync
   useEffect(() => {
-    fetchOrders(1, 10);
-  }, []);
+    fetchOrders(1, 10, "", filters);
+
+    let isFetching = false;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible" && !isFetching) {
+        isFetching = true;
+        fetchOrders(pagination.current, pagination.pageSize, keyword, filters, true)
+          .finally(() => {
+            isFetching = false;
+          });
+      }
+    }, 8000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchOrders(pagination.current, pagination.pageSize, keyword, filters, true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pagination.current, pagination.pageSize, keyword, filters]);
 
   const handleSearch = (value) => {
     setKeyword(value);
@@ -52,11 +76,9 @@ export default function OrdersPage() {
     setDetailOpen(true);
   };
 
-  const handleScanPickup = async (order) => {
+  const handleScanPickup = async () => {
     setScanning(true);
     try {
-      // This will be handled by the ScanPickupQrModal
-      // For now, just open the modal
       setScanOpen(true);
     } finally {
       setScanning(false);
@@ -64,11 +86,11 @@ export default function OrdersPage() {
   };
 
   const handleScanSuccess = () => {
-    fetchOrders();
+    fetchOrders(pagination.current, pagination.pageSize, keyword, filters);
   };
 
   const handleCreateSuccess = () => {
-    fetchOrders();
+    fetchOrders(pagination.current, pagination.pageSize, keyword, filters);
   };
 
   const openScanModal = () => {
@@ -78,10 +100,26 @@ export default function OrdersPage() {
   return (
     <div>
       <PageHeader
-        title="Order Management"
+        title={
+          <Space align="center">
+            <span>Order Management</span>
+            <Tag color="processing" className="!m-0 text-xs">
+              ● Live Auto-Sync
+            </Tag>
+          </Space>
+        }
         breadcrumbs={["Dashboard", "Order Management"]}
         extra={
           <Space>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchOrders(pagination.current, pagination.pageSize, keyword, filters)
+              }
+            >
+              Refresh
+            </Button>
             <Button
               icon={<QrcodeOutlined />}
               style={{ color: COLORS.blue, borderColor: "#adc6ff" }}
@@ -132,7 +170,7 @@ export default function OrdersPage() {
           setDetailOpen(false);
           setSelectedOrder(null);
         }}
-        onSuccess={() => fetchOrders()}
+        onSuccess={() => fetchOrders(pagination.current, pagination.pageSize, keyword, filters)}
       />
 
       <WalkInOrderModal

@@ -16,6 +16,7 @@ import {
   getImageUrl,
   imageNotFound,
 } from "../../utils/image";
+import { formatDateTime } from "../../utils/format";
 
 const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString(
@@ -148,10 +149,7 @@ export default function FoodTable({
       title: "Updated",
       dataIndex: "updatedAt",
       width: 170,
-      render: (value) =>
-        new Date(value).toLocaleString(
-          "vi-VN"
-        ),
+      render: (value) => formatDateTime(value),
     },
 
     {

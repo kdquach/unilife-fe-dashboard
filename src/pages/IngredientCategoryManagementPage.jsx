@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
+import { formatDateTime } from "../utils/format";
 
 // Components
 import IngredientCategoryDetailDrawer from "../features/ingredientCategories/IngredientCategoryDetailDrawer";
@@ -109,12 +110,12 @@ export default function IngredientCategoryManagementPage() {
     {
       title: "Created",
       dataIndex: "createdAt",
-      render: (value) => new Date(value).toLocaleString("vi-VN"),
+      render: (value) => formatDateTime(value),
     },
     {
       title: "Updated",
       dataIndex: "updatedAt",
-      render: (value) => new Date(value).toLocaleString("vi-VN"),
+      render: (value) => formatDateTime(value),
     },
     {
       title: "Actions",

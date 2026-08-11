@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { orderService } from "../orderService";
 
 export function useOrders() {
@@ -15,9 +15,10 @@ export function useOrders() {
     limit = pagination.pageSize,
     searchKeyword = "",
     filters = {},
+    isSilent = false,
   ) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
 
       const response = await orderService.getOrders({
         page,
@@ -26,17 +27,19 @@ export function useOrders() {
         ...filters,
       });
 
-      setOrders(response.data);
+      setOrders(response?.data || []);
 
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
+      if (response?.pagination) {
+        setPagination({
+          current: response.pagination.page || page,
+          pageSize: response.pagination.limit || limit,
+          total: response.pagination.total || 0,
+        });
+      }
     } catch (error) {
-      console.error(error);
+      if (!isSilent) console.error(error);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 

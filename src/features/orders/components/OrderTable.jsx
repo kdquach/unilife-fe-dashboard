@@ -1,6 +1,7 @@
 import React from "react";
 import { Table, Tag, Button, Space } from "antd";
 import { EyeOutlined, QrcodeOutlined } from "@ant-design/icons";
+import { formatDateTime } from "../../../utils/format";
 
 const formatVnd = (value) => `${Number(value || 0).toLocaleString("vi-VN")} đ`;
 
@@ -95,20 +96,11 @@ export default function OrderTable({
       dataIndex: "paymentMethod",
     },
     {
-  title: "Created",
-  dataIndex: "createdAt",
-  width: 150,
-  render: (value) => {
-    const date = new Date(value);
-
-    return (
-      <div>
-        <div>{date.toLocaleTimeString("vi-VN")}</div>
-        <div>{date.toLocaleDateString("vi-VN")}</div>
-      </div>
-    );
-  },
-},
+      title: "Created",
+      dataIndex: "createdAt",
+      width: 160,
+      render: (value) => formatDateTime(value),
+    },
     {
       title: "Actions",
       fixed: "right",

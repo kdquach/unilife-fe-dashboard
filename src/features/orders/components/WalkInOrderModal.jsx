@@ -33,7 +33,14 @@ function normalizeTodayMenuItems(todayMenu) {
         categoryName:
           (typeof food.categoryId === "object" && food.categoryId?.name) ||
           null,
-        stockQuantity: item.remainingCount,
+        stockQuantity:
+          typeof item.remainingCount === "number"
+            ? item.remainingCount
+            : typeof item.remainingQuantity === "number"
+              ? item.remainingQuantity
+              : typeof item.quantity === "number"
+                ? item.quantity
+                : (food.stockQuantity ?? 999),
         isMenuItem: !!food.isMenuItem,
         isDailyFood: false,
       };

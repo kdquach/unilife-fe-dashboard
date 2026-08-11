@@ -3,6 +3,7 @@ import { Drawer, Descriptions, Table, Tag, Button, Space, Popconfirm } from "ant
 import { orderService } from "../orderService";
 import { notify } from "../../../utils/notify";
 import { DEFAULT_SEPAY_CONFIG } from "../../../constants/payment";
+import { formatDateTime } from "../../../utils/format";
 
 function extractPaymentErrors(note) {
   if (!note) return { cleanNote: "", errors: [] };
@@ -492,11 +493,11 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
         </Descriptions.Item>
 
         <Descriptions.Item label="Created At">
-          {new Date(order.createdAt).toLocaleString("en-US")}
+          {formatDateTime(order.createdAt)}
         </Descriptions.Item>
 
         <Descriptions.Item label="Updated At">
-          {new Date(order.updatedAt).toLocaleString("en-US")}
+          {formatDateTime(order.updatedAt)}
         </Descriptions.Item>
 
         <Descriptions.Item label="Note" span={2}>
