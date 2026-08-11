@@ -2,17 +2,15 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useUpdateMenuSchedule from '../useUpdateMenuSchedule';
 import menuScheduleApi from '../../api/menuScheduleApi';
-
+import { notify } from '../../../../utils/notify';
 
 vi.mock('../../api/menuScheduleApi');
-const mockSuccess = vi.fn();
-const mockError = vi.fn();
-
-vi.mock('antd', () => ({
-  App: {
-    useApp: () => ({
-      message: { success: mockSuccess, error: mockError },
-    }),
+vi.mock('../../../../utils/notify', () => ({
+  notify: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -43,7 +41,7 @@ describe('useUpdateMenuSchedule', () => {
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockSuccess).toHaveBeenCalledWith('Updated successfully');
+    expect(notify.success).toHaveBeenCalledWith('Menu schedule updated successfully', 'Updated successfully');
   });
 
   it('should handle error and throw when API fails', async () => {

@@ -6,6 +6,7 @@ import { PlusOutlined, MinusOutlined, DeleteOutlined, SearchOutlined, CheckCircl
 import menuScheduleApi from "../../menuSchedules/api/menuScheduleApi";
 import { orderService } from "../orderService";
 import { foodService } from "../../foods/foodService";
+import { DEFAULT_SEPAY_CONFIG } from "../../../constants/payment";
 
 const { confirm } = Modal;
 
@@ -422,34 +423,30 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     const targetId = createdOrder?._id || createdOrder?.id;
 
     if (polling && targetId) {
+      let isFetching = false;
       intervalId = window.setInterval(async () => {
+        if (isFetching) return;
+        isFetching = true;
         try {
-          let order;
-          try {
-            const res = await orderService.getOrderById(targetId);
-            order = res?.data || res;
-          } catch (e) {
-            const res = await orderService.getOrders({ keyword: createdOrder?.orderCode, limit: 20 });
-            order = res.data?.find(o => (o._id === targetId || o.id === targetId));
-            if (!order) {
-               const res2 = await orderService.getOrders({ limit: 20 });
-               order = res2.data?.find(o => (o._id === targetId || o.id === targetId));
-            }
-          }
+          const res = await orderService.getOrderById(targetId);
+          const order = res?.data || res;
 
           if (order) {
             setCreatedOrder(order);
 
-            if (order.paymentStatus === "PAID" || order.status === "PAID" || order.status === "COMPLETED" || order.status === "CONFIRMED") {
+            if (
+              order.paymentStatus === "PAID" ||
+              order.status === "PAID" ||
+              order.status === "COMPLETED" ||
+              order.status === "CONFIRMED"
+            ) {
               setPolling(false);
-              window.clearInterval(intervalId);
+              if (intervalId) window.clearInterval(intervalId);
 
               if (order.isWalkIn && order.status !== "COMPLETED") {
-                try {
-                  await orderService.updateOrder(order._id || order.id, { status: "COMPLETED" });
-                } catch (updateErr) {
+                orderService.updateOrder(order._id || order.id, { status: "COMPLETED" }).catch((updateErr) => {
                   console.error("Failed to update walk-in order status to COMPLETED", updateErr);
-                }
+                });
               }
 
               setPaymentSuccess(true);
@@ -460,12 +457,14 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
               order.status === "FAILED"
             ) {
               setPolling(false);
-              window.clearInterval(intervalId);
+              if (intervalId) window.clearInterval(intervalId);
               setPaymentFailed(true);
             }
           }
         } catch (err) {
-          console.error("Polling error", err);
+          console.warn("Polling order check temporary error:", err);
+        } finally {
+          isFetching = false;
         }
       }, 3000);
     }
@@ -568,8 +567,9 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   // If order is created and pending payment (SePay), show QR screen
   if (createdOrder) {
     let qrUrl = createdOrder.paymentInfo?.qrCodeUrl;
-    const bank = createdOrder.paymentInfo?.bankName || "MB";
-    const acc = createdOrder.paymentInfo?.accountNumber || "0988776655";
+    const bank = createdOrder.paymentInfo?.bankName || DEFAULT_SEPAY_CONFIG.BANK_NAME;
+    const acc = createdOrder.paymentInfo?.accountNumber || DEFAULT_SEPAY_CONFIG.ACCOUNT_NUMBER;
+    const accountName = createdOrder.paymentInfo?.accountName || DEFAULT_SEPAY_CONFIG.ACCOUNT_NAME;
     const amount = createdOrder.totalPrice;
     const getTransferContent = (ord) => {
       if (!ord) return "";
@@ -720,7 +720,11 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
                   </div>
                   <div className="flex justify-between items-center border-b pb-1">
                     <span className="text-slate-500">Account</span>
-                    <span className="font-bold text-slate-800">{acc}</span>
+                    <span className="font-bold text-slate-800 font-mono">{acc}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b pb-1">
+                    <span className="text-slate-500">Account Name</span>
+                    <span className="font-bold text-slate-800 uppercase">{accountName}</span>
                   </div>
                   <div className="flex justify-between items-center border-b pb-1">
                     <span className="text-slate-500">Amount</span>

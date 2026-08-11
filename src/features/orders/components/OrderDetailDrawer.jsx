@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Drawer, Descriptions, Table, Tag, Button, Space, Popconfirm } from "antd";
 import { orderService } from "../orderService";
 import { notify } from "../../../utils/notify";
+import { DEFAULT_SEPAY_CONFIG } from "../../../constants/payment";
 
 function extractPaymentErrors(note) {
   if (!note) return { cleanNote: "", errors: [] };
@@ -124,7 +125,10 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
   useEffect(() => {
     let intervalId;
     if (open && order && order._id && isPending && isSePay) {
+      let isFetching = false;
       intervalId = window.setInterval(async () => {
+        if (isFetching) return;
+        isFetching = true;
         try {
           const freshOrder = await orderService.getOrderById(order._id);
           if (freshOrder) {
@@ -136,21 +140,21 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
               freshOrder.status === "COMPLETED";
 
             if (isPaidOrConfirmed) {
+              if (intervalId) window.clearInterval(intervalId);
               const isWalkInOrder = freshOrder.isWalkIn === true || freshOrder.isWalkIn === "true";
               if (isWalkInOrder && freshOrder.status !== "COMPLETED") {
-                try {
-                  await orderService.updateOrder(freshOrder._id, { status: "COMPLETED" });
-                  setOrder((prev) => ({ ...prev, status: "COMPLETED", paymentStatus: "PAID" }));
-                } catch (updateErr) {
+                orderService.updateOrder(freshOrder._id, { status: "COMPLETED" }).catch((updateErr) => {
                   console.error("Failed to update walk-in order status to COMPLETED", updateErr);
-                }
+                });
               }
               notify.success("Payment confirmed!");
               onSuccess?.();
             }
           }
         } catch (err) {
-          console.error("Polling error in OrderDetailDrawer:", err);
+          console.warn("Polling error in OrderDetailDrawer:", err);
+        } finally {
+          isFetching = false;
         }
       }, 3000);
     }
@@ -290,8 +294,9 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
       order.note.toLowerCase().includes("amount")
     ));
 
-    const bank = order.paymentInfo?.bankName || "MB";
-    const acc = order.paymentInfo?.accountNumber || "0988776655";
+    const bank = order.paymentInfo?.bankName || DEFAULT_SEPAY_CONFIG.BANK_NAME;
+    const acc = order.paymentInfo?.accountNumber || DEFAULT_SEPAY_CONFIG.ACCOUNT_NUMBER;
+    const accountName = order.paymentInfo?.accountName || DEFAULT_SEPAY_CONFIG.ACCOUNT_NAME;
     const amount = order.totalPrice;
     const transferContent = order.transferContent || (order.orderCode ? `UN${order.orderCode.replace(/-/g, '')}` : '');
 
@@ -363,6 +368,10 @@ export default function OrderDetailDrawer({ order: initialOrder, open, onClose, 
                 <div className="flex justify-between items-center border-b pb-1.5">
                   <span className="text-slate-500 font-medium">Account Number</span>
                   <span className="font-bold text-slate-800 font-mono select-all">{acc}</span>
+                </div>
+                <div className="flex justify-between items-center border-b pb-1.5">
+                  <span className="text-slate-500 font-medium">Account Name</span>
+                  <span className="font-bold text-slate-800 uppercase">{accountName}</span>
                 </div>
                 <div className="flex justify-between items-center border-b pb-1.5">
                   <span className="text-slate-500 font-medium">Amount</span>

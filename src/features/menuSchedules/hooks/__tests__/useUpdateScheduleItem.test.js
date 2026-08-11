@@ -2,17 +2,15 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useUpdateScheduleItem from '../useUpdateScheduleItem';
 import menuScheduleItemApi from '../../api/menuScheduleItemApi';
+import { notify } from '../../../../utils/notify';
 
 vi.mock('../../api/menuScheduleItemApi');
-
-const mockSuccess = vi.fn();
-const mockError = vi.fn();
-
-vi.mock('antd', () => ({
-  App: {
-    useApp: () => ({
-      message: { success: mockSuccess, error: mockError },
-    }),
+vi.mock('../../../../utils/notify', () => ({
+  notify: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -44,7 +42,7 @@ describe('useUpdateScheduleItem', () => {
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockSuccess).toHaveBeenCalledWith('Item updated successfully');
+    expect(notify.success).toHaveBeenCalledWith('Item updated successfully', 'Item updated successfully');
     expect(mockOnSuccess).toHaveBeenCalled();
   });
 
@@ -63,6 +61,6 @@ describe('useUpdateScheduleItem', () => {
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockError).not.toHaveBeenCalled(); // 409 handled by modal in component
+    expect(notify.error).not.toHaveBeenCalled(); // 409 handled by modal in component
   });
 });

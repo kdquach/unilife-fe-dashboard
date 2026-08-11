@@ -23,9 +23,10 @@ export function useKitchenQueue() {
     limit = pagination.pageSize,
     searchKeyword = "",
     filters = {},
+    isSilent = false,
   ) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
 
       const response = await queueService.getMonitorQueue({
         page,
@@ -38,14 +39,18 @@ export function useKitchenQueue() {
       setWaitingQueues(response.waiting || []);
       setSummary(response.summary || {});
       setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
+        current: response.pagination?.page || page,
+        pageSize: response.pagination?.limit || limit,
+        total: response.pagination?.total || 0,
       });
     } catch (error) {
-      notify.error("Queue Load Failed", error.message);
+      if (!isSilent) {
+        notify.error("Queue Load Failed", error.message);
+      } else {
+        console.warn("Silent background queue refresh error:", error.message);
+      }
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 

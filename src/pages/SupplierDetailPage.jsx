@@ -82,7 +82,6 @@ export default function SupplierDetailPage() {
   useEffect(() => {
     fetchSupplier();
     fetchBatches(1, batchPagination.pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // ─── Edit supplier ────────────────────────────────────────────────────────

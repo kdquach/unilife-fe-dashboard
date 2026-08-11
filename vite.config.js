@@ -20,6 +20,19 @@ export default defineConfig({
       }
     }
   },
+  build: {
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          antd: ['antd', '@ant-design/icons'],
+          charts: ['recharts'],
+        }
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',

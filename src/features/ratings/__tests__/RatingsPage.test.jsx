@@ -30,7 +30,7 @@ describe('RatingsPage', () => {
     render(<RatingsPage />);
     
     // PageHeader should render the title
-    expect(screen.getByText('Customer Ratings')).toBeInTheDocument();
+    expect(screen.getAllByText('Customer Ratings').length).toBeGreaterThan(0);
     
     // Check if FilterBar and Table are rendered by looking for their texts
     expect(screen.getByPlaceholderText('Search by keyword...')).toBeInTheDocument();

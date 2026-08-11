@@ -92,10 +92,34 @@ export default function KitchenQueuePage() {
     callNextQueue,
   } = useKitchenQueue();
 
-  // Initial data fetch
+  // Initial data fetch and realtime auto-sync
   useEffect(() => {
     fetchMonitorQueue(1, 10, "", filters);
-  }, []);
+
+    let isFetching = false;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible" && !isFetching) {
+        isFetching = true;
+        fetchMonitorQueue(pagination.current, pagination.pageSize, keyword, filters, true)
+          .finally(() => {
+            isFetching = false;
+          });
+      }
+    }, 5000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchMonitorQueue(pagination.current, pagination.pageSize, keyword, filters, true);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pagination.current, pagination.pageSize, keyword, filters]);
 
   const handleFilterChange = (key, value) => {
     const nextFilters = { ...filters, [key]: value };
@@ -209,6 +233,9 @@ export default function KitchenQueuePage() {
         breadcrumbs={["Dashboard", "Kitchen Queue"]}
         extra={
           <>
+            <Tag color="success" style={{ padding: "4px 10px", borderRadius: 8, fontSize: 13 }}>
+              ● Live Auto-Sync
+            </Tag>
             <Button
               type="primary"
               icon={<PhoneOutlined />}

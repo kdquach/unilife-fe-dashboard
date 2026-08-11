@@ -3,15 +3,15 @@ import { Select, DatePicker, Space } from 'antd';
 
 const { RangePicker } = DatePicker;
 
-const MenuScheduleFilter = ({ filters, onFilterChange }) => {
+const MenuScheduleFilter = ({ filters = {}, onFilterChange }) => {
   return (
     <Space wrap>
       <Select
         allowClear
         placeholder="Status"
         style={{ width: 140 }}
-        value={filters.status}
-        onChange={(value) => onFilterChange({ ...filters, status: value })}
+        value={filters?.status}
+        onChange={(value) => onFilterChange?.({ ...filters, status: value })}
         options={[
           { label: 'Draft', value: 'DRAFT' },
           { label: 'Published', value: 'PUBLISHED' },

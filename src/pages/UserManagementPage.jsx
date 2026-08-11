@@ -81,6 +81,12 @@ export default function UserManagementPage() {
     fetchUsers(1, 10, "", filters);
   }, []);
 
+  const handleFilterChange = (key, value) => {
+    const nextFilters = { ...filters, [key]: value };
+    setFilters(nextFilters);
+    fetchUsers(1, pagination.pageSize, keyword, nextFilters);
+  };
+
   const stats = useMemo(() => {
     const active = users.filter((user) => user.isActive).length;
     return { active, inactive: users.length - active };

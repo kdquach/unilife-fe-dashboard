@@ -381,7 +381,7 @@ export default function FoodFormModal({
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4">
           {recipeRows.length === 0 ? (
             <div className="text-center py-6 text-slate-400 text-sm">
-              No ingredients added yet. Click "Add Ingredient" below.
+              No ingredients added yet. Click &quot;Add Ingredient&quot; below.
             </div>
           ) : (
             recipeRows.map((row, index) => (
