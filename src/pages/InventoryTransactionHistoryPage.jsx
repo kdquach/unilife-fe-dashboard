@@ -40,6 +40,7 @@ const TRANSACTION_TYPE_OPTIONS = [
   { label: "Stock Out", value: "STOCK_OUT" },
   { label: "Stock Adjustment", value: "STOCK_ADJUSTMENT" },
   { label: "Menu Usage", value: "MENU_USAGE" },
+  { label: "Ingredient Deleted", value: "INGREDIENT_DELETE" },
 ];
 
 const TRANSACTION_TYPE_LABELS = {
@@ -48,6 +49,7 @@ const TRANSACTION_TYPE_LABELS = {
   STOCK_OUT: "Stock Out",
   STOCK_ADJUSTMENT: "Stock Adjustment",
   MENU_USAGE: "Menu Usage",
+  INGREDIENT_DELETE: "Ingredient Deleted",
 };
 
 const getRecordId = (record) =>
@@ -76,6 +78,7 @@ const getTypeColor = (type) => {
   if (type === "STOCK_IMPORT" || type === "STOCK_IN") return "green";
   if (type === "STOCK_OUT" || type === "MENU_USAGE") return "red";
   if (type === "STOCK_ADJUSTMENT") return "blue";
+  if (type === "INGREDIENT_DELETE") return "volcano";
 
   return "default";
 };
@@ -91,6 +94,18 @@ const isMenuTransaction = (record) => {
     record?.transactionType === "MENU_USAGE" ||
     metadata.source === "MENU_SCHEDULE_ITEM"
   );
+};
+
+const isDeleteTransaction = (record) =>
+  record?.transactionType === "INGREDIENT_DELETE" ||
+  getMetadata(record).source === "INGREDIENT_SOFT_DELETE";
+
+const getQuantityTextType = (record, quantity) => {
+  if (isDeleteTransaction(record)) return "danger";
+  if (quantity < 0) return "danger";
+  if (quantity === 0) return "secondary";
+
+  return "success";
 };
 
 export default function InventoryTransactionHistoryPage() {
@@ -310,7 +325,7 @@ export default function InventoryTransactionHistoryPage() {
         const sign = quantity > 0 ? "+" : "";
 
         return (
-          <Typography.Text type={quantity < 0 ? "danger" : "success"}>
+          <Typography.Text type={getQuantityTextType(record, quantity)}>
             {sign}
             {quantity} {record.unit || record.ingredientId?.unit || ""}
           </Typography.Text>
@@ -364,6 +379,7 @@ export default function InventoryTransactionHistoryPage() {
 
   const detail = selectedTransaction;
   const detailMetadata = getMetadata(detail);
+  const deletedIngredient = detailMetadata.deletedIngredient || {};
 
   return (
     <div>
@@ -668,6 +684,22 @@ export default function InventoryTransactionHistoryPage() {
                 <Descriptions.Item label="Quantity Per Serving">
                   {detailMetadata.quantityPerServing ?? "-"}{" "}
                   {detail.unit || detail.ingredientId?.unit || ""}
+                </Descriptions.Item>
+              </>
+            )}
+            {isDeleteTransaction(detail) && (
+              <>
+                <Descriptions.Item label="Deleted Ingredient">
+                  {deletedIngredient.name || getIngredientName(detail.ingredientId)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Deleted Unit">
+                  {deletedIngredient.unit || detail.unit || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Deleted Storage Type">
+                  {deletedIngredient.storageType || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Stock At Delete">
+                  {deletedIngredient.currentStock ?? detail.stockBefore ?? "-"}
                 </Descriptions.Item>
               </>
             )}
