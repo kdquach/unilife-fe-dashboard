@@ -75,7 +75,6 @@ export default function IngredientStockAdjustModal({
       expiryDate: undefined,
       quantity: 1,
       reason: "",
-      unitPrice: undefined,
     });
   }, [form, open, ingredient]);
 
@@ -279,15 +278,6 @@ export default function IngredientStockAdjustModal({
                   !current.startOf("day").isAfter(dayjs().startOf("day"))
                 }
                 format="DD/MM/YYYY"
-              />
-            </Form.Item>
-
-            <Form.Item name="unitPrice" label="Unit Price">
-              <InputNumber
-                className="w-full"
-                min={0}
-                precision={2}
-                placeholder="Optional"
               />
             </Form.Item>
           </>

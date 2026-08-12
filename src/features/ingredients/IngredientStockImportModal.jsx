@@ -167,12 +167,31 @@ export default function IngredientStockImportModal({
           />
         </Form.Item>
 
-        <Form.Item name="unitPrice" label="Unit Price">
+        <Form.Item
+          name="unitPrice"
+          label="Unit Price"
+          rules={[
+            { required: true, message: "Please enter unit price" },
+            {
+              validator: (_, value) => {
+                const numberValue = Number(value);
+
+                if (!Number.isFinite(numberValue) || numberValue <= 0) {
+                  return Promise.reject(
+                    new Error("Unit price must be greater than zero"),
+                  );
+                }
+
+                return Promise.resolve();
+              },
+            },
+          ]}
+        >
           <InputNumber
             className="w-full"
-            min={0}
+            min={0.01}
             precision={2}
-            placeholder="Optional"
+            placeholder="Enter unit price"
           />
         </Form.Item>
 
