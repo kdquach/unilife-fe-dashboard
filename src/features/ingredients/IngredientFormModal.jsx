@@ -163,16 +163,20 @@ export default function IngredientFormModal({
 
   const handleOk = async () => {
     const values = await form.validateFields();
-
-    await onSubmit({
+    const payload = {
       ...values,
       name: normalizeText(values.name),
       unit: normalizeText(values.unit),
-      price: Number(values.price || 0),
       storageType: normalizeStorageType(values.storageType),
       categoryId: values.categoryId || null,
       minStockThreshold: Number(values.minStockThreshold || 0),
-    });
+    };
+
+    if (mode !== "create") {
+      payload.price = Number(values.price || 0);
+    }
+
+    await onSubmit(payload);
   };
 
   return (
@@ -231,18 +235,20 @@ export default function IngredientFormModal({
           <Input placeholder="Example: kg, g, liter, pack" maxLength={30} showCount />
         </Form.Item>
 
-        <Form.Item
-          name="price"
-          label="Price"
-          rules={[validatePrice()]}
-        >
-          <InputNumber
-            className="w-full"
-            min={0}
-            precision={2}
-            placeholder="Enter price"
-          />
-        </Form.Item>
+        {mode !== "create" && (
+          <Form.Item
+            name="price"
+            label="Price"
+            rules={[validatePrice()]}
+          >
+            <InputNumber
+              className="w-full"
+              min={0}
+              precision={2}
+              placeholder="Enter price"
+            />
+          </Form.Item>
+        )}
 
         <Form.Item
           name="storageType"
