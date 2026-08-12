@@ -77,6 +77,19 @@ export function useIngredients() {
     }
   };
 
+  const deleteIngredient = async (id) => {
+    try {
+      setSaving(true);
+      await ingredientService.deleteIngredient(id);
+      notify.success("Ingredient deleted successfully");
+    } catch (err) {
+      notify.error(err.message || "Cannot delete ingredient");
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const getIngredientById = async (id) => {
     try {
       return await ingredientService.getIngredientById(id);
@@ -94,6 +107,7 @@ export function useIngredients() {
     fetchIngredients,
     createIngredient,
     updateIngredient,
+    deleteIngredient,
     getIngredientById,
   };
 }

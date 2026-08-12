@@ -17,6 +17,7 @@ import {
 } from "@ant-design/icons";
 
 import { ingredientService } from "./ingredientService";
+import { formatStorageType } from "./ingredientConstants";
 import { formatDate, formatDateTime } from "../../utils/format";
 
 const getIngredientId = (ingredient) =>
@@ -173,7 +174,7 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
               {ingredient.unit || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Storage Type">
-              {ingredient.storageType || "-"}
+              {formatStorageType(ingredient.storageType)}
             </Descriptions.Item>
             <Descriptions.Item label="Current Stock">
               {stockStatus.currentStock}

@@ -1,5 +1,9 @@
 import React, { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
+import { Form, Input, InputNumber, Modal, Select } from "antd";
+import {
+  STORAGE_TYPE_OPTIONS,
+  normalizeStorageType,
+} from "./ingredientConstants";
 
 const MAX_MIN_STOCK_THRESHOLD = 1000000;
 const TEXT_HAS_LETTER = /\p{L}/u;
@@ -17,9 +21,8 @@ const normalizeInitialValues = (values) => ({
       : values?.categoryId,
   name: values?.name || "",
   unit: values?.unit || "",
-  storageType: values?.storageType || "",
+  storageType: normalizeStorageType(values?.storageType),
   minStockThreshold: Number(values?.minStockThreshold || 0),
-  isActive: values?.isActive !== false,
 });
 
 const validateBusinessText = ({
@@ -141,7 +144,7 @@ export default function IngredientFormModal({
       ...values,
       name: normalizeText(values.name),
       unit: normalizeText(values.unit),
-      storageType: normalizeText(values.storageType) || undefined,
+      storageType: normalizeStorageType(values.storageType),
       categoryId: values.categoryId || null,
       minStockThreshold: Number(values.minStockThreshold || 0),
     });
@@ -206,14 +209,12 @@ export default function IngredientFormModal({
         <Form.Item
           name="storageType"
           label="Storage Type"
-          rules={[
-            validateBusinessText({
-              fieldLabel: "Storage type",
-              maxLength: 50,
-            }),
-          ]}
         >
-          <Input placeholder="Example: Frozen, Chilled, Dry" maxLength={50} showCount />
+          <Select
+            allowClear
+            options={STORAGE_TYPE_OPTIONS}
+            placeholder="Select storage type"
+          />
         </Form.Item>
 
         <Form.Item
@@ -229,10 +230,6 @@ export default function IngredientFormModal({
             max={maxThreshold}
             precision={2}
           />
-        </Form.Item>
-
-        <Form.Item name="isActive" label="Active" valuePropName="checked">
-          <Switch />
         </Form.Item>
       </Form>
     </Modal>
