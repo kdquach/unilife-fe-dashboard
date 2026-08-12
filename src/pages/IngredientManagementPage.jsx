@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Input,
+  Popconfirm,
   Select,
   Space,
   Table,
@@ -18,6 +19,7 @@ import {
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
+  DeleteOutlined,
   WarningOutlined,
   CheckCircleOutlined,
   StopOutlined 
@@ -32,6 +34,10 @@ import IngredientDetailDrawer from "../features/ingredients/IngredientDetailDraw
 import IngredientFormModal from "../features/ingredients/IngredientFormModal";
 import IngredientStockAdjustModal from "../features/ingredients/IngredientStockAdjustModal";
 import IngredientStockImportModal from "../features/ingredients/IngredientStockImportModal";
+import {
+  STORAGE_TYPE_OPTIONS,
+  formatStorageType,
+} from "../features/ingredients/ingredientConstants";
 
 // Hooks
 import { useIngredients } from "../features/ingredients/hooks/useIngredients";
@@ -68,7 +74,6 @@ export default function IngredientManagementPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [supplierLoading, setSupplierLoading] = useState(false);
-  const [error, setError] = useState("");
   const [keyword, setKeyword] = useState("");
   const [filters, setFilters] = useState({
     categoryId: undefined,
@@ -94,7 +99,7 @@ export default function IngredientManagementPage() {
   const [selectedIngredient, setSelectedIngredient] = useState(null);
 
   // Custom hook
-  const { ingredients, loading, saving, pagination, fetchIngredients, createIngredient, updateIngredient, getIngredientById } = useIngredients();
+  const { ingredients, loading, saving, pagination, fetchIngredients, createIngredient, updateIngredient, deleteIngredient } = useIngredients();
 
   const fetchCategories = async () => {
     try {
@@ -151,19 +156,6 @@ export default function IngredientManagementPage() {
     label: category.name || "Unnamed Category",
     value: category._id || category.id,
   })).filter((option) => option.value);
-
-  const storageTypeOptions = (() => {
-    const values = new Set(
-      ingredients
-        .map((item) => item?.storageType)
-        .filter(Boolean),
-    );
-
-    return Array.from(values).map((value) => ({
-      label: value,
-      value,
-    }));
-  })();
 
   const handleFilterChange = (key, value) => {
     const nextFilters = { ...filters, [key]: value };
@@ -225,6 +217,21 @@ export default function IngredientManagementPage() {
       await fetchIngredients(formMode === "create" ? 1 : pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
       console.error(err.message || "Unable to save ingredient");
+    }
+  };
+
+  const handleDeleteIngredient = async (record) => {
+    const id = getRecordId(record);
+    if (!id) {
+      notify.warning("Ingredient ID is missing");
+      return;
+    }
+
+    try {
+      await deleteIngredient(id);
+      await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
+    } catch {
+      // Error notification is handled inside useIngredients.
     }
   };
 
@@ -379,7 +386,7 @@ export default function IngredientManagementPage() {
       dataIndex: "storageType",
       width: 140,
       sorter: true,
-      render: (value) => value || "-",
+      render: (value) => formatStorageType(value),
     },
     {
       title: "Current Stock",
@@ -439,6 +446,21 @@ export default function IngredientManagementPage() {
             icon={<DatabaseOutlined />}
             onClick={() => openAdjustModal(record)}
           />
+          {record?.isActive && (
+            <Popconfirm
+              title="Delete ingredient?"
+              description="This ingredient will be marked inactive and hidden from the active list."
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+              cancelText="Cancel"
+              onConfirm={() => handleDeleteIngredient(record)}
+            >
+              <Button
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -635,7 +657,7 @@ export default function IngredientManagementPage() {
               <Select
                 allowClear
                 placeholder="Storage"
-                options={storageTypeOptions}
+                options={STORAGE_TYPE_OPTIONS}
                 style={{ width: 150 }}
                 onChange={(value) => handleFilterChange("storageType", value)}
               />
