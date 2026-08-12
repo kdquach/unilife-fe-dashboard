@@ -34,6 +34,16 @@ const asNumber = (value) => {
   return Number.isFinite(numberValue) ? numberValue : 0;
 };
 
+const formatUnitPrice = (value) => {
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue)
+    ? `${numberValue.toLocaleString("vi-VN", {
+        maximumFractionDigits: 2,
+      })} VND`
+    : "-";
+};
+
 export default function IngredientDetailDrawer({ open, ingredientId, onClose }) {
   const [loading, setLoading] = useState(false);
   const [ingredient, setIngredient] = useState(null);
@@ -173,6 +183,9 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
             <Descriptions.Item label="Unit">
               {ingredient.unit || "-"}
             </Descriptions.Item>
+            <Descriptions.Item label="Price">
+              {formatUnitPrice(ingredient.price)}
+            </Descriptions.Item>
             <Descriptions.Item label="Storage Type">
               {formatStorageType(ingredient.storageType)}
             </Descriptions.Item>
@@ -213,8 +226,9 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
                     </div>
                   }
                   description={
-                    <div className="text-xs text-slate-500">
-                      Batch ID: {batch._id || batch.id || "-"}
+                    <div className="space-y-1 text-xs text-slate-500">
+                      <div>Batch ID: {batch._id || batch.id || "-"}</div>
+                      <div>Unit price: {formatUnitPrice(batch.unitPrice)}</div>
                     </div>
                   }
                 />

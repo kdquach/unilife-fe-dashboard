@@ -345,7 +345,6 @@ export default function IngredientManagementPage() {
         stockAfter: values.stockAfter,
         batchId: values.batchId,
         expiryDate: values.expiryDate?.format?.("YYYY-MM-DD"),
-        unitPrice: values.unitPrice,
         reason: values.reason.trim(),
         referenceType: "MANUAL_STOCK_ADJUSTMENT",
       });
@@ -380,6 +379,16 @@ export default function IngredientManagementPage() {
       dataIndex: "unit",
       width: 110,
       render: (value) => value || "-",
+    },
+    {
+      title: "Price",
+      dataIndex: "price",
+      width: 130,
+      sorter: true,
+      render: (value) =>
+        `${asNumber(value).toLocaleString("vi-VN", {
+          maximumFractionDigits: 2,
+        })} VND`,
     },
     {
       title: "Storage",
