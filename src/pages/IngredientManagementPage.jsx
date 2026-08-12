@@ -362,6 +362,7 @@ export default function IngredientManagementPage() {
     {
       title: "Ingredient",
       dataIndex: "name",
+      width: 260,
       sorter: true,
       render: (value, record) => (
         <div className="min-w-0">
@@ -379,16 +380,6 @@ export default function IngredientManagementPage() {
       dataIndex: "unit",
       width: 110,
       render: (value) => value || "-",
-    },
-    {
-      title: "Price",
-      dataIndex: "price",
-      width: 130,
-      sorter: true,
-      render: (value) =>
-        `${asNumber(value).toLocaleString("vi-VN", {
-          maximumFractionDigits: 2,
-        })} VND`,
     },
     {
       title: "Storage",
@@ -688,7 +679,7 @@ export default function IngredientManagementPage() {
             loading={loading}
             dataSource={ingredients}
             columns={columns}
-            scroll={{ x: 1100 }}
+            scroll={{ x: 1250 }}
             locale={{
               emptyText: (
                 <div className="py-8">
