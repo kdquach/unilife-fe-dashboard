@@ -1,5 +1,6 @@
 import React from "react";
-import { Table } from "antd";
+import { Button, Table } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 
 const formatMoney = (value = 0) =>
   new Intl.NumberFormat("vi-VN").format(value) + " ₫";
@@ -7,7 +8,7 @@ const formatMoney = (value = 0) =>
 export default function PopularFoodTable({
   loading = false,
   data = [],
-  onRowClick,
+  onView,
 }) {
   const columns = [
     {
@@ -30,6 +31,19 @@ export default function PopularFoodTable({
       sorter: (a, b) => a.revenue - b.revenue,
       render: (value) => formatMoney(value),
     },
+    {
+      title: "Actions",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          aria-label={`View ${record.foodName}`}
+          title="View details"
+          onClick={() => onView?.(record)}
+        />
+      ),
+    },
   ];
 
   return (
@@ -42,16 +56,6 @@ export default function PopularFoodTable({
       columns={columns}
       dataSource={data}
       pagination={false}
-      onRow={(record) => ({
-        onClick: () => {
-          if (onRowClick) {
-            onRowClick(record);
-          }
-        },
-        style: {
-          cursor: onRowClick ? "pointer" : "default",
-        },
-      })}
     />
   );
 }

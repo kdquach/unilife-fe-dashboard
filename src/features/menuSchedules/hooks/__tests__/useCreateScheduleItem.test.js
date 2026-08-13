@@ -2,17 +2,15 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useCreateScheduleItem from '../useCreateScheduleItem';
 import menuScheduleItemApi from '../../api/menuScheduleItemApi';
+import { notify } from '../../../../utils/notify';
 
 vi.mock('../../api/menuScheduleItemApi');
-
-const mockSuccess = vi.fn();
-const mockError = vi.fn();
-
-vi.mock('antd', () => ({
-  App: {
-    useApp: () => ({
-      message: { success: mockSuccess, error: mockError },
-    }),
+vi.mock('../../../../utils/notify', () => ({
+  notify: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -44,7 +42,7 @@ describe('useCreateScheduleItem', () => {
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockSuccess).toHaveBeenCalledWith('Item added successfully');
+    expect(notify.success).toHaveBeenCalledWith('Item added successfully', 'Item added successfully');
     expect(mockOnSuccess).toHaveBeenCalled();
   });
 
@@ -58,11 +56,10 @@ describe('useCreateScheduleItem', () => {
       try {
         await result.current.createItem({ menuScheduleId: '1', foodId: 'f1', maxServing: 10 });
       } catch {
-        // caught by hook or rethrown
+        // caught by caller
       }
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockError).toHaveBeenCalledWith('Insufficient ingredients in stock');
   });
 });

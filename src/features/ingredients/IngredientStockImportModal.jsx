@@ -39,6 +39,7 @@ export default function IngredientStockImportModal({
   const [form] = Form.useForm();
   const unit = ingredient?.unit || "unit";
   const currentStock = asNumber(ingredient?.currentStock);
+  const [showTodayWarning, setShowTodayWarning] = React.useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -49,7 +50,6 @@ export default function IngredientStockImportModal({
       expiryDate: undefined,
       supplierId: undefined,
       unitPrice: undefined,
-      importCode: "",
       reason: "Stock import",
     });
   }, [form, ingredient, open]);
@@ -70,7 +70,6 @@ export default function IngredientStockImportModal({
       quantity: asNumber(values.quantity),
       expiryDate: values.expiryDate?.format("YYYY-MM-DD"),
       reason: values.reason.trim(),
-      importCode: values.importCode?.trim() || undefined,
     });
   };
 
@@ -82,7 +81,7 @@ export default function IngredientStockImportModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText="Record Import"
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
         className="mb-4"
@@ -157,8 +156,20 @@ export default function IngredientStockImportModal({
               current && current.endOf("day").isBefore(dayjs())
             }
             format="DD/MM/YYYY"
+            onChange={(date) => {
+              setShowTodayWarning(date && date.isSame(dayjs(), 'day'));
+            }}
           />
         </Form.Item>
+
+        {showTodayWarning && (
+          <Alert
+            className="mb-4"
+            type="warning"
+            showIcon
+            message="Warning: Expiry date is today. Items will expire today."
+          />
+        )}
 
         <Form.Item name="supplierId" label="Supplier">
           <Select
@@ -169,23 +180,32 @@ export default function IngredientStockImportModal({
           />
         </Form.Item>
 
-        <Form.Item name="unitPrice" label="Unit Price">
-          <InputNumber
-            className="w-full"
-            min={0}
-            precision={2}
-            placeholder="Optional"
-          />
-        </Form.Item>
-
         <Form.Item
-          name="importCode"
-          label="Import Code"
+          name="unitPrice"
+          label="Unit Price"
           rules={[
-            { max: 80, message: "Import code must be 80 characters or less" },
+            { required: true, message: "Please enter unit price" },
+            {
+              validator: (_, value) => {
+                const numberValue = Number(value);
+
+                if (!Number.isFinite(numberValue) || numberValue <= 0) {
+                  return Promise.reject(
+                    new Error("Unit price must be greater than zero"),
+                  );
+                }
+
+                return Promise.resolve();
+              },
+            },
           ]}
         >
-          <Input placeholder="Invoice, receipt, or import reference" />
+          <InputNumber
+            className="w-full"
+            min={0.01}
+            precision={2}
+            placeholder="Enter unit price"
+          />
         </Form.Item>
 
         <Form.Item

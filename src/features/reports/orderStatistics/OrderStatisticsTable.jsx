@@ -1,5 +1,6 @@
 import React from "react";
-import { Table, Tag } from "antd";
+import { Button, Table, Tag } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 
 const STATUS_COLOR = {
   PENDING: "gold",
@@ -26,7 +27,7 @@ const STATUS_LABEL = {
 export default function OrderStatisticsTable({
   data = [],
   loading = false,
-  onRowClick,
+  onView,
 }) {
   const columns = [
     {
@@ -49,6 +50,19 @@ export default function OrderStatisticsTable({
       align: "center",
       render: (value) => `${value}%`,
     },
+    {
+      title: "Actions",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          aria-label={`View ${STATUS_LABEL[record.status] || record.status}`}
+          title="View details"
+          onClick={() => onView?.(record)}
+        />
+      ),
+    },
   ];
 
   return (
@@ -59,16 +73,6 @@ export default function OrderStatisticsTable({
       columns={columns}
       dataSource={data}
       pagination={false}
-      onRow={(record) => ({
-        onClick: () => {
-          if (onRowClick) {
-            onRowClick(record);
-          }
-        },
-        style: {
-          cursor: "pointer",
-        },
-      })}
     />
   );
 }

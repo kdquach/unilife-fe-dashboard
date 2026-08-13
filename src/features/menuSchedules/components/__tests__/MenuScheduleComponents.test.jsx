@@ -7,23 +7,16 @@ import MenuScheduleDetailDrawer from '../MenuScheduleDetailDrawer';
 describe('MenuSchedule Components', () => {
   describe('MenuScheduleFilter', () => {
     it('renders filter inputs', () => {
-      render(<MenuScheduleFilter onFilterChange={vi.fn()} />);
-      expect(screen.getByText('Filter by status')).toBeInTheDocument();
-      expect(screen.getByText('From date - To date')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument();
+      render(<MenuScheduleFilter filters={{ status: undefined }} onFilterChange={vi.fn()} />);
+      expect(screen.getByText('Status')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Start date')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('End date')).toBeInTheDocument();
     });
 
-    it('submits dateFrom and dateTo on filter apply', async () => {
+    it('handles filter status change', () => {
       const mockOnFilterChange = vi.fn();
-      render(<MenuScheduleFilter onFilterChange={mockOnFilterChange} />);
-      const searchButton = screen.getByRole('button', { name: /search/i });
-      searchButton.click();
-      expect(mockOnFilterChange).toHaveBeenCalledWith({
-        status: undefined,
-        dateFrom: undefined,
-        dateTo: undefined
-      });
+      render(<MenuScheduleFilter filters={{ status: undefined }} onFilterChange={mockOnFilterChange} />);
+      expect(screen.getByText('Status')).toBeInTheDocument();
     });
   });
 

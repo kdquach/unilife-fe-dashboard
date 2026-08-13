@@ -8,14 +8,15 @@ import {
   Typography,
 } from "antd";
 import {
-  EyeOutlined,
   EditOutlined,
+  EyeOutlined,
 } from "@ant-design/icons";
 
 import {
   getImageUrl,
   imageNotFound,
 } from "../../utils/image";
+import { formatDateTime } from "../../utils/format";
 
 const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString(
@@ -58,7 +59,7 @@ export default function FoodTable({
             width={64}
             height={64}
             className="rounded-md object-cover"
-            preview={Boolean(record.imageUrl)}
+            preview={false}
           />
 
           <div className="min-w-0">
@@ -148,30 +149,31 @@ export default function FoodTable({
       title: "Updated",
       dataIndex: "updatedAt",
       width: 170,
-      render: (value) =>
-        new Date(value).toLocaleString(
-          "vi-VN"
-        ),
+      render: (value) => formatDateTime(value),
     },
 
     {
       title: "Actions",
       fixed: "right",
-      width: 130,
+      width: 120,
       render: (_, record) => (
         <Space size={6}>
           <Button
             icon={<EyeOutlined />}
+            aria-label={`View ${record.name}`}
+            title="View details"
             onClick={() => onView(record)}
           />
-
           <Button
             icon={<EditOutlined />}
             loading={
               actionLoadingId ===
               getRecordId(record)
             }
-            onClick={() => onEdit(record)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(record);
+            }}
           />
         </Space>
       ),

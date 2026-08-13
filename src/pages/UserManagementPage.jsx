@@ -1,12 +1,4 @@
-import React from "react";
-import {
-  EditOutlined,
-  EyeOutlined,
-  PlusOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-  UserSwitchOutlined,
-} from "@ant-design/icons";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Card,
@@ -19,16 +11,32 @@ import {
   Switch,
   Table,
   Tag,
-  message,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import {
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
+  StopOutlined 
+} from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import { USER_ROLES, roleColors, roleLabels } from "../constants/roles";
 import { useAuth } from "../features/auth/AuthContext";
+import { formatDateTime, normalizePhone } from "../utils/format";
+
+// Components
 import UserDetailDrawer from "../features/users/UserDetailDrawer";
 import UserFormModal from "../features/users/UserFormModal";
+
+// Hooks
+import { useUsers } from "../features/users/hooks/useUsers";
+
+// Services
 import { userService } from "../features/users/userService";
-import { formatDateTime, normalizePhone } from "../utils/format";
 
 const statusOptions = [
   { label: "All statuses", value: "" },
@@ -41,28 +49,48 @@ const getUserId = (user) => user?._id || user?.id || user?.userId;
 export default function UserManagementPage() {
   const { user } = useAuth();
   const [form] = Form.useForm();
-  const [users, setUsers] = useState([]);
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
-  const [loading, setLoading] = useState(false);
+  const { Search } = Input;
+
+  // Local state for modals and selection
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("create");
   const [selectedUser, setSelectedUser] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [changingRoleId, setChangingRoleId] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  const { Search } = Input;
-
   const [keyword, setKeyword] = useState("");
-
   const [filters, setFilters] = useState({
     role: undefined,
     isActive: undefined,
   });
+
+  // Custom hook
+  const {
+    users,
+    loading,
+    saving,
+    changingRoleId,
+    pagination,
+    fetchUsers,
+    createUser,
+    updateUser,
+    changeUserRole,
+    getUserById,
+  } = useUsers();
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchUsers(1, 10, "", filters);
+  }, []);
+
+  const handleFilterChange = (key, value) => {
+    const nextFilters = { ...filters, [key]: value };
+    setFilters(nextFilters);
+    fetchUsers(1, pagination.pageSize, keyword, nextFilters);
+  };
+
+  const stats = useMemo(() => {
+    const active = users.filter((user) => user.isActive).length;
+    return { active, inactive: users.length - active };
+  }, [users]);
 
   const roleChangeOptions = useMemo(() => {
     if (user?.role === "ADMIN") return USER_ROLES;
@@ -80,45 +108,6 @@ export default function UserManagementPage() {
       targetUser?.role,
     );
   };
-
-  const fetchUsers = async (
-    page = pagination.current,
-    pageSize = pagination.pageSize,
-    searchKeyword = keyword,
-    currentFilters = filters,
-  ) => {
-    setLoading(true);
-
-    try {
-      const response = await userService.getUsers({
-        page,
-        limit: pageSize,
-        keyword: searchKeyword,
-        ...currentFilters,
-      });
-
-      setUsers(response.data);
-
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      message.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers(1, pagination.pageSize);
-  }, []);
-
-  const stats = useMemo(() => {
-    const active = users.filter((user) => user.isActive).length;
-    return { active, inactive: users.length - active };
-  }, [users]);
 
   const openCreateModal = () => {
     setSelectedUser(null);
@@ -138,16 +127,15 @@ export default function UserManagementPage() {
   };
 
   const handleSubmitUser = async (values) => {
-    setSaving(true);
     try {
       const payload = { ...values, phone: normalizePhone(values.phone) };
-      if (modalMode === "create") await userService.createUser(payload);
+      if (modalMode === "create") await createUser(payload);
       else {
         const id = getUserId(selectedUser);
         if (!id) throw new Error("User ID is missing");
-        await userService.updateUser(id, payload);
+        await updateUser(id, payload);
       }
-      message.success(modalMode === "create" ? "User created" : "User updated");
+      console.log(modalMode === "create" ? "User created" : "User updated");
       setModalOpen(false);
       await fetchUsers(
         pagination.current,
@@ -156,9 +144,7 @@ export default function UserManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
-    } finally {
-      setSaving(false);
+      console.error(error.message);
     }
   };
 
@@ -168,7 +154,7 @@ export default function UserManagementPage() {
       if (!id) throw new Error("User ID is missing");
 
       await userService.updateUserStatus(id, checked);
-      message.success(
+      console.log(
         `${checked ? "Activated" : "Deactivated"} ${user.fullName}`,
       );
       await fetchUsers(
@@ -178,19 +164,18 @@ export default function UserManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
+      console.error(error.message);
     }
   };
 
   const handleRoleChange = async (targetUser, role) => {
     const userId = getUserId(targetUser);
-    setChangingRoleId(userId);
 
     try {
       if (!userId) throw new Error("User ID is missing");
 
-      await userService.updateUserRole(userId, role);
-      message.success(`Updated role for ${targetUser.fullName}`);
+      await changeUserRole(userId, role);
+      console.log(`Updated role for ${targetUser.fullName}`);
 
       if (getUserId(selectedUser) === userId) {
         setSelectedUser((prev) => (prev ? { ...prev, role } : prev));
@@ -203,9 +188,7 @@ export default function UserManagementPage() {
         filters,
       );
     } catch (error) {
-      message.error(error.message);
-    } finally {
-      setChangingRoleId(null);
+      console.error(error.message);
     }
   };
 
@@ -284,13 +267,21 @@ export default function UserManagementPage() {
     {
       title: "Actions",
       fixed: "right",
-      width: 140,
+      width: 120,
       render: (_, record) => (
         <Space>
-          <Button icon={<EyeOutlined />} onClick={() => openDrawer(record)} />
+          <Button
+            icon={<EyeOutlined />}
+            aria-label={`View ${record.fullName}`}
+            title="View details"
+            onClick={() => openDrawer(record)}
+          />
           <Button
             icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditModal(record);
+            }}
           />
         </Space>
       ),
@@ -301,147 +292,195 @@ export default function UserManagementPage() {
     <div>
       <PageHeader
         title="User Management"
-        description="Sprint 1 Admin function: view, search, filter, update role and activate/deactivate user accounts."
         breadcrumbs={["Dashboard", "User Management"]}
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={openCreateModal}
-          >
-            Create User
-          </Button>
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={() =>
+                fetchUsers(pagination.current, pagination.pageSize, keyword, filters)
+              }
+            >
+              Refresh
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              Create User
+            </Button>
+          </Space>
         }
       />
 
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="dashboard-card">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unilife-soft text-xl text-unilife">
-              <UserSwitchOutlined />
-            </div>
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-slate-500">Current page users</div>
-              <div className="text-2xl font-bold text-slate-950">
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
                 {users.length}
               </div>
             </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
+            >
+              <TeamOutlined />
+            </div>
           </div>
         </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Active on page</div>
-          <div className="mt-1 text-2xl font-bold text-green-600">
-            {stats.active}
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.green}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Active on page</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                {stats.active}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.green}1a`,
+                color: COLORS.green,
+                fontSize: 18,
+              }}
+            >
+              <CheckCircleOutlined />
+            </div>
           </div>
         </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Inactive on page</div>
-          <div className="mt-1 text-2xl font-bold text-red-500">
-            {stats.inactive}
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.red}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Inactive on page</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                {stats.inactive}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.red}1a`,
+                color: COLORS.red,
+                fontSize: 18,
+              }}
+            >
+              <StopOutlined />
+            </div>
           </div>
         </Card>
       </div>
 
-
       <Card
-  className="dashboard-card"
-  title="Users"
-  extra={
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        flexWrap: "wrap",
-      }}
-    >
-      <Search
-        placeholder="Search name, email or phone..."
-        allowClear
-        style={{ width: 250 }}
-        onSearch={(value) => {
-          setKeyword(value);
+        title="Users"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        extra={
+          <Space wrap>
+            <Search
+              placeholder="Search name, email or phone..."
+              allowClear
+              enterButton={<SearchOutlined />}
+              style={{ width: 280 }}
+              onSearch={(value) => {
+                setKeyword(value);
+                fetchUsers(1, pagination.pageSize, value, filters);
+              }}
+            />
 
-          fetchUsers(
-            1,
-            pagination.pageSize,
-            value,
-            filters
-          );
-        }}
-      />
+            <Select
+              placeholder="Role"
+              allowClear
+              style={{ width: 150 }}
+              value={filters.role}
+              onChange={(value) => handleFilterChange("role", value)}
+              options={USER_ROLES}
+            />
 
-      <Select
-        placeholder="Role"
-        allowClear
-        style={{ width: 150 }}
-        onChange={(value) => {
-          const newFilters = {
-            ...filters,
-            role: value,
-          };
-
-          setFilters(newFilters);
-
-          fetchUsers(
-            1,
-            pagination.pageSize,
-            keyword,
-            newFilters
-          );
-        }}
-        options={USER_ROLES}
-      />
-
-      <Select
-        placeholder="Status"
-        allowClear
-        style={{ width: 150 }}
-        onChange={(value) => {
-          const newFilters = {
-            ...filters,
-            isActive: value,
-          };
-
-          setFilters(newFilters);
-
-          fetchUsers(
-            1,
-            pagination.pageSize,
-            keyword,
-            newFilters
-          );
-        }}
-        options={[
-          {
-            label: "Active",
-            value: true,
-          },
-          {
-            label: "Inactive",
-            value: false,
-          },
-        ]}
-      />
-    </div>
-  }
->
-  <Table
-    rowKey={(record) => getUserId(record)}
-    loading={loading}
-    dataSource={users}
-    columns={columns}
-    scroll={{ x: 1050 }}
-    pagination={{
-      current: pagination.current,
-      pageSize: pagination.pageSize,
-      total: pagination.total,
-      showSizeChanger: true,
-      showTotal: (total) => `${total} users`,
-      onChange: (page, pageSize) =>
-        fetchUsers(page, pageSize, keyword, filters),
-    }}
-  />
-</Card>
+            <Select
+              placeholder="Status"
+              allowClear
+              style={{ width: 140 }}
+              value={filters.isActive}
+              onChange={(value) => handleFilterChange("isActive", value)}
+              options={[
+                {
+                  label: "Active",
+                  value: true,
+                },
+                {
+                  label: "Inactive",
+                  value: false,
+                },
+              ]}
+            />
+          </Space>
+        }
+      >
+        <Table
+          rowKey={(record) => getUserId(record)}
+          loading={loading}
+          dataSource={users}
+          columns={columns}
+          scroll={{ x: 1050 }}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} users`,
+            onChange: (page, pageSize) =>
+              fetchUsers(page, pageSize, keyword, filters),
+          }}
+        />
+      </Card>
 
       <UserFormModal
         open={modalOpen}

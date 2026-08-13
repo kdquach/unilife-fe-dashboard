@@ -2,19 +2,17 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useReplyRating from '../hooks/useReplyRating';
 import ratingApi from '../api/ratingApi';
-import { message } from 'antd';
+import { notify } from '../../../utils/notify';
 
 vi.mock('../api/ratingApi');
-vi.mock('antd', () => {
-  const originalModule = vi.importActual('antd');
-  return {
-    ...originalModule,
-    message: {
-      success: vi.fn(),
-      error: vi.fn(),
-    },
-  };
-});
+vi.mock('../../../utils/notify', () => ({
+  notify: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
 
 describe('useReplyRating hook', () => {
   beforeEach(() => {
@@ -38,7 +36,7 @@ describe('useReplyRating hook', () => {
     });
 
     expect(ratingApi.replyRating).toHaveBeenCalledWith('1', { staffReply: 'Thanks!' });
-    expect(message.success).toHaveBeenCalledWith('Replied successfully');
+    expect(notify.success).toHaveBeenCalledWith('Replied successfully');
     expect(onSuccess).toHaveBeenCalled();
     expect(response).toBe(true);
   });
@@ -55,7 +53,7 @@ describe('useReplyRating hook', () => {
     });
 
     expect(ratingApi.replyRating).toHaveBeenCalledWith('1', { staffReply: 'Thanks!' });
-    expect(message.error).toHaveBeenCalled();
+    expect(notify.error).toHaveBeenCalled();
     expect(onSuccess).not.toHaveBeenCalled();
     expect(response).toBe(false);
   });

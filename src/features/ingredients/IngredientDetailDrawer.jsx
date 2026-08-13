@@ -17,6 +17,7 @@ import {
 } from "@ant-design/icons";
 
 import { ingredientService } from "./ingredientService";
+import { formatStorageType } from "./ingredientConstants";
 import { formatDate, formatDateTime } from "../../utils/format";
 
 const getIngredientId = (ingredient) =>
@@ -31,6 +32,16 @@ const getCategoryName = (category) => {
 const asNumber = (value) => {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const formatUnitPrice = (value) => {
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue)
+    ? `${numberValue.toLocaleString("vi-VN", {
+        maximumFractionDigits: 2,
+      })} VND`
+    : "-";
 };
 
 export default function IngredientDetailDrawer({ open, ingredientId, onClose }) {
@@ -101,7 +112,7 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
       width={560}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       {loading ? (
         <div className="mt-24 flex justify-center">
@@ -173,7 +184,7 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
               {ingredient.unit || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Storage Type">
-              {ingredient.storageType || "-"}
+              {formatStorageType(ingredient.storageType)}
             </Descriptions.Item>
             <Descriptions.Item label="Current Stock">
               {stockStatus.currentStock}
@@ -212,8 +223,9 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
                     </div>
                   }
                   description={
-                    <div className="text-xs text-slate-500">
-                      Batch ID: {batch._id || batch.id || "-"}
+                    <div className="space-y-1 text-xs text-slate-500">
+                      <div>Batch ID: {batch._id || batch.id || "-"}</div>
+                      <div>Unit price: {formatUnitPrice(batch.unitPrice)}</div>
                     </div>
                   }
                 />

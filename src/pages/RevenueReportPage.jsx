@@ -107,12 +107,10 @@ export default function RevenueReportPage() {
 
       setRevenue(response.revenue);
     } catch (err) {
-      console.log(err);
-
-      notify.error(
-        "Cannot load revenue report.",
-      );
-    } finally {
+  notify.error(
+    err.message || "Cannot load revenue report."
+  );
+} finally {
       setLoading(false);
     }
   };
@@ -163,7 +161,6 @@ export default function RevenueReportPage() {
     <div>
       <PageHeader
         title="Revenue Report"
-        description="Business revenue analytics"
         breadcrumbs={[
           "Dashboard",
           "Reports",
@@ -174,8 +171,8 @@ export default function RevenueReportPage() {
       <RevenueSummaryCards summary={summary} />
 
       <Card
-        className="dashboard-card mb-5"
         title="Revenue Report"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Select
@@ -314,7 +311,7 @@ export default function RevenueReportPage() {
         <RevenueTable
           loading={loading}
           data={revenue}
-          onRowClick={(record) => {
+          onView={(record) => {
             setSelectedRevenue(record);
             setDrawerOpen(true);
           }}

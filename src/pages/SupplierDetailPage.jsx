@@ -18,11 +18,12 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
+import dayjs from "dayjs";
 import { supplierService } from "../features/suppliers/supplierService";
 import SupplierFormModal from "../features/suppliers/SupplierFormModal";
-import { formatDateTime } from "../utils/format";
+import { formatDate, formatDateTime } from "../utils/format";
+import { notify } from "../utils/notify";
 
 export default function SupplierDetailPage() {
   const { id } = useParams();
@@ -49,7 +50,7 @@ export default function SupplierDetailPage() {
       const data = await supplierService.getSupplierById(id);
       setSupplier(data);
     } catch (error) {
-      message.error(error.message);
+      notify.error("Failed to load supplier", error.message);
     } finally {
       setSupplierLoading(false);
     }
@@ -73,7 +74,7 @@ export default function SupplierDetailPage() {
         total: response.pagination.total,
       });
     } catch (error) {
-      message.error(error.message);
+      notify.error("Failed to load supplier", error.message);
     } finally {
       setBatchesLoading(false);
     }
@@ -82,7 +83,6 @@ export default function SupplierDetailPage() {
   useEffect(() => {
     fetchSupplier();
     fetchBatches(1, batchPagination.pageSize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // ─── Edit supplier ────────────────────────────────────────────────────────
@@ -91,10 +91,10 @@ export default function SupplierDetailPage() {
     try {
       const updated = await supplierService.updateSupplier(id, values);
       setSupplier(updated);
-      message.success("Supplier updated");
+      notify.success("Supplier updated");
       setFormOpen(false);
     } catch (error) {
-      message.error(error.message);
+      notify.error("Failed to load supplier", error.message);
     } finally {
       setSaving(false);
     }
@@ -166,11 +166,10 @@ export default function SupplierDetailPage() {
       width: 150,
       render: (date) => {
         if (!date) return <span className="text-slate-400">—</span>;
-        const expiry = new Date(date);
-        const isExpired = expiry < new Date();
+        const isExpired = dayjs(date).endOf("day").isBefore(dayjs());
         return (
-          <span className={isExpired ? "text-red-500" : "text-slate-700"}>
-            {expiry.toLocaleDateString("vi-VN")}
+          <span className={isExpired ? "text-red-500 font-medium" : "text-slate-700"}>
+            {formatDate(date)}
             {isExpired && (
               <Badge
                 count="Expired"

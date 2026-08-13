@@ -72,12 +72,10 @@ export default function PopularFoodReportPage() {
 
       setFoods(response.foods);
     } catch (err) {
-      console.log(err);
-
-      notify.error(
-        "Cannot load popular food report."
-      );
-    } finally {
+  notify.error(
+    err.response?.data?.message || "Cannot load popular food report."
+  );
+} finally {
       setLoading(false);
     }
   };
@@ -133,7 +131,6 @@ export default function PopularFoodReportPage() {
     <div>
       <PageHeader
         title="Popular Food Report"
-        description="Popular food analytics"
         breadcrumbs={[
           "Dashboard",
           "Reports",
@@ -146,8 +143,8 @@ export default function PopularFoodReportPage() {
       />
 
       <Card
-        className="dashboard-card mb-5"
         title="Popular Food Report"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Select
@@ -287,7 +284,7 @@ export default function PopularFoodReportPage() {
         <PopularFoodTable
           loading={loading}
           data={foods}
-          onRowClick={(record) => {
+          onView={(record) => {
             setSelectedFood(record);
             setDrawerOpen(true);
           }}

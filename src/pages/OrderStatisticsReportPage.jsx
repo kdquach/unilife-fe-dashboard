@@ -63,10 +63,10 @@ export default function OrderStatisticsReportPage() {
 
       setStatistics(response.statistics);
     } catch (err) {
-      console.log(err);
-
-      notify.error("Cannot load order statistics report.");
-    } finally {
+  notify.error(
+    err.message || "Cannot load order statistics report."
+  );
+} finally {
       setLoading(false);
     }
   };
@@ -113,15 +113,14 @@ export default function OrderStatisticsReportPage() {
     <div>
       <PageHeader
         title="Order Statistics Report"
-        description="Order status analytics"
         breadcrumbs={["Dashboard", "Reports", "Order Statistics"]}
       />
 
       <OrderStatisticsSummaryCards summary={summary} />
 
       <Card
-        className="dashboard-card mb-5"
         title="Order Statistics"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Select
@@ -238,7 +237,7 @@ export default function OrderStatisticsReportPage() {
         <OrderStatisticsTable
           loading={loading}
           data={statistics}
-          onRowClick={(record) => {
+          onView={(record) => {
             setSelectedStatus(record);
             setDrawerOpen(true);
           }}

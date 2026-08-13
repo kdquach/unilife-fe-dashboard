@@ -5,9 +5,28 @@ vi.mock('antd', async () => {
   const antd = await vi.importActual('antd');
   return {
     ...antd,
+    notification: {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+      open: vi.fn(),
+    },
+    message: {
+      success: vi.fn(),
+      error: vi.fn(),
+      warning: vi.fn(),
+      info: vi.fn(),
+    },
     App: {
       useApp: () => ({
         message: {
+          success: vi.fn(),
+          error: vi.fn(),
+          warning: vi.fn(),
+          info: vi.fn(),
+        },
+        notification: {
           success: vi.fn(),
           error: vi.fn(),
           warning: vi.fn(),

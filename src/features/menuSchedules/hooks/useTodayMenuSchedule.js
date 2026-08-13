@@ -1,11 +1,9 @@
 import { useCallback, useState } from "react";
-import { App } from "antd";
 import menuScheduleApi from "../api/menuScheduleApi";
+import { notify } from "../../../utils/notify";
 
 
 const useTodayMenuSchedule = () => {
-
-  const { message } = App.useApp();
 
   const [todayMenu, setTodayMenu] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -31,9 +29,9 @@ const useTodayMenuSchedule = () => {
 
     } catch (error) {
 
-      message.error(
-        error.response?.data?.message ||
-        "Cannot load today's menu"
+      notify.error(
+        "Cannot load today's menu",
+        error.response?.data?.message
       );
 
 
@@ -46,7 +44,7 @@ const useTodayMenuSchedule = () => {
 
     }
 
-  }, [message]);
+  }, []);
 
 
   return {

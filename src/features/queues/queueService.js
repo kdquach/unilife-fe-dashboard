@@ -6,12 +6,13 @@ export const queueService = {
       params,
     });
 
+    const payload = response?.data || response || {};
     return {
-      currentServing: response.data.currentServing,
-      waiting: response.data.waiting,
-      data: response.data.items,
-      summary: response.data.summary,
-      pagination: response.data.pagination,
+      currentServing: payload.currentServing || null,
+      waiting: payload.waiting || [],
+      data: payload.items || payload.data || (Array.isArray(payload) ? payload : []),
+      summary: payload.summary || {},
+      pagination: payload.pagination || { page: 1, limit: 10, total: 0 },
     };
   },
 

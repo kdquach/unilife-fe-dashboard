@@ -2,17 +2,15 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useCreateMenuSchedule from '../useCreateMenuSchedule';
 import menuScheduleApi from '../../api/menuScheduleApi';
-
+import { notify } from '../../../../utils/notify';
 
 vi.mock('../../api/menuScheduleApi');
-const mockSuccess = vi.fn();
-const mockError = vi.fn();
-
-vi.mock('antd', () => ({
-  App: {
-    useApp: () => ({
-      message: { success: mockSuccess, error: mockError },
-    }),
+vi.mock('../../../../utils/notify', () => ({
+  notify: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
@@ -43,7 +41,7 @@ describe('useCreateMenuSchedule', () => {
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockSuccess).toHaveBeenCalledWith('Created');
+    expect(notify.success).toHaveBeenCalledWith('Menu schedule created successfully', 'Created');
   });
 
   it('should handle error when API fails', async () => {
@@ -56,6 +54,6 @@ describe('useCreateMenuSchedule', () => {
     });
     
     expect(result.current.isSubmitting).toBe(false);
-    expect(mockError).toHaveBeenCalledWith('Creation failed');
+    expect(notify.error).toHaveBeenCalledWith('Failed to create menu schedule', 'Creation failed');
   });
 });

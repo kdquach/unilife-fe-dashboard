@@ -6,9 +6,10 @@ export const reportService = {
       params,
     });
 
+    const payload = response?.data || response || {};
     return {
-      summary: response.data.summary,
-      revenue: response.data.revenue,
+      summary: payload.summary || {},
+      revenue: payload.revenue || [],
     };
   },
   async getPeakHourReport(params = {}) {

@@ -17,47 +17,20 @@ describe('RatingsFilterBar', () => {
     render(<RatingsFilterBar onFilterChange={() => {}} loading={false} />);
     
     expect(screen.getByPlaceholderText('Search by keyword...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /apply filters/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument();
+    expect(screen.getByText('Filter by Type')).toBeInTheDocument();
+    expect(screen.getByText('Reply Status')).toBeInTheDocument();
   });
 
-  it('calls onFilterChange with correct values when Apply Filters is clicked', () => {
+  it('calls onFilterChange when Search is performed', () => {
     const mockOnFilterChange = vi.fn();
     render(<RatingsFilterBar onFilterChange={mockOnFilterChange} loading={false} />);
     
-    // Type in keyword
     const input = screen.getByPlaceholderText('Search by keyword...');
-    fireEvent.change(input, { target: { value: 'test' } });
-    
-    // Click apply
-    const applyBtn = screen.getByRole('button', { name: /apply filters/i });
-    fireEvent.click(applyBtn);
+    fireEvent.change(input, { target: { value: 'delicious' } });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
     
     expect(mockOnFilterChange).toHaveBeenCalledWith(expect.objectContaining({
-      keyword: 'test'
-    }));
-  });
-
-  it('calls onFilterChange with undefined values when Reset is clicked', () => {
-    const mockOnFilterChange = vi.fn();
-    render(<RatingsFilterBar onFilterChange={mockOnFilterChange} loading={false} />);
-    
-    // Type in keyword
-    const input = screen.getByPlaceholderText('Search by keyword...');
-    fireEvent.change(input, { target: { value: 'test' } });
-    
-    // Click reset
-    const resetBtn = screen.getByRole('button', { name: /reset/i });
-    fireEvent.click(resetBtn);
-    
-    expect(input.value).toBe('');
-    expect(mockOnFilterChange).toHaveBeenCalledWith(expect.objectContaining({
-      keyword: undefined,
-      type: undefined,
-      stars: undefined,
-      hasReply: undefined,
-      startDate: undefined,
-      endDate: undefined,
+      keyword: 'delicious'
     }));
   });
 });

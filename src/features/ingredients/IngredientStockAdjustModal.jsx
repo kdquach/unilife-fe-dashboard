@@ -75,7 +75,6 @@ export default function IngredientStockAdjustModal({
       expiryDate: undefined,
       quantity: 1,
       reason: "",
-      unitPrice: undefined,
     });
   }, [form, open, ingredient]);
 
@@ -142,7 +141,7 @@ export default function IngredientStockAdjustModal({
       onCancel={onCancel}
       onOk={handleSubmit}
       okText="Save Adjustment"
-      destroyOnClose
+      destroyOnHidden
     >
       <Alert
         className="mb-4"
@@ -250,12 +249,6 @@ export default function IngredientStockAdjustModal({
                   validator: (_, value) => {
                     if (!value) return Promise.resolve();
 
-                    if (!value.startOf("day").isAfter(dayjs().startOf("day"))) {
-                      return Promise.reject(
-                        new Error("Expiry date must be a future date"),
-                      );
-                    }
-
                     const selectedDate = getDateKey(value);
                     const duplicateBatch = batches.some(
                       (batch) => getDateKey(batch.expiryDate) === selectedDate,
@@ -275,19 +268,9 @@ export default function IngredientStockAdjustModal({
               <DatePicker
                 className="w-full"
                 disabledDate={(current) =>
-                  current &&
-                  !current.startOf("day").isAfter(dayjs().startOf("day"))
+                  current && current.endOf("day").isBefore(dayjs())
                 }
                 format="DD/MM/YYYY"
-              />
-            </Form.Item>
-
-            <Form.Item name="unitPrice" label="Unit Price">
-              <InputNumber
-                className="w-full"
-                min={0}
-                precision={2}
-                placeholder="Optional"
               />
             </Form.Item>
           </>

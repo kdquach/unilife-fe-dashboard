@@ -1,10 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  CoffeeOutlined,
-  EyeOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Card,
@@ -19,22 +13,23 @@ import {
   Table,
   Tag,
 } from "antd";
-import imageNotFound from "../assets/image-not-found.png";
+import { EyeOutlined, ReloadOutlined, SearchOutlined, CoffeeOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
-import { foodService } from "../features/foods/foodService";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import { formatDateTime } from "../utils/format";
-import { notify } from "../utils/notify";
 import { getImageUrl } from "../utils/image";
+import { imageNotFound } from "../utils/image";
+
+// Hooks
+import { useKitchenFoods } from "../features/kitchen/hooks/useKitchenFoods";
+
+// Services
+import { foodService } from "../features/foods/foodService";
 
 const formatCurrency = (value) =>
   `${Number(value || 0).toLocaleString("vi-VN")} VND`;
 
 const { Search } = Input;
-
-const hasActiveFilters = (filters) =>
-  Object.values(filters).some(
-    (value) => value !== undefined && value !== null && value !== "",
-  );
 
 const renderFoodType = (isMenuItem) => (
   <Tag color={isMenuItem ? "purple" : "blue"}>
@@ -43,8 +38,7 @@ const renderFoodType = (isMenuItem) => (
 );
 
 export default function KitchenFoodManagementPage() {
-  const [foods, setFoods] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Local state for modals and selection
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState(null);
@@ -59,48 +53,13 @@ export default function KitchenFoodManagementPage() {
     minPrice: undefined,
     maxPrice: undefined,
   });
-  const [pagination, setPagination] = useState({
-    current: 1,
-    pageSize: 10,
-    total: 0,
-  });
 
-  const fetchFoods = async (
-    page = pagination.current,
-    limit = pagination.pageSize,
-    searchKeyword = keyword,
-    currentFilters = filters,
-  ) => {
-    try {
-      setLoading(true);
+  // Custom hook
+  const { foods, loading, pagination, fetchFoods } = useKitchenFoods();
 
-      const params = {
-        page,
-        limit,
-        keyword: searchKeyword || undefined,
-        ...currentFilters,
-      };
-      const response = hasActiveFilters(currentFilters)
-        ? await foodService.filterKitchenFoods(params)
-        : searchKeyword
-          ? await foodService.searchKitchenFoods(params)
-          : await foodService.getKitchenFoods(params);
-
-      setFoods(response.data);
-      setPagination({
-        current: response.pagination.page,
-        pageSize: response.pagination.limit,
-        total: response.pagination.total,
-      });
-    } catch (error) {
-      notify.error("Foods Load Failed", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Initial data fetch
   useEffect(() => {
-    fetchFoods(1, 10);
+    fetchFoods(1, 10, "", filters);
     fetchFilterOptions();
   }, []);
 
@@ -112,19 +71,15 @@ export default function KitchenFoodManagementPage() {
         kindOptions: data.kindOptions || [],
       });
     } catch (error) {
-      notify.error("Food Filters Load Failed", error.message);
+      console.error("Food Filters Load Failed", error.message);
     }
   };
 
-  const stats = useMemo(() => {
-    const menuItems = foods.filter((food) => food.isMenuItem).length;
-
-    return {
-      total: foods.length,
-      menuItems,
-      alwaysAvailable: foods.length - menuItems,
-    };
-  }, [foods]);
+  const stats = {
+    total: foods.length,
+    menuItems: foods.filter((food) => food.isMenuItem).length,
+    alwaysAvailable: foods.length - foods.filter((food) => food.isMenuItem).length,
+  };
 
   const openDetailDrawer = async (food) => {
     setSelectedFood(food);
@@ -135,7 +90,7 @@ export default function KitchenFoodManagementPage() {
       const data = await foodService.getKitchenFoodById(food._id);
       setSelectedFood(data);
     } catch (error) {
-      notify.error("Food Detail Failed", error.message);
+      console.error("Food Detail Failed", error.message);
     } finally {
       setDetailLoading(false);
     }
@@ -232,7 +187,7 @@ export default function KitchenFoodManagementPage() {
             icon={<ReloadOutlined />}
             loading={loading}
             onClick={() =>
-              fetchFoods(pagination.current, pagination.pageSize, keyword)
+              fetchFoods(pagination.current, pagination.pageSize, keyword, filters)
             }
           >
             Refresh
@@ -241,36 +196,112 @@ export default function KitchenFoodManagementPage() {
       />
 
       <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Card className="dashboard-card">
-          <Space size={16}>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-unilife-soft text-xl text-unilife">
-              <CoffeeOutlined />
-            </div>
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-slate-500">Current page</div>
-              <div className="text-2xl font-bold text-slate-950">
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
                 {stats.total}
               </div>
             </div>
-          </Space>
-        </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Always available</div>
-          <div className="mt-1 text-2xl font-bold text-blue-600">
-            {stats.alwaysAvailable}
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
+            >
+              <CoffeeOutlined />
+            </div>
           </div>
         </Card>
-        <Card className="dashboard-card">
-          <div className="text-sm text-slate-500">Menu items</div>
-          <div className="mt-1 text-2xl font-bold text-purple-600">
-            {stats.menuItems}
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.blue}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Always available</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.blue }}>
+                {stats.alwaysAvailable}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.blue}1a`,
+                color: COLORS.blue,
+                fontSize: 18,
+              }}
+            >
+              ∞
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.purple}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Menu items</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.purple }}>
+                {stats.menuItems}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.purple}1a`,
+                color: COLORS.purple,
+                fontSize: 18,
+              }}
+            >
+              ◆
+            </div>
           </div>
         </Card>
       </div>
 
       <Card
-        className="dashboard-card"
         title="Foods"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Search
@@ -337,9 +368,9 @@ export default function KitchenFoodManagementPage() {
             current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
-            showSizeChanger: true,
-            showTotal: (total) => `${total} foods`,
-          }}
+          showSizeChanger: true,
+          showTotal: (total) => `${total} foods`,
+        }}
           onChange={(pager) =>
             fetchFoods(pager.current, pager.pageSize, keyword, filters)
           }

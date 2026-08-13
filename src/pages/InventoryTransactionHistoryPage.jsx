@@ -12,19 +12,24 @@ import {
   Table,
   Tag,
   Typography,
-  message,
 } from "antd";
 import {
   EyeOutlined,
   HistoryOutlined,
   InboxOutlined,
   ReloadOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  SyncOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 
 import PageHeader from "../components/PageHeader";
 import { ingredientService } from "../features/ingredients/ingredientService";
 import { ingredientTransactionService } from "../features/ingredients/ingredientTransactionService";
 import { formatDate, formatDateTime } from "../utils/format";
+import { COLORS } from "../features/orders/utils/orderUtils.jsx";
+import { notify } from "../utils/notify";
 
 const { RangePicker } = DatePicker;
 const { Search } = Input;
@@ -34,7 +39,18 @@ const TRANSACTION_TYPE_OPTIONS = [
   { label: "Stock In", value: "STOCK_IN" },
   { label: "Stock Out", value: "STOCK_OUT" },
   { label: "Stock Adjustment", value: "STOCK_ADJUSTMENT" },
+  { label: "Menu Usage", value: "MENU_USAGE" },
+  { label: "Ingredient Deleted", value: "INGREDIENT_DELETE" },
 ];
+
+const TRANSACTION_TYPE_LABELS = {
+  STOCK_IMPORT: "Stock Import",
+  STOCK_IN: "Stock In",
+  STOCK_OUT: "Stock Out",
+  STOCK_ADJUSTMENT: "Stock Adjustment",
+  MENU_USAGE: "Menu Usage",
+  INGREDIENT_DELETE: "Ingredient Deleted",
+};
 
 const getRecordId = (record) =>
   record?._id || record?.id || record?.ingredientTransactionId;
@@ -60,10 +76,36 @@ const asNumber = (value) => {
 
 const getTypeColor = (type) => {
   if (type === "STOCK_IMPORT" || type === "STOCK_IN") return "green";
-  if (type === "STOCK_OUT") return "red";
+  if (type === "STOCK_OUT" || type === "MENU_USAGE") return "red";
   if (type === "STOCK_ADJUSTMENT") return "blue";
+  if (type === "INGREDIENT_DELETE") return "volcano";
 
   return "default";
+};
+
+const getTypeLabel = (type) => TRANSACTION_TYPE_LABELS[type] || type || "TRANSACTION";
+
+const getMetadata = (record) =>
+  record?.metadata && typeof record.metadata === "object" ? record.metadata : {};
+
+const isMenuTransaction = (record) => {
+  const metadata = getMetadata(record);
+  return (
+    record?.transactionType === "MENU_USAGE" ||
+    metadata.source === "MENU_SCHEDULE_ITEM"
+  );
+};
+
+const isDeleteTransaction = (record) =>
+  record?.transactionType === "INGREDIENT_DELETE" ||
+  getMetadata(record).source === "INGREDIENT_SOFT_DELETE";
+
+const getQuantityTextType = (record, quantity) => {
+  if (isDeleteTransaction(record)) return "danger";
+  if (quantity < 0) return "danger";
+  if (quantity === 0) return "secondary";
+
+  return "success";
 };
 
 export default function InventoryTransactionHistoryPage() {
@@ -91,6 +133,24 @@ export default function InventoryTransactionHistoryPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
+  const stats = useMemo(() => {
+    const stockIn = transactions.filter(
+      (t) => t.transactionType === "STOCK_IMPORT" || t.transactionType === "STOCK_IN"
+    ).length;
+    const stockOut = transactions.filter(
+      (t) => t.transactionType === "STOCK_OUT" || t.transactionType === "MENU_USAGE"
+    ).length;
+    const adjustments = transactions.filter(
+      (t) => t.transactionType === "STOCK_ADJUSTMENT"
+    ).length;
+    return {
+      total: transactions.length,
+      stockIn,
+      stockOut,
+      adjustments,
+    };
+  }, [transactions]);
+
   const ingredientOptions = useMemo(
     () =>
       ingredients
@@ -116,7 +176,7 @@ export default function InventoryTransactionHistoryPage() {
       setIngredients(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       setIngredients([]);
-      message.warning(err.message || "Unable to load ingredients");
+      notify.warning("Unable to load ingredients", err.message);
     } finally {
       setIngredientLoading(false);
     }
@@ -157,7 +217,7 @@ export default function InventoryTransactionHistoryPage() {
       setTransactions([]);
       setPagination((prev) => ({ ...prev, current: 1, total: 0 }));
       setError(err.message || "Unable to load inventory transaction history");
-      message.error(err.message || "Unable to load inventory transaction history");
+      notify.error("Unable to load inventory transaction history", err.message);
     } finally {
       setLoading(false);
     }
@@ -200,7 +260,7 @@ export default function InventoryTransactionHistoryPage() {
     const id = getRecordId(record);
 
     if (!id) {
-      message.warning("Transaction ID is missing");
+      notify.warning("Transaction ID is missing");
       return;
     }
 
@@ -213,7 +273,7 @@ export default function InventoryTransactionHistoryPage() {
         await ingredientTransactionService.getIngredientTransactionById(id);
       setSelectedTransaction(detail || record);
     } catch (err) {
-      message.warning(err.message || "Unable to load transaction detail");
+      notify.warning("Unable to load transaction detail", err.message);
     } finally {
       setDetailLoading(false);
     }
@@ -240,15 +300,17 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Type",
       dataIndex: "transactionType",
-      width: 170,
+      width: 140,
       sorter: true,
       render: (value) => (
-        <Tag color={getTypeColor(value)}>{value || "TRANSACTION"}</Tag>
+        <Tag color={getTypeColor(value)}>{getTypeLabel(value)}</Tag>
       ),
     },
     {
       title: "Ingredient",
       dataIndex: "ingredientId",
+      width: 180,
+      ellipsis: true,
       render: (value) => (
         <Typography.Text strong>{getIngredientName(value)}</Typography.Text>
       ),
@@ -256,14 +318,14 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Quantity",
       dataIndex: "quantity",
-      width: 130,
+      width: 110,
       sorter: true,
       render: (value, record) => {
         const quantity = asNumber(value);
         const sign = quantity > 0 ? "+" : "";
 
         return (
-          <Typography.Text type={quantity < 0 ? "danger" : "success"}>
+          <Typography.Text type={getQuantityTextType(record, quantity)}>
             {sign}
             {quantity} {record.unit || record.ingredientId?.unit || ""}
           </Typography.Text>
@@ -272,7 +334,7 @@ export default function InventoryTransactionHistoryPage() {
     },
     {
       title: "Stock Change",
-      width: 170,
+      width: 140,
       render: (_, record) => (
         <span>
           {record.stockBefore ?? "-"} {" -> "} {record.stockAfter ?? "-"}
@@ -282,52 +344,215 @@ export default function InventoryTransactionHistoryPage() {
     {
       title: "Expiry",
       dataIndex: "batchId",
-      width: 130,
+      width: 110,
       render: (batch) => formatDate(batch?.expiryDate),
     },
     {
       title: "Updated By",
       dataIndex: "adjustedBy",
-      width: 180,
+      width: 140,
+      ellipsis: true,
       render: (value) => getUserName(value),
     },
     {
       title: "Created At",
       dataIndex: "createdAt",
-      width: 170,
+      width: 150,
       sorter: true,
       render: (value) => formatDateTime(value),
     },
     {
-      title: "Action",
+      title: "Actions",
       fixed: "right",
-      width: 90,
+      width: 80,
+      align: "center",
       render: (_, record) => (
-        <Button icon={<EyeOutlined />} onClick={() => openDetail(record)} />
+        <Button
+          icon={<EyeOutlined />}
+          aria-label="View transaction details"
+          title="View details"
+          onClick={() => openDetail(record)}
+        />
       ),
     },
   ];
 
   const detail = selectedTransaction;
+  const detailMetadata = getMetadata(detail);
+  const deletedIngredient = detailMetadata.deletedIngredient || {};
 
   return (
     <div>
       <PageHeader
         title="Inventory Transaction History"
-        description="View stock imports, removals, and inventory adjustments."
         breadcrumbs={["Dashboard", "Inventory Transactions"]}
+        extra={
+          <Space wrap>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() =>
+                fetchTransactions({
+                  page: pagination.current,
+                  pageSize: pagination.pageSize,
+                  searchKeyword: keyword,
+                  nextFilters: filters,
+                })
+              }
+            >
+              Refresh
+            </Button>
+          </Space>
+        }
       />
+
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.blue}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Total Transactions</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.blue }}>
+                {stats.total}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.blue}1a`,
+                color: COLORS.blue,
+                fontSize: 18,
+              }}
+            >
+              <HistoryOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.green}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Stock In</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+                {stats.stockIn}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.green}1a`,
+                color: COLORS.green,
+                fontSize: 18,
+              }}
+            >
+              <ArrowUpOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.red}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Stock Out</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+                {stats.stockOut}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.red}1a`,
+                color: COLORS.red,
+                fontSize: 18,
+              }}
+            >
+              <ArrowDownOutlined />
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          className="dashboard-card"
+          styles={{ body: { padding: "16px 18px" } }}
+          style={{
+            borderRadius: 14,
+            borderTop: `3px solid ${COLORS.orange}`,
+            boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-slate-500">Adjustments</div>
+              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+                {stats.adjustments}
+              </div>
+            </div>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: `${COLORS.orange}1a`,
+                color: COLORS.orange,
+                fontSize: 18,
+              }}
+            >
+              <SyncOutlined />
+            </div>
+          </div>
+        </Card>
+      </div>
 
       <Card
         title="Transaction History"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Search
               allowClear
+              enterButton={<SearchOutlined />}
               placeholder="Search reason or reference..."
-              style={{ width: 260 }}
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              style={{ width: 280 }}
               onSearch={(value) => {
                 setKeyword(value);
                 fetchTransactions({
@@ -339,18 +564,20 @@ export default function InventoryTransactionHistoryPage() {
             />
             <Select
               allowClear
+              showSearch
               loading={ingredientLoading}
               placeholder="Ingredient"
-              options={ingredientOptions}
               style={{ width: 200 }}
+              options={ingredientOptions}
+              optionFilterProp="label"
               value={filters.ingredientId}
               onChange={(value) => handleFilterChange("ingredientId", value)}
             />
             <Select
               allowClear
               placeholder="Type"
-              options={TRANSACTION_TYPE_OPTIONS}
               style={{ width: 170 }}
+              options={TRANSACTION_TYPE_OPTIONS}
               value={filters.transactionType}
               onChange={(value) => handleFilterChange("transactionType", value)}
             />
@@ -359,9 +586,6 @@ export default function InventoryTransactionHistoryPage() {
               onChange={(value) => handleFilterChange("dateRange", value)}
               format="DD/MM/YYYY"
             />
-            <Button icon={<ReloadOutlined />} onClick={resetFilters}>
-              Reset
-            </Button>
           </Space>
         }
       >
@@ -380,7 +604,6 @@ export default function InventoryTransactionHistoryPage() {
           loading={loading}
           dataSource={transactions}
           columns={columns}
-          scroll={{ x: 1250 }}
           locale={{
             emptyText: (
               <div className="py-8">
@@ -414,7 +637,7 @@ export default function InventoryTransactionHistoryPage() {
             </Descriptions.Item>
             <Descriptions.Item label="Type">
               <Tag color={getTypeColor(detail.transactionType)}>
-                {detail.transactionType || "TRANSACTION"}
+                {getTypeLabel(detail.transactionType)}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Ingredient">
@@ -445,6 +668,41 @@ export default function InventoryTransactionHistoryPage() {
             <Descriptions.Item label="Reference Type">
               {detail.referenceType || "-"}
             </Descriptions.Item>
+            {isMenuTransaction(detail) && (
+              <>
+                <Descriptions.Item label="Food">
+                  {detailMetadata.foodName || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Menu Date">
+                  {detailMetadata.menuDate
+                    ? formatDate(detailMetadata.menuDate)
+                    : "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Serving Count">
+                  {detailMetadata.servingCount ?? "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Quantity Per Serving">
+                  {detailMetadata.quantityPerServing ?? "-"}{" "}
+                  {detail.unit || detail.ingredientId?.unit || ""}
+                </Descriptions.Item>
+              </>
+            )}
+            {isDeleteTransaction(detail) && (
+              <>
+                <Descriptions.Item label="Deleted Ingredient">
+                  {deletedIngredient.name || getIngredientName(detail.ingredientId)}
+                </Descriptions.Item>
+                <Descriptions.Item label="Deleted Unit">
+                  {deletedIngredient.unit || detail.unit || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Deleted Storage Type">
+                  {deletedIngredient.storageType || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Stock At Delete">
+                  {deletedIngredient.currentStock ?? detail.stockBefore ?? "-"}
+                </Descriptions.Item>
+              </>
+            )}
             <Descriptions.Item label="Created At">
               {formatDateTime(detail.createdAt)}
             </Descriptions.Item>

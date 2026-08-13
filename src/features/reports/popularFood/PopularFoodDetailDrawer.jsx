@@ -30,7 +30,7 @@ export default function PopularFoodDetailDrawer({
       width={500}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       <Descriptions
         bordered

@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
-import { App } from 'antd';
 import menuScheduleItemApi from '../api/menuScheduleItemApi';
+import { notify } from '../../../utils/notify';
 
 const useCreateScheduleItem = () => {
-  const { message } = App.useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const createItem = useCallback(async (data, options = {}) => {
@@ -11,23 +10,23 @@ const useCreateScheduleItem = () => {
     try {
       const response = await menuScheduleItemApi.createScheduleItem(data);
       if (response.success) {
-        message.success(response.message || 'Item added successfully');
+        notify.success('Item added successfully', response.message);
         if (options.onSuccess) {
           options.onSuccess(response.data);
         }
         return response;
       } else {
-        message.error(response.message || 'Failed to add item');
+        notify.error('Failed to add item', response.message);
         return response;
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || 'An error occurred while adding the item';
-      message.error(errorMsg);
+      // Log error for debugging but let calling component handle the display
+      console.error('Error in createItem:', error);
       throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }, [message]);
+  }, []);
 
   const createBulkItems = useCallback(async (data, options = {}) => {
     setIsSubmitting(true);
@@ -35,23 +34,23 @@ const useCreateScheduleItem = () => {
       const response = await menuScheduleItemApi.createBulkScheduleItems(data);
       if (response.success) {
         const count = Array.isArray(response.data) ? response.data.length : '';
-        message.success(response.message || `Successfully added ${count} food item(s) to schedule`);
+        notify.success(`Successfully added ${count} food item(s) to schedule`, response.message);
         if (options.onSuccess) {
           options.onSuccess(response.data);
         }
         return response;
       } else {
-        message.error(response.message || 'Failed to add food items');
+        notify.error('Failed to add food items', response.message);
         return response;
       }
     } catch (error) {
-      const errorMsg = error.response?.data?.message || error.message || 'An error occurred while adding food items';
-      message.error(errorMsg);
+      // Log error for debugging but let calling component handle the display
+      console.error('Error in createBulkItems:', error);
       throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }, [message]);
+  }, []);
 
   return {
     isSubmitting,

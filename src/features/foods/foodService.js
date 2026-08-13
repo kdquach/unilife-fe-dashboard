@@ -1,9 +1,12 @@
 import apiClient from "../../services/apiClient";
 
-const toListResult = (response) => ({
-  data: response.data.items,
-  pagination: response.data.pagination,
-});
+const toListResult = (response) => {
+  const payload = response?.data || response || {};
+  return {
+    data: payload.items || payload.data || (Array.isArray(payload) ? payload : []),
+    pagination: payload.pagination || { page: 1, limit: 10, total: 0 },
+  };
+};
 
 const multipartConfig = {
   headers: {
@@ -100,6 +103,12 @@ export const foodService = {
     const response = await apiClient.get("/foods/kitchen/filter-options", {
       params,
     });
+
+    return response.data;
+  },
+
+  async getDailyFoods() {
+    const response = await apiClient.get("/foods/daily");
 
     return response.data;
   },

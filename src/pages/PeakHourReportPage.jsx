@@ -7,6 +7,7 @@ import {
   Button,
   Space,
 } from "antd";
+import { EyeOutlined } from "@ant-design/icons";
 
 import { notify } from "../utils/notify";
 
@@ -89,10 +90,10 @@ console.log(response.summary);
 
       setPeakHours(response.peakHours);
     } catch (err) {
-      console.log(err);
-
-      notify.error("Cannot load peak hour report");
-    } finally {
+  notify.error(
+    err.message || "Cannot load peak hour report."
+  );
+} finally {
       setLoading(false);
     }
   };
@@ -157,13 +158,28 @@ console.log(response.summary);
         new Intl.NumberFormat("vi-VN").format(value) +
         " ₫",
     },
+    {
+      title: "Actions",
+      width: 80,
+      align: "center",
+      render: (_, record) => (
+        <Button
+          icon={<EyeOutlined />}
+          aria-label={`View details for ${String(record.hour).padStart(2, "0")}:00`}
+          title="View details"
+          onClick={() => {
+            setSelectedHour(record);
+            setDrawerOpen(true);
+          }}
+        />
+      ),
+    },
   ];
 
     return (
     <div>
       <PageHeader
         title="Peak Hour Report"
-        description="Business peak hour analytics"
         breadcrumbs={[
           "Dashboard",
           "Reports",
@@ -174,8 +190,8 @@ console.log(response.summary);
       <PeakHourSummaryCards summary={summary} />
 
       <Card
-        className="dashboard-card mb-5"
         title="Peak Hour Report"
+        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
         extra={
           <Space wrap>
             <Select
@@ -316,15 +332,6 @@ console.log(response.summary);
           columns={columns}
           dataSource={peakHours}
           pagination={false}
-          onRow={(record) => ({
-            onClick: () => {
-              setSelectedHour(record);
-              setDrawerOpen(true);
-            },
-            style: {
-              cursor: "pointer",
-            },
-          })}
         />
 
         <PeakHourDetailDrawer

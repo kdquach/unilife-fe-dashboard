@@ -1,5 +1,9 @@
 import React, { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
+import {
+  STORAGE_TYPE_OPTIONS,
+  normalizeStorageType,
+} from "./ingredientConstants";
 
 const MAX_MIN_STOCK_THRESHOLD = 1000000;
 const TEXT_HAS_LETTER = /\p{L}/u;
@@ -17,7 +21,7 @@ const normalizeInitialValues = (values) => ({
       : values?.categoryId,
   name: values?.name || "",
   unit: values?.unit || "",
-  storageType: values?.storageType || "",
+  storageType: normalizeStorageType(values?.storageType),
   minStockThreshold: Number(values?.minStockThreshold || 0),
   isActive: values?.isActive !== false,
 });
@@ -136,15 +140,20 @@ export default function IngredientFormModal({
 
   const handleOk = async () => {
     const values = await form.validateFields();
-
-    await onSubmit({
+    const payload = {
       ...values,
       name: normalizeText(values.name),
       unit: normalizeText(values.unit),
-      storageType: normalizeText(values.storageType) || undefined,
+      storageType: normalizeStorageType(values.storageType),
       categoryId: values.categoryId || null,
       minStockThreshold: Number(values.minStockThreshold || 0),
-    });
+    };
+
+    if (mode !== "create") {
+      payload.isActive = values.isActive !== false;
+    }
+
+    await onSubmit(payload);
   };
 
   return (
@@ -155,7 +164,7 @@ export default function IngredientFormModal({
       onCancel={onCancel}
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Update"}
-      destroyOnClose
+      destroyOnHidden
       forceRender
       afterOpenChange={(visible) => {
         if (visible) fillForm();
@@ -206,14 +215,12 @@ export default function IngredientFormModal({
         <Form.Item
           name="storageType"
           label="Storage Type"
-          rules={[
-            validateBusinessText({
-              fieldLabel: "Storage type",
-              maxLength: 50,
-            }),
-          ]}
         >
-          <Input placeholder="Example: Frozen, Chilled, Dry" maxLength={50} showCount />
+          <Select
+            allowClear
+            options={STORAGE_TYPE_OPTIONS}
+            placeholder="Select storage type"
+          />
         </Form.Item>
 
         <Form.Item
@@ -231,9 +238,15 @@ export default function IngredientFormModal({
           />
         </Form.Item>
 
-        <Form.Item name="isActive" label="Active" valuePropName="checked">
-          <Switch />
-        </Form.Item>
+        {mode !== "create" && (
+          <Form.Item
+            name="isActive"
+            label="Activity Status"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );

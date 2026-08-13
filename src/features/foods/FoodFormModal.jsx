@@ -243,6 +243,7 @@ export default function FoodFormModal({
       destroyOnHidden
       forceRender
       width={850}
+      centered
     >
       <Form
         key={formKey}
@@ -258,11 +259,21 @@ export default function FoodFormModal({
               name="name"
               label="Food Name"
               rules={[
-                { required: true, message: "Food name is required" },
-                { max: 120, message: "Food name must be 120 characters or less" },
-              ]}
+    {
+      required: true,
+      message: "Food name is required",
+    },
+    {
+      min: 2,
+      message: "Food name must be at least 2 characters",
+    },
+    {
+      max: 100,
+      message: "Food name must be 100 characters or less",
+    },
+  ]}
             >
-              <Input placeholder="Example: Grilled chicken rice" maxLength={120} />
+              <Input placeholder="Example: Grilled chicken rice" maxLength={100} />
             </Form.Item>
 
             <Form.Item name="categoryId" label="Category">
@@ -281,7 +292,17 @@ export default function FoodFormModal({
                 <Form.Item
                   name="price"
                   label="Price (VND)"
-                  rules={[{ required: true, message: "Food price is required" }]}
+                  rules={[
+    {
+      required: true,
+      message: "Food price is required",
+    },
+    {
+      type: "number",
+      min: 1000,
+      message: "Food price must be at least 1,000 VND",
+    },
+  ]}
                 >
                   <InputNumber className="w-full" min={0} precision={0} />
                 </Form.Item>
@@ -354,6 +375,7 @@ export default function FoodFormModal({
                     height={112}
                     className="rounded-md object-cover border border-slate-200"
                     preview={Boolean(initialValues?.imageUrl)}
+                    onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               )}
@@ -418,10 +440,8 @@ export default function FoodFormModal({
                   <Input
                     placeholder="Unit"
                     value={row.unit}
-                    onChange={(event) =>
-                      handleRecipeFieldChange(index, "unit", event.target.value)
-                    }
-                    className="w-full"
+                    disabled
+                    className="w-full bg-slate-50"
                   />
                 </div>
 

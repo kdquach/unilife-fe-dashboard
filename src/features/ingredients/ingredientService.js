@@ -53,6 +53,22 @@ export const ingredientService = {
     return response?.data ?? null;
   },
 
+  async getDeleteImpact(id) {
+    if (!id) throw new Error("Ingredient ID is required");
+
+    const response = await apiClient.get(`/ingredients/${id}/delete-impact`);
+
+    return response?.data ?? null;
+  },
+
+  async deleteIngredient(id) {
+    if (!id) throw new Error("Ingredient ID is required");
+
+    const response = await apiClient.delete(`/ingredients/${id}`);
+
+    return response?.data ?? null;
+  },
+
   async adjustIngredientStock(id, payload) {
     if (!id) throw new Error("Ingredient ID is required");
 

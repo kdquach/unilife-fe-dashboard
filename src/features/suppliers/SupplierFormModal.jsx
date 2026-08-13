@@ -39,8 +39,10 @@ export default function SupplierFormModal({
       onOk={handleOk}
       okText={mode === "create" ? "Create" : "Save Changes"}
       confirmLoading={loading}
-      destroyOnClose
+      destroyOnHidden
       width={540}
+      centered
+      styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
     >
       <Form form={form} layout="vertical" className="pt-4">
         <Form.Item
@@ -61,7 +63,7 @@ export default function SupplierFormModal({
           label="Contact Person"
           rules={[
             {
-              pattern: /^[\p{L}\s'.,\-]{2,80}$/u,
+              pattern: /^[\p{L}\s'.,-]{2,80}$/u,
               message: "Contact name must contain only letters, spaces and basic punctuation",
             },
           ]}

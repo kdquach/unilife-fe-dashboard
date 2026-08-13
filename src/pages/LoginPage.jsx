@@ -1,8 +1,14 @@
 import React from "react";
-import { LockOutlined, MailOutlined } from "@ant-design/icons";
-import { Button, Card, Checkbox, Form, Input, Typography } from "antd";
+import {
+  LockOutlined,
+  MailOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
+import { Button, Checkbox, Form, Input, Typography } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import logoLg from "../assets/logo-lg.png";
+import ForgotPasswordModal from "../features/auth/ForgotPasswordModal";
 import { useAuth } from "../features/auth/AuthContext";
 import { notify } from "../utils/notify";
 
@@ -12,12 +18,13 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [form] = Form.useForm();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = React.useState(false);
 
   const handleFinish = async (values) => {
     setIsSubmitting(true);
     try {
       await login(values);
-      notify.success("Login successfully");
+      notify.success("Login successful");
       navigate(location.state?.from?.pathname || "/", { replace: true });
     } catch (error) {
       notify.error("Login failed", error.message);
@@ -26,89 +33,120 @@ export default function LoginPage() {
     }
   };
 
+  const handleResetSuccess = (email) => {
+    form.setFieldValue("email", email);
+  };
+
   return (
-    <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,#fff1ed,transparent_36%),linear-gradient(135deg,#fff,#f8fafc)]">
-      <div className="hidden flex-1 items-center justify-center p-10 lg:flex">
-        <div className="max-w-xl">
-          <div className="mb-8 inline-flex rounded-3xl bg-white p-5 shadow-soft">
-            <img src={logoLg} alt="UniLife" className="h-24 object-contain" />
-          </div>
-          <Typography.Title className="!text-5xl !leading-tight !text-slate-950">
-            Manage your university canteen smarter.
+    <main className="auth-page">
+      <section className="auth-brand-panel">
+        <div className="auth-brand-content">
+          <img src={logoLg} alt="UniLife" className="auth-brand-logo" />
+          <Typography.Title className="auth-brand-title">
+            Welcome to the
+            <br />
+            UniLife Canteen!
           </Typography.Title>
-          <Typography.Paragraph className="!mt-5 !text-lg !text-slate-500">
-            Admin dashboard for user management: view users, filter roles,
-            update staff/customer status and maintain account data.
+          <Typography.Paragraph className="auth-brand-copy">
+            A simpler way to manage daily canteen operations.
           </Typography.Paragraph>
         </div>
-      </div>
+        <span className="auth-brand-circle auth-brand-circle-one" />
+        <span className="auth-brand-circle auth-brand-circle-two" />
+      </section>
 
-      <div className="flex w-full items-center justify-center p-6 lg:w-[520px]">
-        <Card
-          className="w-full max-w-md rounded-[28px] border-none shadow-soft"
-          styles={{ body: { padding: 32 } }}
-        >
-          <div className="mb-8 text-center">
-            <img
-              src={logoLg}
-              alt="UniLife"
-              className="mx-auto mb-4 h-16 object-contain"
-            />
-            <Typography.Title level={2} className="!mb-2">
-              Admin Login
-            </Typography.Title>
-            <Typography.Text className="text-slate-500">
-              Sign in with an admin, manager, or staff account.
-            </Typography.Text>
+      <section className="auth-form-section">
+        <div className="auth-form-container">
+          <div className="auth-mobile-brand">
+            <img src={logoLg} alt="UniLife" />
+          </div>
+
+          <div className="auth-user-icon" aria-hidden="true">
+            <UserOutlined />
+          </div>
+
+          <div className="auth-form-heading">
+            <Typography.Title level={1}>Welcome back</Typography.Title>
+            <Typography.Paragraph>
+              Login below to get started.
+            </Typography.Paragraph>
           </div>
 
           <Form
             form={form}
-            layout="vertical"
-            initialValues={{
-              email: "admin@unilife.local",
-              password: "Password@123",
-              rememberMe: true,
-            }}
+            requiredMark={false}
+            initialValues={{ rememberMe: true }}
             onFinish={handleFinish}
+            className="auth-login-form"
           >
             <Form.Item
               name="email"
-              label="Email"
-              rules={[{ required: true }, { type: "email" }]}
+              rules={[
+                { required: true, message: "Please enter your email address" },
+                { type: "email", message: "Please enter a valid email address" },
+              ]}
             >
               <Input
                 size="large"
                 prefix={<MailOutlined />}
-                placeholder="admin@unilife.local"
+                placeholder="Email address"
+                aria-label="Email address"
+                autoComplete="email"
               />
             </Form.Item>
+
             <Form.Item
               name="password"
-              label="Password"
-              rules={[{ required: true }]}
+              rules={[{ required: true, message: "Please enter your password" }]}
             >
               <Input.Password
                 size="large"
                 prefix={<LockOutlined />}
-                placeholder="Password@123"
+                placeholder="Password"
+                aria-label="Password"
+                autoComplete="current-password"
               />
             </Form.Item>
-            <Form.Item name="rememberMe" valuePropName="checked" className="!mb-6">
-              <Checkbox>Remember me</Checkbox>
-            </Form.Item>
+
+            <div className="auth-form-options">
+              <Form.Item name="rememberMe" valuePropName="checked" noStyle>
+                <Checkbox>Keep me signed in</Checkbox>
+              </Form.Item>
+              <Button
+                type="link"
+                className="auth-forgot-button"
+                onClick={() => setIsForgotPasswordOpen(true)}
+              >
+                Forgot password?
+              </Button>
+            </div>
+
             <Button
               htmlType="submit"
               type="primary"
               size="large"
               loading={isSubmitting}
               block
+              className="auth-submit-button"
             >
-              Login to Dashboard
+              Login
             </Button>
           </Form>
-        </Card>
-      </div>
-    </div>
+
+          <div className="auth-role-notice">
+            <SafetyCertificateOutlined />
+            <span>
+              This dashboard is exclusively for canteen staff and managers.
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <ForgotPasswordModal
+        open={isForgotPasswordOpen}
+        onClose={() => setIsForgotPasswordOpen(false)}
+        onResetSuccess={handleResetSuccess}
+      />
+    </main>
   );
 }

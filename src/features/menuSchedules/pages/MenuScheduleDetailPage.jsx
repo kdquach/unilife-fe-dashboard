@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Result, Space, Modal } from 'antd';
-import { ArrowLeftOutlined, EditOutlined } from '@ant-design/icons';
+import { Button, Result, Space, Modal, Spin, Table } from 'antd';
+import { ArrowLeftOutlined, EditOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { formatDate } from '../../../utils/format';
+import { notify } from '../../../utils/notify';
 import dayjs from 'dayjs';
 import PageHeader from '../../../components/PageHeader';
 import useMenuScheduleDetail from '../hooks/useMenuScheduleDetail';
@@ -26,6 +27,7 @@ const MenuScheduleDetailPage = () => {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = React.useState(false);
 
   useEffect(() => {
+    console.log('MenuScheduleDetailPage mounted, id:', id);
     fetchDetail(id, true);
     return () => resetDetail();
   }, [id, fetchDetail, resetDetail]);
@@ -58,17 +60,253 @@ const MenuScheduleDetailPage = () => {
     }
   };
 
-  const handleAddItem = (values) => {
-    if (values.items && Array.isArray(values.items)) {
-      createBulkItems(
-        { menuScheduleId: id, items: values.items },
-        { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
-      );
-    } else {
-      createItem(
-        { menuScheduleId: id, ...values },
-        { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
-      );
+  const handleAddItem = async (values) => {
+    try {
+      if (values.items && Array.isArray(values.items)) {
+        // If only 1 item, use single API to get detailed shortage info
+        if (values.items.length === 1) {
+          await createItem(
+            { menuScheduleId: id, ...values.items[0] },
+            { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
+          );
+        } else {
+          await createBulkItems(
+            { menuScheduleId: id, items: values.items },
+            { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
+          );
+        }
+      } else {
+        await createItem(
+          { menuScheduleId: id, ...values },
+          { onSuccess: () => { setIsAddItemModalOpen(false); fetchDetail(id, true); } }
+        );
+      }
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'An error occurred while adding food items';
+      const errorData = error.response?.data;
+      
+      // Check if this is an ingredient shortage error
+      if (errorMsg.includes('Insufficient ingredient') || errorMsg.includes('Shortage') || errorData?.shortages || errorData?.ingredients) {
+        // Parse the error message to extract ingredient shortage information
+        const parseIngredientShortages = (message) => {
+          const shortages = [];
+          
+          // Check if this is bulk format with "Insufficient ingredients:" prefix
+          if (message.includes('Insufficient ingredients:')) {
+            // Remove the prefix
+            const content = message.replace('Insufficient ingredients: ', '');
+            // Split by | to get food blocks (handle both single and multiple foods)
+            const foodBlocks = content.split(' | ');
+            
+            for (const block of foodBlocks) {
+              // Extract food name from the beginning
+              const foodMatch = block.match(/^"([^"]+)":/);
+              if (!foodMatch) continue;
+              const foodName = foodMatch[1];
+              
+              // Remove food name prefix and get the rest
+              const ingredientsContent = block.replace(/^"([^"]+)":\s*/, '');
+              // Split by ; to get individual ingredients
+              const ingredientItems = ingredientsContent.split('; ');
+              
+              for (const item of ingredientItems) {
+                // Parse each ingredient: "Ingredient" - Required: X unit, Available: Y unit, Shortage: Z unit
+                // Support various units: kg, piece, etc.
+                const match = item.match(/"([^"]+)" - Required: ([\d.]+) (\w+), Available: ([\d.]+) (\w+), Shortage: ([\d.]+) (\w+)/);
+                if (match) {
+                  shortages.push({
+                    food: foodName,
+                    ingredient: match[1],
+                    required: match[2],
+                    available: match[4],
+                    shortage: match[6],
+                    unit: match[3], // Store unit for display
+                  });
+                }
+              }
+            }
+            
+            return shortages;
+          }
+          
+          // Check if this is single food format with "Insufficient ingredients for food" prefix
+          if (message.includes('Insufficient ingredients for food')) {
+            const foodMatch = message.match(/Insufficient ingredients for food "([^"]+)":/);
+            if (foodMatch) {
+              const foodName = foodMatch[1];
+              const content = message.replace(/Insufficient ingredients for food "[^"]+":\s*/, '');
+              const ingredientItems = content.split('; ');
+              
+              for (const item of ingredientItems) {
+                const match = item.match(/"([^"]+)" - Required: ([\d.]+) (\w+), Available: ([\d.]+) (\w+), Shortage: ([\d.]+) (\w+)/);
+                if (match) {
+                  shortages.push({
+                    food: foodName,
+                    ingredient: match[1],
+                    required: match[2],
+                    available: match[4],
+                    shortage: match[6],
+                    unit: match[3],
+                  });
+                }
+              }
+            }
+            
+            return shortages;
+          }
+          
+          // Try multiple regex patterns to handle different backend response formats
+          const patterns = [
+            // Pattern 1: Single food format - Insufficient ingredients for food "X": "Y" - Required: A kg, Available: B kg, Shortage: C kg
+            {
+              regex: /Insufficient ingredients for food "([^"]+)":\s*"([^"]+)" - Required: ([\d.]+) kg, Available: ([\d.]+) kg, Shortage: ([\d.]+) kg/g,
+              parseMatch: (match) => ({
+                ingredient: match[2],
+                food: match[1],
+                required: match[3],
+                available: match[4],
+                shortage: match[5],
+              }),
+            },
+            // Pattern 2: Old format - Insufficient ingredient "X" for food "Y". Required: A kg, Available in stock: B kg (Shortage: C kg)
+            {
+              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required: ([\d.]+) kg, Available in stock: ([\d.]+) kg \(Shortage: ([\d.]+) kg\)/g,
+              parseMatch: (match) => ({
+                ingredient: match[1],
+                food: match[2],
+                required: match[3],
+                available: match[4],
+                shortage: match[5],
+              }),
+            },
+            // Pattern 3: Simple format
+            {
+              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required: ([\d.]+) kg, Available: ([\d.]+) kg, Shortage: ([\d.]+) kg/g,
+              parseMatch: (match) => ({
+                ingredient: match[1],
+                food: match[2],
+                required: match[3],
+                available: match[4],
+                shortage: match[5],
+              }),
+            },
+            // Pattern 4: Alternative format
+            {
+              regex: /"([^"]+)" insufficient for "([^"]+)". Required: ([\d.]+) kg, Available: ([\d.]+) kg \(Shortage: ([\d.]+) kg\)/g,
+              parseMatch: (match) => ({
+                ingredient: match[1],
+                food: match[2],
+                required: match[3],
+                available: match[4],
+                shortage: match[5],
+              }),
+            },
+          ];
+          
+          for (const { regex, parseMatch } of patterns) {
+            let match;
+            while ((match = regex.exec(message)) !== null) {
+              const shortage = parseMatch(match);
+              shortages.push(shortage);
+            }
+          }
+          
+          return shortages;
+        };
+
+        let shortages = parseIngredientShortages(errorMsg);
+        
+        // Also check if backend sent structured data
+        if (errorData?.shortages && Array.isArray(errorData.shortages)) {
+          shortages = errorData.shortages;
+        } else if (errorData?.ingredients && Array.isArray(errorData.ingredients)) {
+          shortages = errorData.ingredients;
+        }
+
+        const columns = [
+          {
+            title: '#',
+            key: 'index',
+            width: 50,
+            align: 'center',
+            render: (_text, _record, index) => index + 1,
+          },
+          {
+            title: 'Ingredient',
+            dataIndex: 'ingredient',
+            key: 'ingredient',
+            render: (text) => <span style={{ fontWeight: 'bold' }}>{text}</span>,
+          },
+          {
+            title: 'Food',
+            dataIndex: 'food',
+            key: 'food',
+          },
+          {
+            title: 'Required',
+            dataIndex: 'required',
+            key: 'required',
+            align: 'right',
+            render: (text, record) => `${text} ${record.unit || 'kg'}`,
+          },
+          {
+            title: 'Available',
+            dataIndex: 'available',
+            key: 'available',
+            align: 'right',
+            render: (text, record) => <span style={{ color: text === '0' ? '#ff4d4f' : 'inherit' }}>{text} {record.unit || 'kg'}</span>,
+          },
+          {
+            title: 'Shortage',
+            dataIndex: 'shortage',
+            key: 'shortage',
+            align: 'right',
+            render: (text, record) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{text} {record.unit || 'kg'}</span>,
+          },
+        ];
+
+        Modal.error({
+          title: 'Insufficient Ingredients',
+          icon: <ExclamationCircleOutlined />,
+          width: 800,
+          closable: true,
+          content: (
+            <div>
+              <p style={{ marginBottom: 16 }}>
+                The following ingredients are insufficient in stock to add the food item(s):
+              </p>
+              {shortages.length > 0 ? (
+                <Table
+                  dataSource={shortages}
+                  columns={columns}
+                  rowKey={(record) => `${record.ingredient}-${record.food}`}
+                  pagination={false}
+                  size="small"
+                  bordered
+                  style={{ marginBottom: 16 }}
+                />
+              ) : (
+                <p style={{ color: '#ff4d4f', marginBottom: 16 }}>
+                  Unable to parse ingredient shortage details. Error: {errorMsg}
+                </p>
+              )}
+              <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                Please add more ingredients to stock before adding this food item.
+              </p>
+            </div>
+          ),
+          okText: 'Go to Ingredient Management',
+          cancelText: 'Close',
+          onOk: () => {
+            navigate('/ingredients');
+          },
+          onCancel: () => {
+            // Do nothing, just close the modal
+          },
+        });
+      } else {
+        notify.error('An error occurred while adding food items', errorMsg);
+      }
     }
   };
 
@@ -76,6 +314,9 @@ const MenuScheduleDetailPage = () => {
     try {
       await updateItem(itemId, payload, { onSuccess: () => fetchDetail(id, true) });
     } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || 'An error occurred while updating food item';
+      const errorData = err.response?.data;
+      
       if (err.response?.status === 409) {
         Modal.error({
           title: 'Data Conflict',
@@ -83,6 +324,180 @@ const MenuScheduleDetailPage = () => {
           okText: 'Reload',
           onOk: () => fetchDetail(id, true),
         });
+      } else if (errorMsg.includes('Insufficient ingredient') || errorMsg.includes('Shortage') || errorData?.shortages || errorData?.ingredients) {
+        // Handle ingredient shortage error - same logic as handleAddItem
+        const parseIngredientShortages = (message) => {
+          const shortages = [];
+          
+          // Check if this is bulk format with "Insufficient ingredients:" prefix
+          if (message.includes('Insufficient ingredients:')) {
+            const content = message.replace('Insufficient ingredients: ', '');
+            const foodBlocks = content.split(' | ');
+            
+            for (const block of foodBlocks) {
+              const foodMatch = block.match(/^"([^"]+)":/);
+              if (!foodMatch) continue;
+              const foodName = foodMatch[1];
+              
+              const ingredientsContent = block.replace(/^"([^"]+)":\s*/, '');
+              const ingredientItems = ingredientsContent.split('; ');
+              
+              for (const item of ingredientItems) {
+                const match = item.match(/"([^"]+)" - Required: ([\d.]+) kg, Available: ([\d.]+) kg, Shortage: ([\d.]+) kg/);
+                if (match) {
+                  shortages.push({
+                    food: foodName,
+                    ingredient: match[1],
+                    required: match[2],
+                    available: match[3],
+                    shortage: match[4],
+                  });
+                }
+              }
+            }
+            
+            return shortages;
+          }
+          
+          // Handle single ingredient format (including "Required increase")
+          const patterns = [
+            {
+              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required increase: ([\d.]+) (\w+), Available in stock: ([\d.]+) (\w+) \(Shortage: ([\d.]+) (\w+)\)/g,
+              parseMatch: (match) => ({
+                ingredient: match[1],
+                food: match[2],
+                required: match[3],
+                available: match[5],
+                shortage: match[7],
+                unit: match[4],
+              }),
+            },
+            {
+              regex: /Insufficient ingredient "([^"]+)" for food "([^"]+)". Required: ([\d.]+) (\w+), Available in stock: ([\d.]+) (\w+) \(Shortage: ([\d.]+) (\w+)\)/g,
+              parseMatch: (match) => ({
+                ingredient: match[1],
+                food: match[2],
+                required: match[3],
+                available: match[5],
+                shortage: match[7],
+                unit: match[4],
+              }),
+            },
+            {
+              regex: /Insufficient ingredients for food "([^"]+)":\s*"([^"]+)" - Required: ([\d.]+) (\w+), Available: ([\d.]+) (\w+), Shortage: ([\d.]+) (\w+)/g,
+              parseMatch: (match) => ({
+                ingredient: match[2],
+                food: match[1],
+                required: match[3],
+                available: match[5],
+                shortage: match[7],
+                unit: match[4],
+              }),
+            },
+          ];
+          
+          for (const { regex, parseMatch } of patterns) {
+            let match;
+            while ((match = regex.exec(message)) !== null) {
+              const shortage = parseMatch(match);
+              shortages.push(shortage);
+            }
+          }
+          
+          return shortages;
+        };
+        
+        let shortages = parseIngredientShortages(errorMsg);
+        
+        if (errorData?.shortages && Array.isArray(errorData.shortages)) {
+          shortages = errorData.shortages;
+        } else if (errorData?.ingredients && Array.isArray(errorData.ingredients)) {
+          shortages = errorData.ingredients;
+        }
+
+        const columns = [
+          {
+            title: '#',
+            key: 'index',
+            width: 50,
+            align: 'center',
+            render: (_text, _record, index) => index + 1,
+          },
+          {
+            title: 'Ingredient',
+            dataIndex: 'ingredient',
+            key: 'ingredient',
+            render: (text) => <span style={{ fontWeight: 'bold' }}>{text}</span>,
+          },
+          {
+            title: 'Food',
+            dataIndex: 'food',
+            key: 'food',
+          },
+          {
+            title: 'Required',
+            dataIndex: 'required',
+            key: 'required',
+            align: 'right',
+            render: (text, record) => `${text} ${record.unit || 'kg'}`,
+          },
+          {
+            title: 'Available',
+            dataIndex: 'available',
+            key: 'available',
+            align: 'right',
+            render: (text, record) => <span style={{ color: text === '0' ? '#ff4d4f' : 'inherit' }}>{text} {record.unit || 'kg'}</span>,
+          },
+          {
+            title: 'Shortage',
+            dataIndex: 'shortage',
+            key: 'shortage',
+            align: 'right',
+            render: (text, record) => <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>{text} {record.unit || 'kg'}</span>,
+          },
+        ];
+
+        Modal.error({
+          title: 'Insufficient Ingredients',
+          icon: <ExclamationCircleOutlined />,
+          width: 800,
+          closable: true,
+          content: (
+            <div>
+              <p style={{ marginBottom: 16 }}>
+                The following ingredients are insufficient in stock to update the food item:
+              </p>
+              {shortages.length > 0 ? (
+                <Table
+                  dataSource={shortages}
+                  columns={columns}
+                  rowKey={(record) => `${record.ingredient}-${record.food}`}
+                  pagination={false}
+                  size="small"
+                  bordered
+                  style={{ marginBottom: 16 }}
+                />
+              ) : (
+                <p style={{ color: '#ff4d4f', marginBottom: 16 }}>
+                  Unable to parse ingredient shortage details. Error: {errorMsg}
+                </p>
+              )}
+              <p style={{ color: '#ff4d4f', fontWeight: 'bold' }}>
+                Please add more ingredients to stock before updating this food item.
+              </p>
+            </div>
+          ),
+          okText: 'Go to Ingredient Management',
+          cancelText: 'Close',
+          onOk: () => {
+            navigate('/ingredients');
+          },
+          onCancel: () => {
+            // Do nothing, just close the modal
+          },
+        });
+      } else {
+        notify.error('An error occurred while updating food item', errorMsg);
       }
     }
   };
@@ -152,6 +567,19 @@ const MenuScheduleDetailPage = () => {
             </Button>
           ]}
         />
+      </div>
+    );
+  }
+
+  if (loading && !detail) {
+    return (
+      <div>
+        <PageHeader 
+          title={backButtonTitle}
+        />
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <Spin size="large" />
+        </div>
       </div>
     );
   }
