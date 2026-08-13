@@ -63,7 +63,7 @@ const validateBusinessText = ({
   },
 });
 
-const validateThreshold = (currentStock = 0) => ({
+const validateThreshold = () => ({
   validator: (_, value) => {
     if (value === undefined || value === null || value === "") {
       return Promise.reject(new Error("Minimum stock threshold is required"));
@@ -90,12 +90,6 @@ const validateThreshold = (currentStock = 0) => ({
       );
     }
 
-    if (numberValue > currentStock) {
-      return Promise.reject(
-        new Error("Minimum stock threshold cannot be greater than current stock"),
-      );
-    }
-
     if (!Number.isInteger(numberValue * 100)) {
       return Promise.reject(
         new Error("Minimum stock threshold can have at most 2 decimals"),
@@ -117,8 +111,6 @@ export default function IngredientFormModal({
   onSubmit,
 }) {
   const [form] = Form.useForm();
-  const currentStock = Number(initialValues?.currentStock || 0);
-  const maxThreshold = Math.min(MAX_MIN_STOCK_THRESHOLD, currentStock);
 
   const fillForm = () => {
     form.resetFields();
@@ -227,13 +219,13 @@ export default function IngredientFormModal({
           name="minStockThreshold"
           label="Minimum Stock Threshold"
           rules={[
-            validateThreshold(currentStock),
+            validateThreshold(),
           ]}
         >
           <InputNumber
             className="w-full"
             min={0}
-            max={maxThreshold}
+            max={MAX_MIN_STOCK_THRESHOLD}
             precision={2}
           />
         </Form.Item>
