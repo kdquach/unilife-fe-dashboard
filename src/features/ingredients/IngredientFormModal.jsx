@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select } from "antd";
+import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 import {
   STORAGE_TYPE_OPTIONS,
   normalizeStorageType,
@@ -24,6 +24,7 @@ const normalizeInitialValues = (values) => ({
   price: Number(values?.price || 0),
   storageType: normalizeStorageType(values?.storageType),
   minStockThreshold: Number(values?.minStockThreshold || 0),
+  isActive: values?.isActive !== false,
 });
 
 const validateBusinessText = ({
@@ -174,6 +175,7 @@ export default function IngredientFormModal({
 
     if (mode !== "create") {
       payload.price = Number(values.price || 0);
+      payload.isActive = values.isActive !== false;
     }
 
     await onSubmit(payload);
@@ -275,6 +277,16 @@ export default function IngredientFormModal({
             precision={2}
           />
         </Form.Item>
+
+        {mode !== "create" && (
+          <Form.Item
+            name="isActive"
+            label="Activity Status"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );

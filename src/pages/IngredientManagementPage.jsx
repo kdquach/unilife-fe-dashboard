@@ -3,7 +3,7 @@ import {
   Button,
   Card,
   Input,
-  Popconfirm,
+  Modal,
   Select,
   Space,
   Table,
@@ -220,7 +220,12 @@ export default function IngredientManagementPage() {
     }
   };
 
-  const handleDeleteIngredient = async (record) => {
+  const deleteIngredientAndRefresh = async (id) => {
+    await deleteIngredient(id);
+    await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
+  };
+
+  const confirmDeleteIngredient = async (record) => {
     const id = getRecordId(record);
     if (!id) {
       notify.warning("Ingredient ID is missing");
@@ -228,10 +233,57 @@ export default function IngredientManagementPage() {
     }
 
     try {
-      await deleteIngredient(id);
-      await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
-    } catch {
-      // Error notification is handled inside useIngredients.
+      const impact = await ingredientService.getDeleteImpact(id);
+      const affectedFoods = Array.isArray(impact?.affectedFoods)
+        ? impact.affectedFoods
+        : [];
+      const previewFoods = affectedFoods.slice(0, 5);
+      const remainingCount = Math.max(affectedFoods.length - previewFoods.length, 0);
+
+      Modal.confirm({
+        title: `Delete ${record?.name || "ingredient"}?`,
+        width: 560,
+        okText: "Delete",
+        okButtonProps: { danger: true },
+        cancelText: "Cancel",
+        content: (
+          <div className="space-y-3">
+            <Typography.Text>
+              This ingredient will be marked as deleted and hidden from the
+              ingredient list.
+            </Typography.Text>
+            {affectedFoods.length > 0 && (
+              <div>
+                <Typography.Text strong type="warning">
+                  It is used in {affectedFoods.length} food recipe
+                  {affectedFoods.length > 1 ? "s" : ""}. Those foods cannot be
+                  added to menus until their recipes are updated.
+                </Typography.Text>
+                <ul className="mt-2 max-h-40 list-disc overflow-auto pl-5">
+                  {previewFoods.map((food) => (
+                    <li key={food.foodId || food._id}>
+                      <Typography.Text>
+                        {food.name}
+                        {food.recipeUsageCount > 1
+                          ? ` (${food.recipeUsageCount} recipe lines)`
+                          : ""}
+                      </Typography.Text>
+                    </li>
+                  ))}
+                </ul>
+                {remainingCount > 0 && (
+                  <Typography.Text type="secondary">
+                    + {remainingCount} more food{remainingCount > 1 ? "s" : ""}
+                  </Typography.Text>
+                )}
+              </div>
+            )}
+          </div>
+        ),
+        onOk: () => deleteIngredientAndRefresh(id),
+      });
+    } catch (err) {
+      notify.error(err.message || "Cannot check ingredient delete impact");
     }
   };
 
@@ -446,20 +498,12 @@ export default function IngredientManagementPage() {
             icon={<DatabaseOutlined />}
             onClick={() => openAdjustModal(record)}
           />
-          {record?.isActive && (
-            <Popconfirm
-              title="Delete ingredient?"
-              description="This ingredient will be marked inactive and hidden from the active list."
-              okText="Delete"
-              okButtonProps={{ danger: true }}
-              cancelText="Cancel"
-              onConfirm={() => handleDeleteIngredient(record)}
-            >
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-              />
-            </Popconfirm>
+          {!record?.isDeleted && (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => confirmDeleteIngredient(record)}
+            />
           )}
         </Space>
       ),
