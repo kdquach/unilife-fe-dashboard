@@ -21,7 +21,6 @@ const normalizeInitialValues = (values) => ({
       : values?.categoryId,
   name: values?.name || "",
   unit: values?.unit || "",
-  price: Number(values?.price || 0),
   storageType: normalizeStorageType(values?.storageType),
   minStockThreshold: Number(values?.minStockThreshold || 0),
   isActive: values?.isActive !== false,
@@ -107,29 +106,6 @@ const validateThreshold = (currentStock = 0) => ({
   },
 });
 
-const validatePrice = () => ({
-  validator: (_, value) => {
-    if (value === undefined || value === null || value === "") {
-      return Promise.reject(new Error("Price is required"));
-    }
-
-    const numberValue = Number(value);
-    if (!Number.isFinite(numberValue)) {
-      return Promise.reject(new Error("Price must be a valid number"));
-    }
-
-    if (numberValue < 0) {
-      return Promise.reject(new Error("Price cannot be negative"));
-    }
-
-    if (!Number.isInteger(numberValue * 100)) {
-      return Promise.reject(new Error("Price can have at most 2 decimals"));
-    }
-
-    return Promise.resolve();
-  },
-});
-
 export default function IngredientFormModal({
   open,
   mode = "create",
@@ -174,7 +150,6 @@ export default function IngredientFormModal({
     };
 
     if (mode !== "create") {
-      payload.price = Number(values.price || 0);
       payload.isActive = values.isActive !== false;
     }
 
@@ -236,21 +211,6 @@ export default function IngredientFormModal({
         >
           <Input placeholder="Example: kg, g, liter, pack" maxLength={30} showCount />
         </Form.Item>
-
-        {mode !== "create" && (
-          <Form.Item
-            name="price"
-            label="Price"
-            rules={[validatePrice()]}
-          >
-            <InputNumber
-              className="w-full"
-              min={0}
-              precision={2}
-              placeholder="Enter price"
-            />
-          </Form.Item>
-        )}
 
         <Form.Item
           name="storageType"

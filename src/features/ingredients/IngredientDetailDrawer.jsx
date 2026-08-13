@@ -183,9 +183,6 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
             <Descriptions.Item label="Unit">
               {ingredient.unit || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Price">
-              {formatUnitPrice(ingredient.price)}
-            </Descriptions.Item>
             <Descriptions.Item label="Storage Type">
               {formatStorageType(ingredient.storageType)}
             </Descriptions.Item>
