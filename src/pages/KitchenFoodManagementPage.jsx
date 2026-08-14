@@ -117,6 +117,7 @@ export default function KitchenFoodManagementPage() {
     {
       title: "Food",
       dataIndex: "name",
+      width: 280,
       render: (name, record) => (
         <div className="flex items-center gap-3">
           <Image
@@ -127,9 +128,11 @@ export default function KitchenFoodManagementPage() {
             className="rounded-md object-cover"
             preview={Boolean(record.imageUrl)}
           />
-          <div>
-            <div className="font-semibold text-slate-900">{name}</div>
-            <div className="text-sm text-slate-500">
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-slate-900 truncate" title={name}>
+              {name}
+            </div>
+            <div className="text-sm text-slate-500 truncate" title={record.description || "No description"}>
               {record.description || "No description"}
             </div>
           </div>
@@ -363,7 +366,7 @@ export default function KitchenFoodManagementPage() {
           loading={loading}
           columns={columns}
           dataSource={foods}
-          scroll={{ x: 950 }}
+
           pagination={{
             current: pagination.current,
             pageSize: pagination.pageSize,

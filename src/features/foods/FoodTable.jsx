@@ -51,8 +51,9 @@ export default function FoodTable({
     {
       title: "Food",
       dataIndex: "name",
+      width: 280,
       render: (value, record) => (
-        <div className="flex min-w-[260px] items-center gap-3">
+        <div className="flex items-center gap-3">
           <Image
             src={getImageUrl(record.imageUrl)}
             fallback={imageNotFound}
@@ -62,15 +63,16 @@ export default function FoodTable({
             preview={false}
           />
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <Typography.Text
               strong
-              className="block"
+              className="block truncate"
+              title={value || "Unnamed Food"}
             >
               {value || "Unnamed Food"}
             </Typography.Text>
 
-            <Typography.Text className="text-xs text-slate-500">
+            <Typography.Text className="text-xs text-slate-500 truncate" title={getCategoryName(record.categoryId)}>
               {getCategoryName(record.categoryId)}
             </Typography.Text>
           </div>
@@ -188,7 +190,6 @@ export default function FoodTable({
       loading={loading}
       dataSource={foods}
       columns={columns}
-      scroll={{ x: 1050 }}
       pagination={{
         current: pagination.current,
         pageSize: pagination.pageSize,
