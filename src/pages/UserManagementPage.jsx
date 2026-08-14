@@ -128,7 +128,7 @@ export default function UserManagementPage() {
 
   const handleSubmitUser = async (values) => {
     try {
-      const payload = { ...values, phone: normalizePhone(values.phone) };
+      const payload = { ...values };
       if (modalMode === "create") await createUser(payload);
       else {
         const id = getUserId(selectedUser);

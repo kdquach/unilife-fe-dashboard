@@ -7,7 +7,7 @@ import {
 
 const MAX_MIN_STOCK_THRESHOLD = 1000000;
 const TEXT_HAS_LETTER = /\p{L}/u;
-const TEXT_ALLOWED_CHARS = /^[\p{L}\s]+$/u;
+const TEXT_ALLOWED_CHARS = /^[\p{L}\s\d]+$/u;
 
 const normalizeText = (value) =>
   String(value || "")
@@ -55,7 +55,7 @@ const validateBusinessText = ({
 
     if (!allowedChars.test(text)) {
       return Promise.reject(
-        new Error(`${fieldLabel} can only contain letters and spaces`),
+        new Error(`${fieldLabel} can only contain letters, spaces, and numbers`),
       );
     }
 
@@ -227,6 +227,8 @@ export default function IngredientFormModal({
             min={0}
             max={MAX_MIN_STOCK_THRESHOLD}
             precision={2}
+            disabled={mode === "create"}
+            placeholder={mode === "create" ? "Set after stock import" : undefined}
           />
         </Form.Item>
 
