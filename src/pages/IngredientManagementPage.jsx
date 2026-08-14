@@ -237,12 +237,10 @@ export default function IngredientManagementPage() {
       const affectedFoods = Array.isArray(impact?.affectedFoods)
         ? impact.affectedFoods
         : [];
-      const previewFoods = affectedFoods.slice(0, 5);
-      const remainingCount = Math.max(affectedFoods.length - previewFoods.length, 0);
 
       Modal.confirm({
         title: `Delete ${record?.name || "ingredient"}?`,
-        width: 560,
+        width: 720,
         okText: "Delete",
         okButtonProps: { danger: true },
         cancelText: "Cancel",
@@ -259,23 +257,28 @@ export default function IngredientManagementPage() {
                   {affectedFoods.length > 1 ? "s" : ""}. Those foods cannot be
                   added to menus until their recipes are updated.
                 </Typography.Text>
-                <ul className="mt-2 max-h-40 list-disc overflow-auto pl-5">
-                  {previewFoods.map((food) => (
-                    <li key={food.foodId || food._id}>
-                      <Typography.Text>
-                        {food.name}
-                        {food.recipeUsageCount > 1
-                          ? ` (${food.recipeUsageCount} recipe lines)`
-                          : ""}
-                      </Typography.Text>
-                    </li>
-                  ))}
-                </ul>
-                {remainingCount > 0 && (
-                  <Typography.Text type="secondary">
-                    + {remainingCount} more food{remainingCount > 1 ? "s" : ""}
-                  </Typography.Text>
-                )}
+                <Table
+                  className="mt-3"
+                  size="small"
+                  rowKey={(food) => food.foodId || food._id || food.name}
+                  dataSource={affectedFoods}
+                  pagination={false}
+                  scroll={{ y: 240 }}
+                  columns={[
+                    {
+                      title: "Food Name",
+                      dataIndex: "name",
+                      render: (value) => value || "Unnamed food",
+                    },
+                    {
+                      title: "Recipe Lines",
+                      dataIndex: "recipeUsageCount",
+                      width: 120,
+                      align: "right",
+                      render: (value) => asNumber(value) || 1,
+                    },
+                  ]}
+                />
               </div>
             )}
           </div>
