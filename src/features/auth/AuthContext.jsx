@@ -1,5 +1,5 @@
 import React from "react";
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState, useEffect } from "react";
 import { DASHBOARD_ALLOWED_ROLES } from "../../constants/roles";
 import { authService } from "./authService";
 
@@ -16,6 +16,28 @@ const clearStoredAuth = () => {
   localStorage.removeItem("unilife_access_token");
   localStorage.removeItem("unilife_refresh_token");
   localStorage.removeItem(USER_STORAGE_KEY);
+};
+
+// Decode JWT token and check expiry
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    
+    const payload = JSON.parse(jsonPayload);
+    const expiryTime = payload.exp * 1000; // Convert to milliseconds
+    const currentTime = Date.now();
+    
+    return currentTime >= expiryTime;
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return true; // If we can't decode the token, assume it's expired
+  }
 };
 
 export function AuthProvider({ children }) {
@@ -54,6 +76,27 @@ export function AuthProvider({ children }) {
     authService.logout();
     setUser(null);
   };
+
+  // Check token expiry periodically and auto-logout
+  useEffect(() => {
+    if (!user) return;
+
+    const checkTokenExpiry = () => {
+      const token = localStorage.getItem("unilife_access_token");
+      if (isTokenExpired(token)) {
+        console.log('Token expired, logging out...');
+        logout();
+      }
+    };
+
+    // Check immediately
+    checkTokenExpiry();
+
+    // Check every 5 seconds
+    const interval = setInterval(checkTokenExpiry, 5000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   const updateUser = (partialUserData) => {
     setUser((prev) => {

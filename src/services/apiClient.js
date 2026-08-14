@@ -67,6 +67,8 @@ apiClient.interceptors.response.use(
         localStorage.removeItem("unilife_access_token");
         localStorage.removeItem("unilife_refresh_token");
         localStorage.removeItem("unilife_admin_user");
+        // Redirect to login page
+        window.location.href = '/login';
         const message = error?.response?.data?.message || 'Session expired. Please log in again.';
         return Promise.reject(new Error(message));
       }
@@ -107,6 +109,8 @@ apiClient.interceptors.response.use(
         localStorage.removeItem("unilife_access_token");
         localStorage.removeItem("unilife_refresh_token");
         localStorage.removeItem("unilife_admin_user");
+        // Redirect to login page
+        window.location.href = '/login';
         return Promise.reject(new Error("Session expired. Please log in again."));
       } finally {
         isRefreshing = false;
