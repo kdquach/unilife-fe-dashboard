@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Modal, Input, Button, Space, Tag, Empty, Badge, Image, Form, Select, Spin } from "antd";
+import { Modal, Input, InputNumber, Button, Space, Tag, Empty, Badge, Image, Form, Select, Spin } from "antd";
 import { notify } from "../../../utils/notify";
 import { getImageUrl, imageNotFound } from "../../../utils/image";
 import { PlusOutlined, MinusOutlined, DeleteOutlined, SearchOutlined, CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
@@ -225,16 +225,16 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   };
 
   const cartQuantityOf = (key) =>
-    cart.find((item) => item.key === key)?.quantity || 0;
+    Number(cart.find((item) => item.key === key)?.quantity) || 0;
 
   const addToCart = (food) => {
     const alreadyInCart = cartQuantityOf(food.key);
 
     if (alreadyInCart >= food.stockQuantity) {
       notify.warning(
-  "Limit Reached",
-  `Only ${food.stockQuantity} servings of "${food.name}" are available today.`,
-);
+        "Limit Reached",
+        `Only ${food.stockQuantity} servings of "${food.name}" are available today.`,
+      );
       return;
     }
 
@@ -242,9 +242,10 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
       const existing = prev.find((item) => item.key === food.key);
 
       if (existing) {
+        const nextQty = (Number(existing.quantity) || 0) + 1;
         return prev.map((item) =>
           item.key === food.key
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: Math.min(nextQty, food.stockQuantity) }
             : item,
         );
       }
@@ -253,17 +254,84 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
     });
   };
 
-  const updateCartQuantity = (key, quantity) => {
+  const updateCartQuantity = (key, rawQuantity, maxStock, foodName) => {
+    let qty = Number(rawQuantity);
+
+    if (isNaN(qty) || qty < 1) {
+      notify.warning("Invalid Quantity", "Quantity must be at least 1.");
+      qty = 1;
+    } else if (maxStock !== undefined && qty > maxStock) {
+      notify.warning(
+        "Limit Reached",
+        `Only ${maxStock} servings of "${foodName || "this item"}" are available in stock.`,
+      );
+      qty = maxStock;
+    }
+
     setCart((prev) =>
       prev.map((item) => {
         if (item.key !== key) return item;
+        return { ...item, quantity: Math.floor(qty) };
+      }),
+    );
+  };
 
-        const clamped = Math.max(
-          1,
-          Math.min(Number(quantity) || 1, item.stockQuantity),
-        );
+  const handleDirectQuantityChange = (key, val, maxStock, foodName) => {
+    if (val === "" || val === null || val === undefined) {
+      setCart((prev) =>
+        prev.map((item) =>
+          item.key === key ? { ...item, quantity: "" } : item,
+        ),
+      );
+      return;
+    }
 
-        return { ...item, quantity: clamped };
+    const cleaned = String(val).replace(/\D/g, "");
+    if (!cleaned) {
+      setCart((prev) =>
+        prev.map((item) =>
+          item.key === key ? { ...item, quantity: "" } : item,
+        ),
+      );
+      return;
+    }
+
+    let num = parseInt(cleaned, 10);
+    if (num <= 0) {
+      notify.warning("Invalid Quantity", "Quantity must be at least 1.");
+      num = 1;
+    } else if (maxStock !== undefined && num > maxStock) {
+      notify.warning(
+        "Limit Reached",
+        `Only ${maxStock} servings of "${foodName || "this item"}" are available in stock.`,
+      );
+      num = maxStock;
+    }
+
+    setCart((prev) =>
+      prev.map((item) =>
+        item.key === key ? { ...item, quantity: num } : item,
+      ),
+    );
+  };
+
+  const handleQuantityBlur = (key, maxStock, foodName) => {
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.key !== key) return item;
+        const current = Number(item.quantity);
+        if (!current || isNaN(current) || current < 1) {
+          notify.warning("Invalid Quantity", "Quantity has been set to 1.");
+          return { ...item, quantity: 1 };
+        }
+        if (maxStock !== undefined && current > maxStock) {
+          notify.warning(
+            "Limit Reached",
+            `Only ${maxStock} servings of "${foodName || item.name}" are available in stock.`,
+          );
+          return { ...item, quantity: maxStock };
+        }
+        return { ...item, quantity: Math.floor(current) };
       }),
     );
   };
@@ -273,12 +341,17 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
   };
 
   const cartTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    () =>
+      cart.reduce(
+        (sum, item) => sum + item.price * (Number(item.quantity) || 0),
+        0,
+      ),
     [cart],
   );
 
   const cartCount = useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
+    () =>
+      cart.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
     [cart],
   );
 
@@ -293,15 +366,28 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
 
     if (cart.length === 0) {
       notify.warning(
-  "Cart is Empty",
-  "Please select at least one item before creating an order.",
-);
+        "Cart is Empty",
+        "Please select at least one item before creating an order.",
+      );
       return;
     }
 
-    if (cart.some(item => item.quantity < 1)) {
-      notify.error("Invalid Quantity", "Quantity must be at least 1.");
-      return;
+    for (const item of cart) {
+      const qty = Number(item.quantity);
+      if (!qty || isNaN(qty) || !Number.isInteger(qty) || qty < 1) {
+        notify.error(
+          "Invalid Quantity",
+          `Quantity for "${item.name}" must be a whole number greater than or equal to 1.`,
+        );
+        return;
+      }
+      if (qty > item.stockQuantity) {
+        notify.error(
+          "Exceeded Stock",
+          `Quantity for "${item.name}" (${qty}) exceeds available stock (${item.stockQuantity}).`,
+        );
+        return;
+      }
     }
 
     try {
@@ -940,22 +1026,63 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
                       size="small"
                       icon={<MinusOutlined />}
                       onClick={() => {
-                        if (item.quantity === 1) {
+                        if (item.quantity <= 1) {
                           removeFromCart(item.key);
                         } else {
-                          updateCartQuantity(item.key, item.quantity - 1);
+                          updateCartQuantity(
+                            item.key,
+                            (Number(item.quantity) || 1) - 1,
+                            item.stockQuantity,
+                            item.name,
+                          );
                         }
                       }}
                     />
 
-                    <span className="w-8 text-center">{item.quantity}</span>
+                    <InputNumber
+                      size="small"
+                      precision={0}
+                      value={item.quantity}
+                      controls={false}
+                      style={{ width: 52 }}
+                      className="text-center font-medium"
+                      onKeyDown={(e) => {
+                        if (["-", "+", ".", ",", "e", "E", " "].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      parser={(val) => {
+                        const digitsOnly = String(val || "").replace(/\D/g, "");
+                        return digitsOnly ? parseInt(digitsOnly, 10) : "";
+                      }}
+                      onChange={(val) =>
+                        handleDirectQuantityChange(
+                          item.key,
+                          val,
+                          item.stockQuantity,
+                          item.name,
+                        )
+                      }
+                      onBlur={() =>
+                        handleQuantityBlur(
+                          item.key,
+                          item.stockQuantity,
+                          item.name,
+                        )
+                      }
+                    />
 
                     <Button
                       size="small"
                       icon={<PlusOutlined />}
-                      disabled={item.quantity >= item.stockQuantity}
+                      disabled={Number(item.quantity) >= item.stockQuantity}
                       onClick={() =>
-                        updateCartQuantity(item.key, item.quantity + 1)
+                        updateCartQuantity(
+                          item.key,
+                          (Number(item.quantity) || 0) + 1,
+                          item.stockQuantity,
+                          item.name,
+                        )
                       }
                     />
                   </div>

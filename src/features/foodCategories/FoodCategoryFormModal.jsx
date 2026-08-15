@@ -1,6 +1,33 @@
 import React, { useEffect } from "react";
 import { Form, Input, Modal, Switch } from "antd";
 
+const validateCategoryName = () => ({
+  validator: (_, value) => {
+    const raw = String(value || "");
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      return Promise.reject(new Error("Please enter category name"));
+    }
+
+    if (trimmed.length < 2) {
+      return Promise.reject(new Error("Category name must be at least 2 characters"));
+    }
+
+    if (trimmed.length > 80) {
+      return Promise.reject(new Error("Category name cannot exceed 80 characters"));
+    }
+
+    if (!/^[\p{L}]+(?:\s+[\p{L}]+)*$/u.test(trimmed)) {
+      return Promise.reject(
+        new Error("Category name cannot contain numbers or special characters")
+      );
+    }
+
+    return Promise.resolve();
+  },
+});
+
 export default function FoodCategoryFormModal({
   open,
   mode = "create",
@@ -25,7 +52,11 @@ export default function FoodCategoryFormModal({
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    onSubmit(values);
+    onSubmit({
+      ...values,
+      name: values.name?.trim(),
+      description: values.description?.trim(),
+    });
   };
 
   return (
@@ -42,10 +73,7 @@ export default function FoodCategoryFormModal({
         <Form.Item
           name="name"
           label="Name"
-          rules={[
-            { required: true, message: "Please enter category name" },
-            { whitespace: true, message: "Category name cannot be empty" },
-          ]}
+          rules={[validateCategoryName()]}
         >
           <Input placeholder="Rice Meals" maxLength={80} showCount />
         </Form.Item>
