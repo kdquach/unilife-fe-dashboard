@@ -440,10 +440,8 @@ export default function FoodFormModal({
                   <Input
                     placeholder="Unit"
                     value={row.unit}
-                    onChange={(event) =>
-                      handleRecipeFieldChange(index, "unit", event.target.value)
-                    }
-                    className="w-full"
+                    disabled
+                    className="w-full bg-slate-50"
                   />
                 </div>
 

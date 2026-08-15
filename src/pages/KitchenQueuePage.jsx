@@ -17,7 +17,6 @@ import {
   ClockCircleOutlined,
   FieldTimeOutlined,
   PhoneOutlined,
-  ReloadOutlined,
   SearchOutlined,
   ShopOutlined,
 } from "@ant-design/icons";
@@ -244,13 +243,6 @@ export default function KitchenQueuePage() {
               disabled={!currentServing}
             >
               Call Next
-            </Button>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => fetchMonitorQueue(pagination.current, pagination.pageSize, keyword, filters)}
-              loading={loading}
-            >
-              Refresh
             </Button>
           </>
         }

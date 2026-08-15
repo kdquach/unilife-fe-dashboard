@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Space, Button, Tag } from "antd";
-import { PlusOutlined, QrcodeOutlined, ReloadOutlined } from "@ant-design/icons";
+import { PlusOutlined, QrcodeOutlined } from "@ant-design/icons";
 import PageHeader from "../components/PageHeader";
 import { COLORS } from "../features/orders/utils/orderUtils.jsx";
 import OrderFilters from "../features/orders/components/OrderFilters";
@@ -111,15 +111,6 @@ export default function OrdersPage() {
             <Tag color="success" style={{ padding: "4px 10px", borderRadius: 8, fontSize: 13 }}>
               ● Live Auto-Sync
             </Tag>
-            <Button
-              icon={<ReloadOutlined />}
-              loading={loading}
-              onClick={() =>
-                fetchOrders(pagination.current, pagination.pageSize, keyword, filters)
-              }
-            >
-              Refresh
-            </Button>
             <Button
               icon={<QrcodeOutlined />}
               style={{ color: COLORS.blue, borderColor: "#adc6ff" }}
