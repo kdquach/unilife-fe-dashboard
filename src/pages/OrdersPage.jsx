@@ -103,14 +103,14 @@ export default function OrdersPage() {
         title={
           <Space align="center">
             <span>Order Management</span>
-            <Tag color="processing" className="!m-0 text-xs">
-              ● Live Auto-Sync
-            </Tag>
           </Space>
         }
         breadcrumbs={["Dashboard", "Order Management"]}
         extra={
           <Space>
+            <Tag color="success" style={{ padding: "4px 10px", borderRadius: 8, fontSize: 13 }}>
+              ● Live Auto-Sync
+            </Tag>
             <Button
               icon={<ReloadOutlined />}
               loading={loading}

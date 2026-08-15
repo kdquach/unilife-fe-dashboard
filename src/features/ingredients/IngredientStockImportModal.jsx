@@ -39,6 +39,7 @@ export default function IngredientStockImportModal({
   const [form] = Form.useForm();
   const unit = ingredient?.unit || "unit";
   const currentStock = asNumber(ingredient?.currentStock);
+  const [showTodayWarning, setShowTodayWarning] = React.useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -155,8 +156,20 @@ export default function IngredientStockImportModal({
               current && current.endOf("day").isBefore(dayjs())
             }
             format="DD/MM/YYYY"
+            onChange={(date) => {
+              setShowTodayWarning(date && date.isSame(dayjs(), 'day'));
+            }}
           />
         </Form.Item>
+
+        {showTodayWarning && (
+          <Alert
+            className="mb-4"
+            type="warning"
+            showIcon
+            message="Warning: Expiry date is today. Items will expire today."
+          />
+        )}
 
         <Form.Item name="supplierId" label="Supplier">
           <Select
