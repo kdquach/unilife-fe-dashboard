@@ -216,7 +216,7 @@ export default function IngredientManagementPage() {
       closeFormModal();
       await fetchIngredients(formMode === "create" ? 1 : pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
-      console.error(err.message || "Unable to save ingredient");
+      notify.error(err.message || "Unable to save ingredient");
     }
   };
 
@@ -345,7 +345,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(selectedIngredient);
 
     if (!id) {
-      console.error("Ingredient ID is missing");
+      notify.error("Ingredient ID is missing");
       return;
     }
 
@@ -364,7 +364,7 @@ export default function IngredientManagementPage() {
       closeImportModal();
       await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
-      console.error(err.message || "Unable to record stock import");
+      notify.error(err.message || "Unable to record stock import");
     } finally {
       setImportingStock(false);
     }
@@ -380,7 +380,7 @@ export default function IngredientManagementPage() {
     const id = getRecordId(selectedIngredient);
 
     if (!id) {
-      console.error("Ingredient ID is missing");
+      notify.error("Ingredient ID is missing");
       return;
     }
 
@@ -404,7 +404,7 @@ export default function IngredientManagementPage() {
       closeAdjustModal();
       await fetchIngredients(pagination.current, pagination.pageSize, keyword, filters, sorter);
     } catch (err) {
-      console.error(err.message || "Stock was not changed because transaction history could not be saved");
+      notify.error(err.message || "Stock was not changed because transaction history could not be saved");
     } finally {
       setAdjusting(false);
     }
