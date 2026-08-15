@@ -696,7 +696,7 @@ export default function IngredientManagementPage() {
               <Select
                 allowClear
                 loading={categoryLoading}
-                placeholder="Category"
+                placeholder="Ingredient Category"
                 options={categoryOptions}
                 style={{ width: 180 }}
                 onChange={(value) => handleFilterChange("categoryId", value)}

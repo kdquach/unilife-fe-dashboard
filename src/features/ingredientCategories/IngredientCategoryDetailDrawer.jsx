@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Drawer,
-  Descriptions,
-  Tag,
-  Typography,
-  Timeline,
-  Spin,
-} from "antd";
+import { Drawer, Descriptions, Tag, Typography, Timeline, Spin } from "antd";
 import { AppstoreOutlined } from "@ant-design/icons";
 import { ingredientCategoryService } from "./ingredientCategoryService";
 import { formatDateTime } from "../../utils/format";
@@ -27,9 +20,7 @@ export default function IngredientCategoryDetailDrawer({
         setLoading(true);
 
         const data =
-          await ingredientCategoryService.getIngredientCategoryById(
-            categoryId
-          );
+          await ingredientCategoryService.getIngredientCategoryById(categoryId);
 
         setCategory(data);
       } catch (error) {
@@ -92,7 +83,7 @@ export default function IngredientCategoryDetailDrawer({
                 {category.id}
               </Descriptions.Item>
 
-              <Descriptions.Item label="Category Name">
+              <Descriptions.Item label=" Ingredient Category Name">
                 {category.name}
               </Descriptions.Item>
 
@@ -112,10 +103,7 @@ export default function IngredientCategoryDetailDrawer({
             </Descriptions>
 
             {/* Timeline */}
-            <Typography.Title
-              level={5}
-              className="!mt-8"
-            >
+            <Typography.Title level={5} className="!mt-8">
               Category Activity
             </Typography.Title>
 
@@ -133,8 +121,7 @@ export default function IngredientCategoryDetailDrawer({
                 },
                 {
                   color: "orange",
-                  children:
-                    "This category can be assigned to Ingredients.",
+                  children: "This category can be assigned to Ingredients.",
                 },
               ]}
             />

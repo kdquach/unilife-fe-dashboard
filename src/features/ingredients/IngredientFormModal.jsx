@@ -14,6 +14,37 @@ const normalizeText = (value) =>
     .trim()
     .replace(/\s+/g, " ");
 
+const validateIngredientName = () => ({
+  validator: (_, value) => {
+    const raw = String(value || "");
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      return Promise.reject(new Error("Ingredient name is required"));
+    }
+
+    if (trimmed.length < 2) {
+      return Promise.reject(
+        new Error("Ingredient name must be at least 2 characters"),
+      );
+    }
+
+    if (trimmed.length > 120) {
+      return Promise.reject(
+        new Error("Ingredient name must be 120 characters or less"),
+      );
+    }
+
+    if (!/^[\p{L}]+(?:\s+[\p{L}]+)*$/u.test(trimmed)) {
+      return Promise.reject(
+        new Error("Ingredient name cannot contain numbers or special characters"),
+      );
+    }
+
+    return Promise.resolve();
+  },
+});
+
 const normalizeInitialValues = (values) => ({
   categoryId:
     typeof values?.categoryId === "object"
@@ -167,26 +198,20 @@ export default function IngredientFormModal({
         <Form.Item
           name="name"
           label="Ingredient Name"
-          rules={[
-            validateBusinessText({
-              fieldLabel: "Ingredient name",
-              required: true,
-              maxLength: 120,
-            }),
-          ]}
+          rules={[validateIngredientName()]}
         >
           <Input placeholder="Example: Chicken breast" maxLength={120} showCount />
         </Form.Item>
 
         <Form.Item
           name="categoryId"
-          label="Category"
+          label="Ingredient Category"
         >
           <Select
             allowClear
             loading={categoryLoading}
             options={categoryOptions}
-            placeholder="Select category"
+            placeholder="Select ingredient category"
           />
         </Form.Item>
 

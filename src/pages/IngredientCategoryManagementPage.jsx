@@ -33,7 +33,15 @@ export default function IngredientCategoryManagementPage() {
   const [selectedId, setSelectedId] = useState(null);
 
   // Custom hook
-  const { categories, loading, saving, pagination, fetchCategories, createCategory, updateCategory } = useIngredientCategories();
+  const {
+    categories,
+    loading,
+    saving,
+    pagination,
+    fetchCategories,
+    createCategory,
+    updateCategory,
+  } = useIngredientCategories();
 
   // Initial data fetch
   useEffect(() => {
@@ -42,7 +50,8 @@ export default function IngredientCategoryManagementPage() {
 
   const stats = {
     active: categories.filter((item) => item.isActive).length,
-    inactive: categories.length - categories.filter((item) => item.isActive).length,
+    inactive:
+      categories.length - categories.filter((item) => item.isActive).length,
   };
 
   const handleSearch = (value) => {
@@ -94,7 +103,7 @@ export default function IngredientCategoryManagementPage() {
 
   const columns = [
     {
-      title: "Category Name",
+      title: " Ingredient Category Name",
       dataIndex: "name",
     },
     {
@@ -151,7 +160,11 @@ export default function IngredientCategoryManagementPage() {
               icon={<ReloadOutlined />}
               loading={loading}
               onClick={() =>
-                fetchCategories(pagination.current, pagination.pageSize, keyword)
+                fetchCategories(
+                  pagination.current,
+                  pagination.pageSize,
+                  keyword,
+                )
               }
             >
               Refresh
@@ -161,7 +174,7 @@ export default function IngredientCategoryManagementPage() {
               icon={<PlusOutlined />}
               onClick={openCreateModal}
             >
-              Create Category
+              Create Ingredient Category
             </Button>
           </Space>
         }
@@ -180,7 +193,10 @@ export default function IngredientCategoryManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-slate-500">Categories</div>
-              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.orange }}>
+              <div
+                className="mt-1 text-2xl font-bold"
+                style={{ color: COLORS.orange }}
+              >
                 {categories.length}
               </div>
             </div>
@@ -214,7 +230,10 @@ export default function IngredientCategoryManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-slate-500">Active</div>
-              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.green }}>
+              <div
+                className="mt-1 text-2xl font-bold"
+                style={{ color: COLORS.green }}
+              >
                 {stats.active}
               </div>
             </div>
@@ -248,7 +267,10 @@ export default function IngredientCategoryManagementPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm text-slate-500">Inactive</div>
-              <div className="mt-1 text-2xl font-bold" style={{ color: COLORS.red }}>
+              <div
+                className="mt-1 text-2xl font-bold"
+                style={{ color: COLORS.red }}
+              >
                 {stats.inactive}
               </div>
             </div>
@@ -273,7 +295,10 @@ export default function IngredientCategoryManagementPage() {
 
       <Card
         title="Ingredient Categories"
-        style={{ borderRadius: 14, boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)" }}
+        style={{
+          borderRadius: 14,
+          boxShadow: "0 2px 10px rgba(20, 20, 43, 0.05)",
+        }}
         extra={
           <Space wrap>
             <Search

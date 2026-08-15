@@ -1,6 +1,95 @@
 import React, { useEffect } from "react";
 import { Form, Input, Modal, Switch } from "antd";
 
+const validateSupplierName = () => ({
+  validator: (_, value) => {
+    const raw = String(value || "");
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      return Promise.reject(new Error("Please enter supplier name"));
+    }
+
+    if (trimmed.length < 2) {
+      return Promise.reject(
+        new Error("Supplier name must be at least 2 characters")
+      );
+    }
+
+    if (trimmed.length > 120) {
+      return Promise.reject(
+        new Error("Supplier name must not exceed 120 characters")
+      );
+    }
+
+    if (!/^[\p{L}\p{N}]+(?:\s+[\p{L}\p{N}]+)*$/u.test(trimmed)) {
+      return Promise.reject(
+        new Error("Supplier name cannot contain special characters")
+      );
+    }
+
+    return Promise.resolve();
+  },
+});
+
+const validateContactName = () => ({
+  validator: (_, value) => {
+    const raw = String(value || "");
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      return Promise.reject(new Error("Please enter contact person name"));
+    }
+
+    if (trimmed.length < 2) {
+      return Promise.reject(
+        new Error("Contact person name must be at least 2 characters")
+      );
+    }
+
+    if (trimmed.length > 80) {
+      return Promise.reject(
+        new Error("Contact person name must not exceed 80 characters")
+      );
+    }
+
+    if (!/^[\p{L}]+(?:\s+[\p{L}]+)*$/u.test(trimmed)) {
+      return Promise.reject(
+        new Error("Contact person name cannot contain numbers or special characters")
+      );
+    }
+
+    return Promise.resolve();
+  },
+});
+
+const validatePhone = () => ({
+  validator: (_, value) => {
+    const raw = String(value || "");
+    const phone = raw.trim();
+
+    if (!phone) {
+      return Promise.reject(new Error("Please enter phone number"));
+    }
+
+    if (!/^\d+$/.test(phone)) {
+      return Promise.reject(new Error("Phone number must contain digits only"));
+    }
+
+    if (phone.length !== 10) {
+      return Promise.reject(new Error("Phone number must be exactly 10 digits"));
+    }
+
+    if (!/^(03|05|07|08|09)\d{8}$/.test(phone)) {
+      return Promise.reject(
+        new Error("Phone number must be a valid Vietnamese mobile number (starting with 03, 05, 07, 08, 09)")
+      );
+    }
+
+    return Promise.resolve();
+  },
+});
+
 export default function SupplierFormModal({
   open,
   mode = "create",
@@ -28,7 +117,14 @@ export default function SupplierFormModal({
 
   const handleOk = async () => {
     const values = await form.validateFields();
-    onSubmit(values);
+    onSubmit({
+      ...values,
+      name: values.name?.trim(),
+      contactName: values.contactName?.trim(),
+      phone: values.phone?.trim(),
+      address: values.address?.trim(),
+      note: values.note?.trim(),
+    });
   };
 
   return (
@@ -48,41 +144,26 @@ export default function SupplierFormModal({
         <Form.Item
           name="name"
           label="Supplier Name"
-          rules={[
-            { required: true, message: "Please enter supplier name" },
-            { whitespace: true, message: "Supplier name cannot be empty" },
-            { min: 2, message: "Supplier name must be at least 2 characters" },
-            { max: 120, message: "Supplier name must not exceed 120 characters" },
-          ]}
+          rules={[validateSupplierName()]}
         >
-          <Input placeholder="e.g. Fresh Farm Co." maxLength={120} />
+          <Input placeholder="e.g. Fresh Farm Co." maxLength={120} showCount />
         </Form.Item>
 
         <Form.Item
           name="contactName"
           label="Contact Person"
-          rules={[
-            {
-              pattern: /^[\p{L}\s'.,-]{2,80}$/u,
-              message: "Contact name must contain only letters, spaces and basic punctuation",
-            },
-          ]}
+          rules={[validateContactName()]}
         >
-          <Input placeholder="e.g. Nguyen Van A" maxLength={80} />
+          <Input placeholder="e.g. Nguyen Van A" maxLength={80} showCount />
         </Form.Item>
 
         <Form.Item
           name="phone"
           label="Phone Number"
           normalize={(value) => (value ? value.replace(/\D/g, "") : "")}
-          rules={[
-            {
-              pattern: /^[0-9]{9,15}$/,
-              message: "Phone number must contain 9-15 digits",
-            },
-          ]}
+          rules={[validatePhone()]}
         >
-          <Input placeholder="e.g. 0901234567" maxLength={15} />
+          <Input placeholder="e.g. 0901234567" maxLength={10} showCount />
         </Form.Item>
 
         <Form.Item name="address" label="Address">

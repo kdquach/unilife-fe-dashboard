@@ -177,7 +177,7 @@ export default function IngredientDetailDrawer({ open, ingredientId, onClose }) 
             <Descriptions.Item label="Ingredient Name">
               {ingredient.name || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="Category">
+            <Descriptions.Item label="Ingredient Category">
               {getCategoryName(ingredient.categoryId)}
             </Descriptions.Item>
             <Descriptions.Item label="Unit">

@@ -24,6 +24,33 @@ const normalizeText = (value) =>
     .trim()
     .replace(/\s+/g, " ");
 
+const validateFoodName = () => ({
+  validator: (_, value) => {
+    const raw = String(value || "");
+    const trimmed = raw.trim();
+
+    if (!trimmed) {
+      return Promise.reject(new Error("Food name is required"));
+    }
+
+    if (trimmed.length < 2) {
+      return Promise.reject(new Error("Food name must be at least 2 characters"));
+    }
+
+    if (trimmed.length > 100) {
+      return Promise.reject(new Error("Food name must be 100 characters or less"));
+    }
+
+    if (!/^[\p{L}\p{N}]+(?:\s+[\p{L}\p{N}]+)*$/u.test(trimmed)) {
+      return Promise.reject(
+        new Error("Food name cannot contain special characters")
+      );
+    }
+
+    return Promise.resolve();
+  },
+});
+
 const toId = (value) => {
   if (!value) return undefined;
 
@@ -258,20 +285,7 @@ export default function FoodFormModal({
             <Form.Item
               name="name"
               label="Food Name"
-              rules={[
-    {
-      required: true,
-      message: "Food name is required",
-    },
-    {
-      min: 2,
-      message: "Food name must be at least 2 characters",
-    },
-    {
-      max: 100,
-      message: "Food name must be 100 characters or less",
-    },
-  ]}
+              rules={[validateFoodName()]}
             >
               <Input placeholder="Example: Grilled chicken rice" maxLength={100} />
             </Form.Item>
