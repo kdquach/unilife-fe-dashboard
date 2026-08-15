@@ -334,7 +334,7 @@ export default function DashboardPage() {
 
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card className="dashboard-card" styles={{ body: { padding: 20 } }}>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm text-slate-500">Active Accounts</div>
                 <div className="mt-1 text-3xl font-black text-emerald-600">
@@ -345,13 +345,10 @@ export default function DashboardPage() {
                 <CheckCircleOutlined />
               </div>
             </div>
-            <div className="mt-4 text-sm text-slate-500">
-              Accounts currently available for operations.
-            </div>
           </Card>
 
           <Card className="dashboard-card" styles={{ body: { padding: 20 } }}>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm text-slate-500">Inactive Accounts</div>
                 <div className="mt-1 text-3xl font-black text-rose-500">
@@ -362,13 +359,10 @@ export default function DashboardPage() {
                 <WarningOutlined />
               </div>
             </div>
-            <div className="mt-4 text-sm text-slate-500">
-              Live count from the users API.
-            </div>
           </Card>
 
           <Card className="dashboard-card" styles={{ body: { padding: 20 } }}>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm text-slate-500">Staff Members</div>
                 <div className="mt-1 text-3xl font-black text-unilife">
@@ -379,13 +373,10 @@ export default function DashboardPage() {
                 <UserSwitchOutlined />
               </div>
             </div>
-            <div className="mt-4 text-sm text-slate-500">
-              Admin, manager, counter, and kitchen staff combined.
-            </div>
           </Card>
 
           <Card className="dashboard-card" styles={{ body: { padding: 20 } }}>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="text-sm text-slate-500">Orders Today</div>
                 <div className="mt-1 text-3xl font-black text-slate-900">
@@ -395,9 +386,6 @@ export default function DashboardPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-xl text-slate-700">
                 <ShoppingCartOutlined />
               </div>
-            </div>
-            <div className="mt-4 text-sm text-slate-500">
-              Total order records available from the live API.
             </div>
           </Card>
         </section>
