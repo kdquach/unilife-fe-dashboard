@@ -152,8 +152,8 @@ export default function ProfilePage() {
 
     if (!isFile) return;
 
-    const previewUrl = URL.createObjectURL(rawFile);
-    const tempImg = new Image();
+    const previewUrl = window.URL.createObjectURL(rawFile);
+    const tempImg = new window.Image();
     tempImg.onload = () => {
       setImageDimensions({ width: tempImg.naturalWidth, height: tempImg.naturalHeight });
       setSelectedImageSrc(previewUrl);
