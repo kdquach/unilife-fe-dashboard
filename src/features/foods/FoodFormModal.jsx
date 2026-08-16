@@ -230,13 +230,15 @@ export default function FoodFormModal({
     const values = await form.validateFields();
     const nextIsMenuItem = Boolean(values.isMenuItem);
     const imageFile = values.imageFile?.[0]?.originFileObj;
-    const recipeItems = recipeRows
-      .filter((item) => item?.ingredientId)
-      .map((item) => ({
-        ingredientId: item.ingredientId,
-        quantityPerServing: Number(item.quantityPerServing || 0),
-        unit: normalizeText(item.unit),
-      }));
+    const recipeItems = nextIsMenuItem
+      ? recipeRows
+          .filter((item) => item?.ingredientId)
+          .map((item) => ({
+            ingredientId: item.ingredientId,
+            quantityPerServing: Number(item.quantityPerServing || 0),
+            unit: normalizeText(item.unit),
+          }))
+      : [];
 
     await onSubmit({
       ...values,
@@ -401,88 +403,93 @@ export default function FoodFormModal({
           </Col>
         </Row>
 
-        <Divider className="my-6" />
+        {isMenuItem && (
+          <>
+            <Divider className="my-6" />
 
-        <div className="flex items-center justify-between mb-4">
-          <Typography.Title level={5} className="!mb-0 !font-bold text-slate-800">
-            Recipe Ingredients
-          </Typography.Title>
-          <span className="text-xs text-slate-400">
-            Configure raw ingredients required per serving
-          </span>
-        </div>
-
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4">
-          {recipeRows.length === 0 ? (
-            <div className="text-center py-6 text-slate-400 text-sm">
-              No ingredients added yet. Click "Add Ingredient" below.
+            <div className="flex items-center justify-between mb-4">
+              <Typography.Title level={5} className="!mb-0 !font-bold text-slate-800">
+                Recipe Ingredients
+              </Typography.Title>
+              <span className="text-xs text-slate-400">
+                Configure raw ingredients required per serving
+              </span>
             </div>
-          ) : (
-            recipeRows.map((row, index) => (
-              <div
-                key={row.rowKey || `${row.ingredientId || "ingredient"}-${index}`}
-                className="grid grid-cols-12 gap-3 mb-3 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm transition-all hover:shadow-md"
+
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4">
+              {recipeRows.length === 0 ? (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  No ingredients added yet. Click &quot;Add Ingredient&quot; below.
+                </div>
+              ) : (
+                recipeRows.map((row, index) => (
+                  <div
+                    key={row.rowKey || `${row.ingredientId || "ingredient"}-${index}`}
+                    className="grid grid-cols-12 gap-3 mb-3 items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm transition-all hover:shadow-md"
+                  >
+                    <div className="col-span-12 md:col-span-6">
+                      <Select
+                        showSearch
+                        loading={ingredientLoading}
+                        options={ingredientOptions}
+                        optionFilterProp="label"
+                        placeholder="Select Ingredient"
+                        value={row.ingredientId}
+                        onChange={(value) => handleIngredientChange(index, value)}
+                        className="w-full text-base"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div className="col-span-6 md:col-span-3">
+                      <InputNumber
+                        min={0.001}
+                        precision={3}
+                        step={0.001}
+                        placeholder="Quantity"
+                        value={row.quantityPerServing}
+                        onChange={(value) =>
+                          handleRecipeFieldChange(index, "quantityPerServing", value)
+                        }
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="col-span-4 md:col-span-2">
+                      <Input
+                        placeholder="Unit"
+                        value={row.unit}
+                        disabled
+                        className="w-full bg-slate-50"
+                      />
+                    </div>
+
+                    <div className="col-span-2 md:col-span-1 text-right md:text-center">
+                      <Button
+                        danger
+                        type="text"
+                        shape="circle"
+                        icon={<MinusCircleOutlined className="text-lg" />}
+                        onClick={() => removeRecipeRow(index)}
+                        className="hover:bg-red-50 flex items-center justify-center m-auto"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={addRecipeRow}
+                block
+                className="h-10 mt-2 border-dashed border-slate-300 text-slate-600 hover:text-blue-500 hover:border-blue-500 rounded-xl"
               >
-                <div className="col-span-12 md:col-span-6">
-                  <Select
-                    showSearch
-                    loading={ingredientLoading}
-                    options={ingredientOptions}
-                    optionFilterProp="label"
-                    placeholder="Select Ingredient"
-                    value={row.ingredientId}
-                    onChange={(value) => handleIngredientChange(index, value)}
-                    className="w-full text-base"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div className="col-span-6 md:col-span-3">
-                  <InputNumber
-                    min={0.01}
-                    precision={2}
-                    placeholder="Quantity"
-                    value={row.quantityPerServing}
-                    onChange={(value) =>
-                      handleRecipeFieldChange(index, "quantityPerServing", value)
-                    }
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="col-span-4 md:col-span-2">
-                  <Input
-                    placeholder="Unit"
-                    value={row.unit}
-                    disabled
-                    className="w-full bg-slate-50"
-                  />
-                </div>
-
-                <div className="col-span-2 md:col-span-1 text-right md:text-center">
-                  <Button
-                    danger
-                    type="text"
-                    shape="circle"
-                    icon={<MinusCircleOutlined className="text-lg" />}
-                    onClick={() => removeRecipeRow(index)}
-                    className="hover:bg-red-50 flex items-center justify-center m-auto"
-                  />
-                </div>
-              </div>
-            ))
-          )}
-
-          <Button
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={addRecipeRow}
-            block
-            className="h-10 mt-2 border-dashed border-slate-300 text-slate-600 hover:text-blue-500 hover:border-blue-500 rounded-xl"
-          >
-            Add Ingredient
-          </Button>
-        </div>
+                Add Ingredient
+              </Button>
+            </div>
+          </>
+        )}
       </Form>
     </Modal>
   );
