@@ -8,15 +8,15 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const COLORS = [
-  "#1677ff",
-  "#52c41a",
-  "#faad14",
-  "#ff4d4f",
-  "#722ed1",
-  "#13c2c2",
-  "#eb2f96",
-];
+const STATUS_COLORS = {
+  Cancelled: "#ff4d4f",      // Đỏ
+  Completed: "#52c41a",      // Xanh lá
+  Preparing: "#722ed1",     // Tím
+  Confirmed: "#1677ff",     // Xanh dương
+  Pending: "#faad14",        // Vàng
+  Delivered: "#13c2c2",     // Xanh cyan
+  Default: "#eb2f96",        // Mặc định hồng
+};
 
 export default function OrderStatisticsPieChart({
   data = [],
@@ -27,6 +27,24 @@ export default function OrderStatisticsPieChart({
     name: item.status,
     value: item.orders,
   }));
+
+  const getColorForStatus = (status) => {
+    // Case-insensitive matching
+    const normalizedStatus = status?.toLowerCase();
+    const statusLowerMap = {
+      cancelled: "#ff4d4f",         // Đỏ
+      completed: "#52c41a",         // Xanh lá
+      preparing: "#722ed1",        // Tím
+      confirmed: "#1677ff",         // Xanh dương
+      pending: "#faad14",           // Vàng
+      pending_payment: "#fa8c16",  // Cam đậm
+      expired: "#d9d9d9",          // Xám
+      paid: "#13c2c2",             // Xanh cyan
+      refund_pending: "#eb2f96",    // Hồng
+    };
+    
+    return statusLowerMap[normalizedStatus] || "#8c8c8c";
+  };
 
   return (
     <ResponsiveContainer width="100%" height={420}>
@@ -46,10 +64,10 @@ export default function OrderStatisticsPieChart({
             onSliceClick?.(item.payload);
           }}
         >
-          {chartData.map((_, index) => (
+          {chartData.map((entry, index) => (
             <Cell
               key={index}
-              fill={COLORS[index % COLORS.length]}
+              fill={getColorForStatus(entry.status)}
             />
           ))}
         </Pie>
