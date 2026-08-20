@@ -28,10 +28,13 @@ export default function OrdersPage() {
 
   const { orders, loading, pagination, fetchOrders } = useOrders();
 
-  // Initial data fetch and realtime auto-sync
+  // Initial data fetch
   useEffect(() => {
     fetchOrders(1, 10, "", filters);
+  }, [filters]); // Only re-fetch when filters change
 
+  // Realtime auto-sync
+  useEffect(() => {
     let isFetching = false;
     const interval = window.setInterval(() => {
       if (document.visibilityState === "visible" && !isFetching) {
