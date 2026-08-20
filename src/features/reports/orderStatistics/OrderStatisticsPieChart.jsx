@@ -29,18 +29,15 @@ export default function OrderStatisticsPieChart({
   }));
 
   const getColorForStatus = (status) => {
-    // Case-insensitive matching
+    // Case-insensitive matching based on order flow:
+    // PENDING_PAYMENT → CONFIRMED → PREPARING → COMPLETED or CANCELLED
     const normalizedStatus = status?.toLowerCase();
     const statusLowerMap = {
       cancelled: "#ff4d4f",         // Đỏ
       completed: "#52c41a",         // Xanh lá
       preparing: "#722ed1",        // Tím
       confirmed: "#1677ff",         // Xanh dương
-      pending: "#faad14",           // Vàng
-      pending_payment: "#fa8c16",  // Cam đậm
-      expired: "#d9d9d9",          // Xám
-      paid: "#13c2c2",             // Xanh cyan
-      refund_pending: "#eb2f96",    // Hồng
+      pending_payment: "#faad14",   // Vàng
     };
     
     return statusLowerMap[normalizedStatus] || "#8c8c8c";
