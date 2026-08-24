@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import {
   Alert,
-  DatePicker,
   Form,
   Input,
   InputNumber,
@@ -11,7 +10,6 @@ import {
   Space,
   Typography,
 } from "antd";
-import dayjs from "dayjs";
 
 import { formatDate } from "../../utils/format";
 
@@ -41,13 +39,6 @@ const getCreatedSortValue = (batch) => {
   return Number.isFinite(createdTime) ? createdTime : Number.MAX_SAFE_INTEGER;
 };
 
-const getDateKey = (value) => {
-  if (!value) return "";
-
-  const date = dayjs(value);
-  return date.isValid() ? date.format("YYYY-MM-DD") : "";
-};
-
 export default function IngredientStockAdjustModal({
   open,
   ingredient,
@@ -72,11 +63,16 @@ export default function IngredientStockAdjustModal({
     form.setFieldsValue({
       adjustmentType: ADJUSTMENT_TYPES.INCREASE,
       batchId: undefined,
-      expiryDate: undefined,
       quantity: 1,
       reason: "",
     });
   }, [form, open, ingredient]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    form.setFieldValue("batchId", undefined);
+  }, [adjustmentType, form, open]);
 
   const stockAfter = useMemo(() => {
     const value = asNumber(quantity);
@@ -92,8 +88,7 @@ export default function IngredientStockAdjustModal({
     return currentStock + value;
   }, [adjustmentType, currentStock, quantity]);
 
-  const batchOptions = batches
-    .filter((batch) => asNumber(batch.remainingQuantity) > 0)
+  const sortedBatches = [...batches]
     .sort((a, b) => {
       const aExpiry = getExpirySortValue(a);
       const bExpiry = getExpirySortValue(b);
@@ -104,7 +99,18 @@ export default function IngredientStockAdjustModal({
       if (aCreated !== bCreated) return aCreated - bCreated;
 
       return String(a._id).localeCompare(String(b._id));
-    })
+    });
+
+  const addBatchOptions = sortedBatches
+    .map((batch) => ({
+      label: `${formatDate(batch.expiryDate)} - ${asNumber(
+        batch.remainingQuantity,
+      )} ${unit} left`,
+      value: batch._id,
+    }));
+
+  const removeBatchOptions = sortedBatches
+    .filter((batch) => asNumber(batch.remainingQuantity) > 0)
     .map((batch) => ({
       label: `${formatDate(batch.expiryDate)} - ${asNumber(
         batch.remainingQuantity,
@@ -236,44 +242,23 @@ export default function IngredientStockAdjustModal({
         </Form.Item>
 
         {adjustmentType === ADJUSTMENT_TYPES.INCREASE && (
-          <>
-            <Form.Item
-              name="expiryDate"
-              label="Expiry Date"
-              rules={[
-                {
-                  required: true,
-                  message: "Please choose expiry date for the new batch",
-                },
-                {
-                  validator: (_, value) => {
-                    if (!value) return Promise.resolve();
-
-                    const selectedDate = getDateKey(value);
-                    const duplicateBatch = batches.some(
-                      (batch) => getDateKey(batch.expiryDate) === selectedDate,
-                    );
-
-                    if (duplicateBatch) {
-                      return Promise.reject(
-                        new Error("A batch with this expiry date already exists"),
-                      );
-                    }
-
-                    return Promise.resolve();
-                  },
-                },
-              ]}
-            >
-              <DatePicker
-                className="w-full"
-                disabledDate={(current) =>
-                  current && current.endOf("day").isBefore(dayjs())
-                }
-                format="DD/MM/YYYY"
-              />
-            </Form.Item>
-          </>
+          <Form.Item
+            name="batchId"
+            label="Batch"
+            extra="Choose the existing batch that receives this added stock. Use Record Stock Import to create a new batch."
+            rules={[
+              {
+                required: true,
+                message: "Please choose the batch to add stock into",
+              },
+            ]}
+          >
+            <Select
+              loading={batchLoading}
+              options={addBatchOptions}
+              placeholder="Select batch"
+            />
+          </Form.Item>
         )}
 
         {adjustmentType === ADJUSTMENT_TYPES.DECREASE && (
@@ -285,7 +270,7 @@ export default function IngredientStockAdjustModal({
             <Select
               allowClear
               loading={batchLoading}
-              options={batchOptions}
+              options={removeBatchOptions}
               placeholder="Auto by expiry date"
             />
           </Form.Item>
