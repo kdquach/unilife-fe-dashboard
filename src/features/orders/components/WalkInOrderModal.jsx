@@ -432,12 +432,14 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
         setCreatedOrder(newOrder);
         setPolling(true);
       } else {
-        // For CASH payments, automatically set status to COMPLETED for walk-in orders
+        // For CASH payments, automatically set status to PREPARING and add to queue for walk-in orders
         const orderId = newOrder._id || newOrder.id;
         try {
-          await orderService.updateOrder(orderId, { status: "COMPLETED" });
+          await orderService.updateOrder(orderId, { status: "PREPARING" });
+          // Add to queue automatically
+          await orderService.scanPickupQr({ orderCode: newOrder.orderCode });
         } catch (updateErr) {
-          console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+          console.error("Failed to update walk-in order status to PREPARING or add to queue", updateErr);
         }
         onClose();
         onSuccess();
@@ -536,9 +538,13 @@ export default function WalkInOrderModal({ open, onClose, onSuccess }) {
               setPolling(false);
               if (intervalId) window.clearInterval(intervalId);
 
-              if (order.isWalkIn && order.status !== "COMPLETED") {
-                orderService.updateOrder(order._id || order.id, { status: "COMPLETED" }).catch((updateErr) => {
-                  console.error("Failed to update walk-in order status to COMPLETED", updateErr);
+              if (order.isWalkIn && order.status !== "PREPARING") {
+                orderService.updateOrder(order._id || order.id, { status: "PREPARING" }).catch((updateErr) => {
+                  console.error("Failed to update walk-in order status to PREPARING", updateErr);
+                });
+                // Add to queue automatically
+                orderService.scanPickupQr({ orderCode: order.orderCode }).catch((scanErr) => {
+                  console.error("Failed to add walk-in order to queue", scanErr);
                 });
               }
 
