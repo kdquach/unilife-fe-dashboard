@@ -48,6 +48,36 @@ const CustomTooltip = ({ active, payload }) => {
 export default function PopularFoodBarChart({ data = [] }) {
   const chartData = [...data].sort((a, b) => b.totalSold - a.totalSold);
 
+  // Function to truncate long food names
+  const truncateName = (name, maxLength = 20) => {
+    if (!name || name.length <= maxLength) return name;
+    return name.substring(0, maxLength) + '...';
+  };
+
+  // Custom label component that can handle long names better
+  const CustomXAxisLabel = ({ x, y, payload }) => {
+    const name = payload.value;
+    if (!name) return null;
+    
+    // If name is short, display normally
+    if (name.length <= 15) {
+      return (
+        <text x={x} y={y + 12} textAnchor="end" fill="#666" fontSize={11} transform={`rotate(-30, ${x}, ${y + 12})`}>
+          {name}
+        </text>
+      );
+    }
+    
+    // If name is long, display first 15 characters + ...
+    const displayName = name.substring(0, 15) + '...';
+    
+    return (
+      <text x={x} y={y + 12} textAnchor="end" fill="#666" fontSize={11} transform={`rotate(-30, ${x}, ${y + 12})`}>
+        {displayName}
+      </text>
+    );
+  };
+
   return (
     <ResponsiveContainer width="100%" height={380}>
       <BarChart
@@ -56,13 +86,18 @@ export default function PopularFoodBarChart({ data = [] }) {
           top: 20,
           right: 20,
           left: 0,
-          bottom: 20,
+          bottom: 10, // Reduced bottom margin
         }}
         barCategoryGap="35%"
       >
         <CartesianGrid strokeDasharray="3 3" />
 
-        <XAxis dataKey="foodName" interval={0} />
+        <XAxis 
+          dataKey="foodName" 
+          interval={0}
+          tick={<CustomXAxisLabel />}
+          height={60}
+        />
 
         <YAxis />
 
