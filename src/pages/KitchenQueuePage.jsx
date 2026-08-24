@@ -40,6 +40,7 @@ const orderStatusColors = {
   PENDING_PAYMENT: "orange",
   PAID: "green",
   CONFIRMED: "blue",
+  PREPARING: "purple",
   READY_FOR_PICKUP: "cyan",
   COMPLETED: "green",
   CANCELLED: "red",
@@ -213,8 +214,10 @@ export default function KitchenQueuePage() {
     },
     {
       title: "Status",
-      dataIndex: "status",
-      render: (value) => renderTag(value, queueStatusColors),
+      render: (_, record) => {
+        const order = getOrder(record);
+        return renderTag(order.status, orderStatusColors);
+      },
     },
     {
       title: "Scanned At",
@@ -303,7 +306,7 @@ export default function KitchenQueuePage() {
                   #{currentServing.queueNumber}
                 </div>
                 <div className="mt-3">
-                  {renderTag(currentServing.status, queueStatusColors)}
+                  {renderTag(servingOrder.status, orderStatusColors)}
                 </div>
               </div>
 
