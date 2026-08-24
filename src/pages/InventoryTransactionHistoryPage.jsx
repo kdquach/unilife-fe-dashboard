@@ -74,6 +74,19 @@ const asNumber = (value) => {
   return Number.isFinite(numberValue) ? numberValue : 0;
 };
 
+const formatStockNumber = (value) => {
+  if (value === null || value === undefined || value === "") return "-";
+
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue)) return String(value);
+
+  const roundedValue = Math.round((numberValue + Number.EPSILON) * 100) / 100;
+
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 2,
+  }).format(roundedValue);
+};
+
 const getTypeColor = (type) => {
   if (type === "STOCK_IMPORT" || type === "STOCK_IN") return "green";
   if (type === "STOCK_OUT" || type === "MENU_USAGE") return "red";
@@ -327,7 +340,7 @@ export default function InventoryTransactionHistoryPage() {
         return (
           <Typography.Text type={getQuantityTextType(record, quantity)}>
             {sign}
-            {quantity} {record.unit || record.ingredientId?.unit || ""}
+            {formatStockNumber(quantity)} {record.unit || record.ingredientId?.unit || ""}
           </Typography.Text>
         );
       },
@@ -337,7 +350,7 @@ export default function InventoryTransactionHistoryPage() {
       width: 140,
       render: (_, record) => (
         <span>
-          {record.stockBefore ?? "-"} {" -> "} {record.stockAfter ?? "-"}
+          {formatStockNumber(record.stockBefore)} {" -> "} {formatStockNumber(record.stockAfter)}
         </span>
       ),
     },
@@ -644,20 +657,20 @@ export default function InventoryTransactionHistoryPage() {
               {getIngredientName(detail.ingredientId)}
             </Descriptions.Item>
             <Descriptions.Item label="Quantity">
-              {detail.quantity ?? "-"}{" "}
+              {formatStockNumber(detail.quantity)}{" "}
               {detail.unit || detail.ingredientId?.unit || ""}
             </Descriptions.Item>
             <Descriptions.Item label="Stock Before">
-              {detail.stockBefore ?? "-"}
+              {formatStockNumber(detail.stockBefore)}
             </Descriptions.Item>
             <Descriptions.Item label="Stock After">
-              {detail.stockAfter ?? "-"}
+              {formatStockNumber(detail.stockAfter)}
             </Descriptions.Item>
             <Descriptions.Item label="Batch Expiry">
               {formatDate(detail.batchId?.expiryDate)}
             </Descriptions.Item>
             <Descriptions.Item label="Batch Remaining">
-              {detail.batchId?.remainingQuantity ?? "-"}
+              {formatStockNumber(detail.batchId?.remainingQuantity)}
             </Descriptions.Item>
             <Descriptions.Item label="Updated By">
               {getUserName(detail.adjustedBy)}
@@ -682,7 +695,7 @@ export default function InventoryTransactionHistoryPage() {
                   {detailMetadata.servingCount ?? "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Quantity Per Serving">
-                  {detailMetadata.quantityPerServing ?? "-"}{" "}
+                  {formatStockNumber(detailMetadata.quantityPerServing)}{" "}
                   {detail.unit || detail.ingredientId?.unit || ""}
                 </Descriptions.Item>
               </>
@@ -699,7 +712,7 @@ export default function InventoryTransactionHistoryPage() {
                   {deletedIngredient.storageType || "-"}
                 </Descriptions.Item>
                 <Descriptions.Item label="Stock At Delete">
-                  {deletedIngredient.currentStock ?? detail.stockBefore ?? "-"}
+                  {formatStockNumber(deletedIngredient.currentStock ?? detail.stockBefore)}
                 </Descriptions.Item>
               </>
             )}

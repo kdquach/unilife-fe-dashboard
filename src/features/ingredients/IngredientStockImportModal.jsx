@@ -16,6 +16,16 @@ const asNumber = (value) => {
   return Number.isFinite(numberValue) ? numberValue : 0;
 };
 
+const MIN_UNIT_PRICE = 1000;
+
+const formatCurrencyInput = (value) => {
+  if (value === undefined || value === null || value === "") return "";
+
+  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const parseCurrencyInput = (value) => String(value || "").replace(/\D/g, "");
+
 const hasBatchWithExpiryDate = (batches, expiryDate) => {
   if (!expiryDate) return false;
 
@@ -68,6 +78,7 @@ export default function IngredientStockImportModal({
     await onSubmit({
       ...values,
       quantity: asNumber(values.quantity),
+      unitPrice: asNumber(values.unitPrice),
       expiryDate: values.expiryDate?.format("YYYY-MM-DD"),
       reason: values.reason.trim(),
     });
@@ -189,9 +200,21 @@ export default function IngredientStockImportModal({
               validator: (_, value) => {
                 const numberValue = Number(value);
 
-                if (!Number.isFinite(numberValue) || numberValue <= 0) {
+                if (!Number.isFinite(numberValue)) {
                   return Promise.reject(
-                    new Error("Unit price must be greater than zero"),
+                    new Error("Unit price must be a valid amount"),
+                  );
+                }
+
+                if (numberValue < MIN_UNIT_PRICE) {
+                  return Promise.reject(
+                    new Error("Unit price must be at least 1,000 VND"),
+                  );
+                }
+
+                if (!Number.isInteger(numberValue)) {
+                  return Promise.reject(
+                    new Error("Unit price must be a whole VND amount"),
                   );
                 }
 
@@ -202,9 +225,13 @@ export default function IngredientStockImportModal({
         >
           <InputNumber
             className="w-full"
-            min={0.01}
-            precision={2}
-            placeholder="Enter unit price"
+            addonAfter="VND"
+            formatter={formatCurrencyInput}
+            min={MIN_UNIT_PRICE}
+            parser={parseCurrencyInput}
+            placeholder="Enter unit price in VND"
+            precision={0}
+            step={1000}
           />
         </Form.Item>
 
